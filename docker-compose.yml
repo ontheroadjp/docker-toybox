@@ -18,7 +18,7 @@ web:
 
 # WordPress
 wp:
-    image: nuts/wp
+    image: wordpress
     links:
         - db:mysql
     environment:

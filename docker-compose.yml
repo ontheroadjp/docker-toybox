@@ -86,16 +86,20 @@ controller:
     environment:
         - VIRTUAL_HOST=shipyard.nuts.jp
     ports:
-        - "8080:8080"
+        - "8080"
 
 # fluentd
 fluentd-ui:
     image: minimum2scp/fluentd-ui 
+    environment:
+        - VIRTUAL_HOST=fluentd.nuts.jp
     ports:
         - "24224"
 
 # growthforecast
 growthforecast:
     image: kazeburo/growthforecast
+    environment:
+        - VIRTUAL_HOST=growthforecast.nuts.jp
     ports:
         - "5125"

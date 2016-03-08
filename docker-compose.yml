@@ -66,17 +66,17 @@ swarm:
     ports:
         - "2375"
 media:
-    build: src/shipyard/Dockerfile
-    dockerfile: src/shipyard/Dockerfile.build
+    build: src/shipyard/
     entrypoint: /bin/bash
+    dockerfile: Dockerfile.build
     command: -c "make media && sleep infinity"
     working_dir: /go/src/github.com/shipyard/shipyard
     volumes:
-        - "/go/src/github.com/shipyard/shipyard/controller/static"
+        - ".go/src/github.com/shipyard/shipyard/controller/static"
 controller:
-    build: src/shipyard/Dockerfile.
-    dockerfile: src/shipyard/Dockerfile.build
+    build: src/shipyard/
     entrypoint: /bin/bash
+    dockerfile: Dockerfile.build
     command: -c "make build && cd controller && ./controller -D server --rethinkdb-addr rethinkdb:28015 -d tcp://swarm:2375"
     links:
         - rethinkdb
@@ -87,3 +87,15 @@ controller:
         - VIRTUAL_HOST=shipyard.nuts.jp
     ports:
         - "8080:8080"
+
+# fluentd
+fluentd-ui:
+    image: minimum2scp/fluentd-ui 
+    ports:
+        - "24224"
+
+# growthforecast
+growthforecast:
+    image: kazeburo/growthforecast
+    ports:
+        - "5125"

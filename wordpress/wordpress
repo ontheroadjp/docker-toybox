@@ -1,0 +1,146 @@
+#!/bin/bash
+
+name=`basename $0`
+version=0.1.0
+
+db_name=wordpress
+db_user=wordpress
+db_user_pass=wordpress
+
+function _version() { 
+    echo $version 
+}
+
+function _help() { 
+    usage 
+}
+
+function usage() {
+  cat <<-EOF
+Usage: ${name} <command>
+
+command:
+    init        Create docker-compose.yml and data directory
+    start       Start ${name} containers
+    stop        Stop ${name} containers
+    state       Show ${name} containers status
+    crear       Stop and Remove all of ${name} containers
+    backup      Backup DB data
+
+    version     Show the version of ${name}
+    help        Show this message
+EOF
+}
+
+function _init() {
+    
+    out=docker-compose.yml
+    domainname=nuts.jp
+    url_wordpress=wp.${domainname}
+    
+    if [ -e $out ]; then
+        rm $out
+    fi
+    
+    cat <<-EOF > $out
+wp:
+    image: wordpress
+    links:
+        - wp-db:mysql
+    environment:
+        - VIRTUAL_HOST=wp.nuts.jp
+    volumes_from:
+        - wp-data
+    ports:
+        - "80"
+wp-db:
+    image: mariadb
+    volumes_from:
+        - wp-data
+    environment:
+        MYSQL_ROOT_PASSWORD: root
+wp-data:
+    image: busybox
+    volumes:
+        - /var/www/html
+        - /var/lib/mysql
+EOF
+}
+
+function _start() {
+    docker-compose up -d
+    echo -n 'Database Host: '
+    docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
+        $(docker ps | grep wordpress_wp-db_1 | awk '{print $1}')
+    echo 'Database Username: '${db_user}
+    echo 'Database Password: '${db_user_pass}
+}
+
+#function _start() {
+#    docker-compose start
+#}
+
+function _stop() {
+    docker-compose stop
+}
+
+#function _rm() {
+#    _backup
+#    docker-compose rm
+#}
+
+function _state() {
+    docker-compose ps
+}
+
+function _clear() {
+    _backup
+    _stop
+    docker-compose rm
+}
+
+function _backup() {
+    prefix=$(date '+%Y%m%d_%H%M%S')
+    history_file=$(dirname $0)/backup/history.txt
+    mkdir -p $(dirname $0)/backup
+    if [ ! -e $history_file ]; then
+        echo "" >> ${history_file}    
+    fi
+    sed -i -e "1s/^/${prefix}\n/" ${history_file}
+    docker run --rm --volumes-from $(docker ps -a | grep wordpress_wp-data_1 | awk '{print $1}') -v $(pwd)/backup:/backup busybox tar cvzf /backup/${prefix}_db.tar.gz /var/lib/mysql
+    docker run --rm --volumes-from $(docker ps -a | grep wordpress_wp_1 | awk '{print $1}') -v $(pwd)/backup:/backup busybox tar cvzf /backup/${prefix}.tar.gz /var/www/html
+}
+
+function _restore() {
+    prefix=$(cat $(dirname $0)/backup/history.txt | peco)
+    docker run --rm --volumes-from $(docker ps -a | grep wordpress_wp-data_1 | awk '{print $1}') -v $(pwd)/backup:/backup busybox tar xvzf /backup/${prefix}_db.tar.gz
+    docker run --rm --volumes-from $(docker ps -a | grep wordpress_wp_1 | awk '{print $1}') -v $(pwd)/backup:/backup busybox tar xvzf /backup/${prefix}.tar.gz
+    _stop
+    _start
+    #docker exec -t $(docker ps -a | grep lychee_lychee_1 | awk '{print $1}') sh /entrypoint.sh
+}
+
+# check arguments
+if [ $# -ne 1 ]; then
+  usage
+  exit 1
+fi
+
+function _is_executable() {
+    local command="$1"
+    type "$command" > /dev/null 2>&1
+}
+
+sub=$1
+
+if _is_executable "_${sub}" ; then
+    _${sub}
+else
+    echo "$name: no such command \"${sub}\""
+    usage
+    exit 1
+fi
+
+exit 0
+
+

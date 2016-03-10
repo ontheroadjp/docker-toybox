@@ -1,20 +1,12 @@
-# Load Balancer
-lb:
-  image: jwilder/nginx-proxy
-  environment:
-    - security-opt=label:type:docker_t
-  ports:
-    - "80:80"
-  volumes:
-    - "/var/run/docker.sock:/tmp/docker.sock"
-
 # httpd
 web:
     image: nginx
+    volumes: 
+        - /home/nobita/workspace/docker-toybox/data/web/html:/usr/share/nginx/html
     environment:
         - VIRTUAL_HOST=nuts.jp
     ports:
-        - "40000"
+        - "80"
 
 # WordPress
 wp:
@@ -72,7 +64,7 @@ media:
     command: -c "make media && sleep infinity"
     working_dir: /go/src/github.com/shipyard/shipyard
     volumes:
-        - ".go/src/github.com/shipyard/shipyard/controller/static"
+        - "/go/src/github.com/shipyard/shipyard/controller/static"
 controller:
     build: src/shipyard/
     entrypoint: /bin/bash
@@ -104,7 +96,96 @@ growthforecast:
     environment:
         - VIRTUAL_HOST=growthforecast.nuts.jp
     ports:
-        #- "5125"
-        - "42010"
+        - "5125"
+        #- "42010"
 
+
+# codebox
+data00codebox:
+    image: busybox:buildroot-2014.02
+    volumes:
+        - /data/codebox:/workspace
+codebox:
+    image: javierprovecho/docker-codebox
+    volumes_from:
+        - data00codebox
+    environment:
+        - VIRTUAL_HOST=codebox.nuts.jp
+    ports:
+        - 8000
+
+# EtherCalc
+data00redis:
+    image: busybox:buildroot-2014.02
+    volumes:
+        - /data/redis:/data
+redis:
+    image: redis:3.0.3
+    volumes_from:
+        - data00redis
+    command: redis-server --appendonly yes
+ethercalc:
+    image: audreyt/ethercalc
+    environment:
+        - VIRTUAL_HOST=ethercalc.nuts.jp
+    ports:
+        - "8000"
+    links:
+        - redis:redis
+    command: ["sh", "-c", "REDIS_HOST=$$REDIS_PORT_6379_TCP_ADDR REDIS_PORT=$$REDIS_PORT_6379_TCP_PORT pm2 start -x `which ethercalc` -- --cors && pm2 logs"]
+
+
+# wekan
+data00mongo:
+    image: busybox:buildroot-2014.02
+    volumes:
+        - /data/mongo:/data/db
+mongo:
+    image: mongo:3.1.5
+    volumes_from:
+        - data00mongo
+    command: mongod --smallfiles
+libreboard:
+    image: miurahr/libreboard:20150503
+    environment:
+        MONGO_URL: mongodb://mongo:27017/libreboard
+        ROOT_URL: http://wekan.nuts.jp
+    links:
+        - mongo:mongo
+    environment:
+        - VIRTUAL_HOST=wekan.nuts.jp
+    ports:
+        - "5555"
+
+# reichat
+reichat:
+    environment:
+        - VIRTUAL_HOST=reichat.nuts.jp
+    build: src/reichat
+    ports:
+        - "10133"
+# Lychee
+lychee:
+    image: nutsp/lychee
+    environment:
+        - VIRTUAL_HOST=lychee.nuts.jp
+    links:
+        - lychee-db:lychee-mysql
+    volumes:
+        - /home/nobita/workspace/docker-toybox/data/lychee/uploads/:/uploads/
+    ports:
+        - "80"
+lychee-db:
+    image: mariadb
+    volumes_from:
+        - lychee-db-data
+    environment:
+        MYSQL_ROOT_PASSWORD: root
+        MYSQL_DATABASE: lychee
+        MYSQL_USER: lychee
+        MYSQL_PASSWORD: lychee
+lychee-db-data:
+    image: busybox
+    volumes:
+        - /var/lib/mysql
 

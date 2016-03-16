@@ -1,0 +1,143 @@
+#!/bin/bash
+
+project_name=toybox
+name=$(basename $0)
+version=0.1.0
+
+function _version() { 
+    echo $version 
+}
+
+function _help() { 
+    usage 
+}
+
+function usage() {
+  cat <<-EOF
+Usage: ${name} <command>
+
+command:
+    init        Create docker-compose.yml and data directory
+    start       Start ${name} containers
+    stop        Stop ${name} containers
+    state       Show ${name} containers status
+    clear       Stop and Remove all of ${name} containers
+    backup      Backup DB data
+    source      get source code of containers
+
+    version     Show the version of ${name}
+    help        Show this message
+EOF
+}
+
+self_path=$(cd $(dirname $0);pwd)
+out=${self_path}/bin/docker-compose.yml
+src=${self_path}/src
+url=${name}.nuts.jp
+
+#function _source() {
+#    if [ ! -e $src ]; then
+#        git clone https://github.com/javierprovecho/docker-codebox.git $src
+#    fi
+#}
+
+function _init() {
+    mkdir -p ${self_path}/bin
+    if [ -e $out ]; then
+        rm $out
+    fi
+    
+    cat <<-EOF > $out
+${name}:
+    image: javierprovecho/docker-codebox
+    #build: ${src}
+    volumes_from:
+        - ${name}-data
+    environment:
+        - VIRTUAL_HOST=${url}
+    ports:
+        - 8000
+${name}-data:
+    image: busybox:buildroot-2014.02
+    volumes:
+        #- /data/codebox:/workspace
+        - /workspace
+EOF
+}
+
+function _start() {
+    _init
+    cd ${self_path}/bin
+    docker-compose -p ${project_name} up -d
+    echo '---------------------------------'
+    echo 'URL: http://'${url}
+    echo '---------------------------------'
+}
+
+function _stop() {
+    cd ${self_path}/bin
+    docker-compose -p ${project_name} stop
+}
+
+function _rm() {
+    cd ${self_path}/bin
+    docker-compose -p ${project_name} rm
+}
+
+function _state() {
+    cd ${self_path}/bin
+    docker-compose -p ${project_name} ps
+}
+
+function _clear() {
+    _backup
+    _stop
+    echo '---------------------------------'
+    cd ${self_path}/bin
+    docker-compose -p ${project_name} rm
+}
+
+function _backup() {
+    prefix=$(date '+%Y%m%d_%H%M%S')
+    history_file=${self_path}/backup/history.txt
+    mkdir -p ${self_path}/backup
+    if [ ! -e $history_file ]; then
+        echo "" >> ${history_file}    
+    fi
+    sed -i -e "1s/^/${prefix}\n/" ${history_file}
+    docker run --rm --volumes-from $(docker ps -a | grep ${project_name}_${name}_1 | awk '{print $1}') -v ${self_path}/backup:/backup busybox tar cvzf /backup/${prefix}_db.tar.gz /workspace
+    #docker run --rm --volumes-from $(docker ps -a | grep ${project_name}_${name}_1 | awk '{print $1}') -v ${self_path}/backup:/backup busybox tar cvzf /backup/${prefix}.tar.gz /var/www/html
+}
+
+function _restore() {
+    prefix=$(cat ${self_path}/backup/history.txt | peco)
+    docker run --rm --volumes-from $(docker ps -a | grep ${project_name}_${name}_1 | awk '{print $1}') -v ${self_path}/backup:/backup busybox tar xvzf /backup/${prefix}_db.tar.gz
+    #docker run --rm --volumes-from $(docker ps -a | grep ${project_name}_${name}_1 | awk '{print $1}') -v ${self_path}/backup:/backup busybox tar xvzf /backup/${prefix}.tar.gz
+    #_stop
+    #_start
+}
+
+# check arguments
+if [ $# -ne 1 ]; then
+  usage
+  exit 1
+fi
+
+function _is_executable() {
+    local command="$1"
+    type "$command" > /dev/null 2>&1
+}
+
+sub=$1
+
+if _is_executable "_${sub}" ; then
+    _${sub}
+else
+    echo "$name: no such command \"${sub}\""
+    usage
+    exit 1
+fi
+
+exit 0
+
+

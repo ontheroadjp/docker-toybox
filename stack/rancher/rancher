@@ -1,0 +1,115 @@
+#!/bin/bash
+
+project_name=toybox
+name=$(basename $0)
+version=0.1.0
+
+function _version() { 
+    echo $version 
+}
+
+function _help() { 
+    usage 
+}
+
+function usage() {
+  cat <<-EOF
+Usage: ${name} <command>
+
+command:
+    init        Create docker-compose.yml and data directory
+    start       Start ${name} containers
+    stop        Stop ${name} containers
+    state       Show ${name} containers status
+    crear       Stop and Remove all of ${name} containers
+
+    version     Show the version of ${name}
+    help        Show this message
+EOF
+}
+
+self_path=$(cd $(dirname $0);pwd)
+out=${self_path}/bin/docker-compose.yml
+#src=${self_path}/../../src/${name}
+src=${self_path}/src
+url=${name}.nuts.jp
+
+function _source() {
+    if [ ! -e $src ]; then
+        git clone https://github.com/rancher/rancher.git $src
+    fi
+}
+
+function _init() {
+    mkdir -p ${self_path}/bin
+    if [ -e $out ]; then
+        rm $out
+    fi
+    
+    cat <<-EOF > $out
+${name}:
+    image: rancher/server
+    #environment:
+    #    - VIRTUAL_HOST=${url}
+    ports:
+        - "8080:8080"
+EOF
+}
+
+function _start() {
+    _init
+    cd ${self_path}/bin
+    docker-compose -p ${project_name} up -d
+    echo '---------------------------------'
+    echo 'URL: http://'${url}
+    echo '---------------------------------'
+    #docker run -d --restart=always -p 8080:8080 rancher/server
+    echo 'You must set admin password and add host.'
+}
+
+function _stop() {
+    cd ${self_path}/bin
+    docker-compose -p ${project_name} stop
+}
+
+function _rm() {
+    cd ${self_path}/bin
+    docker-compose -p ${project_name} rm
+}
+
+function _state() {
+    cd ${self_path}/bin
+    docker-compose -p ${project_name} ps
+}
+
+function _clear() {
+    _stop
+    cd ${self_path}/bin
+    docker-compose -p ${project_name} rm
+}
+
+
+# check arguments
+if [ $# -ne 1 ]; then
+  usage
+  exit 1
+fi
+
+function _is_executable() {
+    local command="$1"
+    type "$command" > /dev/null 2>&1
+}
+
+sub=$1
+
+if _is_executable "_${sub}" ; then
+    _${sub}
+else
+    echo "$name: no such command \"${sub}\""
+    usage
+    exit 1
+fi
+
+exit 0
+
+

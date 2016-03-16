@@ -1,0 +1,175 @@
+# Load Balancer
+lb:
+    image: jwilder/nginx-proxy
+    environment:
+        - security-opt=label:type:docker_t
+    ports:
+        - "80:80"
+    volumes:
+        - "/var/run/docker.sock:/tmp/docker.sock"
+
+# httpd
+web:
+    image: nginx
+    volumes: 
+        - /home/nobita/workspace/docker-toybox/data/web/html:/usr/share/nginx/html
+    environment:
+        - VIRTUAL_HOST=nuts.jp
+    ports:
+        - "80"
+
+# WordPress
+wp:
+    image: wordpress
+    links:
+        - db:mysql
+    environment:
+        - VIRTUAL_HOST=wp.nuts.jp
+    ports:
+        - "40100"
+db:
+    image: mariadb
+    volumes_from:
+        - db-data
+    environment:
+        MYSQL_ROOT_PASSWORD: root
+db-data:
+    image: busybox
+    volumes:
+        - /var/lib/mysql
+
+# OwnCloud
+cloud:
+    image: owncloud
+    environment:
+        - VIRTUAL_HOST=cloud.nuts.jp
+    ports:
+        - "40110"
+
+# shipyard
+rethinkdb:
+    image: rethinkdb
+    ports:
+        - "8080"
+        - "28015"
+        - "29015"
+proxy:
+    image: ehazlett/docker-proxy:latest
+    command: -i
+    volumes:
+        - "/var/run/docker.sock:/var/run/docker.sock"
+    ports:
+        - "2375"
+swarm:
+    image: swarm:latest
+    command: m --host tcp://0.0.0.0:2375 proxy:2375
+    links:
+        - "proxy:proxy"
+    ports:
+        - "2375"
+media:
+    build: src/shipyard/
+    entrypoint: /bin/bash
+    dockerfile: Dockerfile.build
+    command: -c "make media && sleep infinity"
+    working_dir: /go/src/github.com/shipyard/shipyard
+    volumes:
+        - "/go/src/github.com/shipyard/shipyard/controller/static"
+controller:
+    build: src/shipyard/
+    entrypoint: /bin/bash
+    dockerfile: Dockerfile.build
+    command: -c "make build && cd controller && ./controller -D server --rethinkdb-addr rethinkdb:28015 -d tcp://swarm:2375"
+    links:
+        - rethinkdb
+        - swarm
+    volumes_from:
+        - media
+    environment:
+        - VIRTUAL_HOST=shipyard.nuts.jp
+    ports:
+        #- "8080:8080"
+        - "8080"
+
+# fluentd
+fluentd-ui:
+    image: minimum2scp/fluentd-ui 
+    environment:
+        - VIRTUAL_HOST=fluentd.nuts.jp
+    ports:
+        #- "24224"
+        - "42000"
+
+# growthforecast
+growthforecast:
+    image: kazeburo/growthforecast
+    environment:
+        - VIRTUAL_HOST=growthforecast.nuts.jp
+    ports:
+        - "5125"
+        #- "42010"
+
+
+# codebox
+data00codebox:
+    image: busybox:buildroot-2014.02
+    volumes:
+        - /data/codebox:/workspace
+codebox:
+    image: javierprovecho/docker-codebox
+    volumes_from:
+        - data00codebox
+    environment:
+        - VIRTUAL_HOST=codebox.nuts.jp
+    ports:
+        - 8000
+
+# EtherCalc
+ethercalc-data:
+    image: busybox:buildroot-2014.02
+    volumes:
+        - /data/redis:/data
+ethercalc-db:
+    image: redis:3.0.3
+    volumes_from:
+        - ethercalc-data
+    command: redis-server --appendonly yes
+ethercalc:
+    image: audreyt/ethercalc
+    environment:
+        - VIRTUAL_HOST=ethercalc.nuts.jp
+    ports:
+        - "8000"
+    links:
+        - ethercalc-db:redis
+    command: ["sh", "-c", "REDIS_HOST=$$REDIS_PORT_6379_TCP_ADDR REDIS_PORT=$$REDIS_PORT_6379_TCP_PORT pm2 start -x `which ethercalc` -- --cors && pm2 logs"]
+
+# wekan
+data00mongo:
+    image: busybox:buildroot-2014.02
+    volumes:
+        - /data/mongo:/data/db
+mongo:
+    image: mongo:3.1.5
+    volumes_from:
+        - data00mongo
+    command: mongod --smallfiles
+libreboard:
+    image: miurahr/libreboard:20150503
+    environment:
+        MONGO_URL: mongodb://mongo:27017/libreboard
+        ROOT_URL: http://wekan.nuts.jp
+    links:
+        - mongo:mongo
+    environment:
+        - VIRTUAL_HOST=wekan.nuts.jp
+    ports:
+        - "5555"
+
+# reichat
+reichat:
+    environment:
+        - VIRTUAL_HOST=reichat.nuts.jp
+    build: src/reichat
+    ports:
+        - "10133"

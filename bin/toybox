@@ -1,0 +1,173 @@
+#!/bin/sh
+
+project_name=toybox
+version=0.1.0
+
+function applicationlist() {
+  cat <<-EOF
+available applications are below:
+
+    wordpress   CMS 
+    owncloud    cloud strage
+
+EOF
+}
+
+function usage() {
+  cat <<-EOF
+Usage: ${project_name} [option: v|h|s] <application> <command>
+
+option:
+    s           Assigning specific sub domain name
+    v           Show the version of ${project_name}
+    h           Show this message
+
+application:
+    wordpress   CMS 
+    owncloud    cloud strage
+
+command:
+    init        Create docker-compose.yml and data directory
+    start       Start ${app_name} containers
+    stop        Stop ${app_name} containers
+    status      Show ${app_name} containers status
+    clear       Stop and Remove all of ${app_name} containers
+    backup      Backup DB data
+    source      get source code of containers
+
+    version     Show the version of ${app_name}
+    help        Show this message
+
+EOF
+}
+
+function _is_executable() {
+    local command="$1"
+    type "$command" > /dev/null 2>&1
+}
+
+function _version() { 
+    echo $version 
+}
+
+function _help() { 
+    #applicationlist
+    usage 
+}
+
+function _stop() {
+    cd ${app_path}/bin
+    docker-compose -p ${project_name} stop
+}
+
+function _rm() {
+    cd ${app_path}/bin
+    docker-compose -p ${project_name} rm
+}
+
+function _status() {
+    cd ${app_path}/bin
+    docker-compose -p ${project_name} ps
+}
+
+function _clear() {
+    _backup
+    _stop
+    echo '---------------------------------'
+    cd ${app_path}/bin
+    docker-compose -p ${project_name} rm
+}
+
+
+# check components
+_is_executable docker || {
+    cat <<EOF
+"docker" couldn't be found. Please install or set \$PATH.
+See: https://docs.docker.com/installation/#installation
+EOF
+    exit 1
+  }
+
+_is_executable docker-compose || {
+    cat <<EOF
+"docker-compose" couldn't be found. Please install or set \$PATH.
+See: https://docs.docker.com/compose/install/
+EOF
+    exit 1
+  }
+
+# check options
+while getopts vhs: OPT
+do
+  case $OPT in
+    "v" ) _version ; exit 0 ;;
+    "h" ) _help ; exit 0 ;;
+    "s" ) sub_domain="${OPTARG}" ;;
+  esac
+done
+shift $(expr $OPTIND - 1)
+
+# check arguments
+if [ $1 = "help" -o $1 = "version" ]; then
+    _$1
+    exit 0
+fi
+
+# check TOYBOX_HOME
+if [ -z "$TOYBOX_HOME" ] ; then
+    cat <<EOF
+"TOYBOX_HOME" is not set. 
+Please set it for your absolute path of the docker-toybox installed directory
+e.g. export TOYBOX_HOME=/home/nobita/workspace/docker-toybox
+EOF
+    exit 1
+fi
+
+# main routine
+if [ $# -ne 2 ]; then
+  usage
+  exit 1
+else
+    app_name=$1; shift
+
+    # set FQDN
+    if [ -z "$TOYBOX_DOMAIN" ] ; then
+        domain=docker-toybox.com
+    else
+        domain=$TOYBOX_DOMAIN
+    fi
+    if [ "${sub_domain}" = '' ]; then
+        sub_domain=${app_name}
+    fi
+    url=${sub_domain}.${domain}
+
+    # set variables
+    #home_path=$(cd $(dirname $0);pwd)
+    #home_path=$TOYBOX_HOME
+    app_path=$TOYBOX_HOME/stack/${sub_domain}
+    out=${app_path}/bin/docker-compose.yml
+    #src=${app_path}/../../src/${app_name}
+    src=${app_path}/src
+    
+    # Load module
+    if [ -e $TOYBOX_HOME/lib/${app_name}.fnc ]; then
+        . $TOYBOX_HOME/lib/${app_name}.fnc
+        mkdir -p ${app_path}
+    else
+        echo "${project_name}: no such application \"${app_name}\""
+        applicationlist
+        exit 1
+    fi
+    
+    # Exec Command
+    command=$1
+    if _is_executable "_${command}" ; then
+        _${command} $@
+    else
+        echo "${project_name}: no such command \"${command}\""
+        usage
+        exit 1
+    fi
+fi
+
+exit 0

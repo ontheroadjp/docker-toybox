@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/bin/sh
 
-db_name=owncloud
-db_user=owncloud
-db_user_pass=owncloud
+db_name=${app_name}
+db_user=${app_name}
+db_user_pass=${app_name}
 
 function _source() {
     if [ ! -e $src ]; then
@@ -13,26 +13,26 @@ function _source() {
 function _init() {
     mkdir -p ${app_path}/bin
     cat <<-EOF > $out
-${sub_domain}-${name}:
+${url}-${name}:
     image: owncloud:9.0.0-apache
     links:
-    - ${sub_domain}-${name}-db:mysql
+    - ${url}-${name}-db:mysql
     environment:
         - VIRTUAL_HOST=${url}
     volumes_from:
-        - ${sub_domain}-${name}-data
+        - ${url}-${name}-data
     ports:
         - "40110"
-${sub_domain}-${name}-db:
+${url}-${name}-db:
     image: mariadb
     volumes_from:
-        - ${sub_domain}-${name}-data
+        - ${url}-${name}-data
     environment:
         MYSQL_ROOT_PASSWORD: root
         MYSQL_DATABASE: ${db_name}
         MYSQL_USER: ${db_user}
         MYSQL_PASSWORD: ${db_user_pass}
-${sub_domain}-${name}-data:
+${url}-${name}-data:
     image: busybox
     volumes:
         - /var/www/html
@@ -50,7 +50,7 @@ function _start() {
     echo '---------------------------------'
     echo -n 'Database Host: '
     docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
-        $(docker ps | grep ${project_name}_${sub_domain}-${name}-db_1 | awk '{print $1}')
+        $(docker ps | grep ${project_name}_${url}-${name}-db_1 | awk '{print $1}')
     echo 'Database Username: '${db_user}
     echo 'Database Password: '${db_user_pass}
 }

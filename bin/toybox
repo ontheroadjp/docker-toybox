@@ -7,36 +7,40 @@ function applicationlist() {
   cat <<-EOF
 available applications are below:
 
-    wordpress   CMS 
-    owncloud    cloud strage
+    proxy                 Http proxy server based on nginx 
+    wordpress             CMS 
+    owncloud              Personal cloud strage like a Dropbox
 
 EOF
 }
 
-function usage() {
+function _usage() {
   cat <<-EOF
-Usage: ${project_name} [option: v|h|s] <application> <command>
+Usage: ${project_name} [-vh] [-d domain] [-s subdomain] [<application>] [<command>]
 
 option:
-    s           Assigning specific sub domain name
-    v           Show the version of ${project_name}
-    h           Show this message
+    -d domain       Assigning specific sub domain name
+    -s subdomain    Assigning specific sub domain name
+    -v              Show the version of ${project_name}
+    -h              Show this message
 
 application:
-    wordpress   CMS 
-    owncloud    cloud strage
+    proxy           Http proxy server based on nginx 
+    wordpress       CMS 
+    owncloud        Personal cloud strage like a Dropbox
 
 command:
-    init        Create docker-compose.yml and data directory
-    start       Start ${app_name} containers
-    stop        Stop ${app_name} containers
-    status      Show ${app_name} containers status
-    clear       Stop and Remove all of ${app_name} containers
-    backup      Backup DB data
-    source      get source code of containers
+    init            Create docker-compose.yml and data directory
+    start           Start ${app_name} containers
+    stop            Stop ${app_name} containers
+    status          Show ${app_name} containers status
+    clear           Stop and Remove all of ${app_name} containers
+    backup          Backup DB data
+    source          get source code of containers
 
-    version     Show the version of ${app_name}
-    help        Show this message
+    env                   Show the environment variables
+    version               Show the version of ${app_name}
+    help                  Show this message
 
 EOF
 }
@@ -52,7 +56,33 @@ function _version() {
 
 function _help() { 
     #applicationlist
-    usage 
+    _usage 
+}
+
+function _env() {
+    echo "TOYBOX_HOME: $TOYBOX_HOME"
+    echo "TOYBOX_DOMAIN: $TOYBOX_DOMAIN"
+}
+
+function _list() {
+    echo 'proxy:'
+    proxy=$(docker ps | grep toybox_ | grep proxy)
+    if [ 0 -eq $? ]; then
+        echo '  running!'
+    else
+        echo '  not running'
+    fi
+    echo ''
+    
+    echo 'WordPress:'
+    wp_url=$(docker ps | \
+        grep -o "toybox_.*\..*\..*-wordpress_" | \
+        sed -e "s/toybox_//g" | \
+        sed -e "s/-wordpress_//g")
+    echo ${wp_url}
+    echo ''
+    
+    echo 'OwnCloud:'
 }
 
 function _stop() {
@@ -66,6 +96,7 @@ function _rm() {
 }
 
 function _status() {
+    _init
     cd ${app_path}/bin
     docker-compose -p ${project_name} ps
 }
@@ -97,23 +128,24 @@ EOF
   }
 
 # check options
-while getopts vhs: OPT
+while getopts vhs:d: OPT
 do
   case $OPT in
     "v" ) _version ; exit 0 ;;
     "h" ) _help ; exit 0 ;;
     "s" ) sub_domain="${OPTARG}" ;;
+    "d" ) domain="${OPTARG}" ;;
   esac
 done
 shift $(expr $OPTIND - 1)
 
 # check arguments
-if [ $1 = "help" -o $1 = "version" ]; then
+if [ $1 = "help" -o $1 = "version" -o $1 = "env" -o $1 = 'list' ]; then
     _$1
     exit 0
 fi
 
-# check TOYBOX_HOME
+# check $TOYBOX_HOME
 if [ -z "$TOYBOX_HOME" ] ; then
     cat <<EOF
 "TOYBOX_HOME" is not set. 
@@ -125,16 +157,18 @@ fi
 
 # main routine
 if [ $# -ne 2 ]; then
-  usage
+  _usage
   exit 1
 else
     app_name=$1; shift
 
     # set FQDN
-    if [ -z "$TOYBOX_DOMAIN" ] ; then
-        domain=docker-toybox.com
-    else
-        domain=$TOYBOX_DOMAIN
+    if [ "${domain}" = '' ]; then
+        if [ -z "$TOYBOX_DOMAIN" ] ; then
+            domain=docker-toybox.com
+        else
+            domain=$TOYBOX_DOMAIN
+        fi
     fi
     if [ "${sub_domain}" = '' ]; then
         sub_domain=${app_name}
@@ -144,7 +178,7 @@ else
     # set variables
     #home_path=$(cd $(dirname $0);pwd)
     #home_path=$TOYBOX_HOME
-    app_path=$TOYBOX_HOME/stack/${sub_domain}
+    app_path=$TOYBOX_HOME/stack/${app_name}/${domain}/${sub_domain}
     out=${app_path}/bin/docker-compose.yml
     #src=${app_path}/../../src/${app_name}
     src=${app_path}/src
@@ -165,7 +199,7 @@ else
         _${command} $@
     else
         echo "${project_name}: no such command \"${command}\""
-        usage
+        _usage
         exit 1
     fi
 fi

@@ -14,25 +14,25 @@ function _init() {
     mkdir -p ${app_path}/bin
     
     cat <<-EOF > $out
-${sub_domain}-${app_name}:
+${url}-${app_name}:
     image: wordpress
     links:
-        - ${sub_domain}-${app_name}-db:mysql
+        - ${url}-${app_name}-db:mysql
     environment:
         - VIRTUAL_HOST=${url}
     volumes_from:
-        - ${sub_domain}-${app_name}-data
+        - ${url}-${app_name}-data
     ports:
         - "80"
 
-${sub_domain}-${app_name}-db:
+${url}-${app_name}-db:
     image: mariadb
     volumes_from:
-        - ${sub_domain}-${app_name}-data
+        - ${url}-${app_name}-data
     environment:
         MYSQL_ROOT_PASSWORD: root
 
-${sub_domain}-${app_name}-data:
+${url}-${app_name}-data:
     image: busybox
     volumes:
         - /var/www/html
@@ -49,7 +49,7 @@ function _start() {
     echo '---------------------------------'
     echo -n 'Database Host: '
     docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
-        $(docker ps | grep ${project_name}_${sub_domain}-${app_name}-db_1 | awk '{print $1}')
+        $(docker ps | grep ${project_name}_${url}-${app_name}-db_1 | awk '{print $1}')
     echo 'Database Username: '${db_user}
     echo 'Database Password: '${db_user_pass}
 }

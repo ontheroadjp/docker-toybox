@@ -1,12 +1,12 @@
 #!/bin/sh
 
-function _source() {
+function __source() {
     if [ ! -e $src ]; then
         git clone https://github.com/jwilder/nginx-proxy.git $src
     fi
 }
 
-function _init() {
+function __init() {
     mkdir -p ${app_path}/bin
     cat <<-EOF > $out
 ${url}-${app_name}:
@@ -21,8 +21,8 @@ ${url}-${app_name}:
 EOF
 }
 
-function _start() {
-    _init
+function __new() {
+    __init
     cd ${app_path}/bin
     docker-compose -p ${project_name} up -d
     echo '---------------------------------'
@@ -30,26 +30,12 @@ function _start() {
     echo '---------------------------------'
 }
 
-function _stop() {
-    cd ${app_path}/bin
-    docker-compose -p ${project_name} stop
-}
 
-function _rm() {
-    cd ${app_path}/bin
-    docker-compose -p ${project_name} rm
-}
-
-function _state() {
-    cd ${app_path}/bin
-    docker-compose -p ${project_name} ps
-}
-
-function _backup() {
+function __backup() {
     echo 'backup command is not available for ${app_name} application'
 }
 
-function _restore() {
+function __restore() {
     echo 'restore command is not available for ${app_name} application'
 }
 

@@ -4,13 +4,13 @@ db_name=${app_name}
 db_user=${app_name}
 db_user_pass=${app_name}
 
-function _source() {
+function __source() {
     if [ ! -e $src ]; then
         git clone https://github.com/docker-library/wordpress.git $src
     fi
 }
 
-function _init() {
+function __init() {
     mkdir -p ${app_path}/bin
     
     cat <<-EOF > $out
@@ -40,8 +40,8 @@ ${url}-${app_name}-data:
 EOF
 }
 
-function _start() {
-    _init
+function __new() {
+    __init
     cd ${app_path}/bin
     docker-compose -p ${project_name} up -d
     echo '---------------------------------'
@@ -54,7 +54,7 @@ function _start() {
     echo 'Database Password: '${db_user_pass}
 }
 
-function _backup() {
+function __backup() {
     prefix=$(date '+%Y%m%d_%H%M%S')
     history_file=${app_path}/backup/history.txt
     mkdir -p ${app_path}/backup
@@ -66,7 +66,7 @@ function _backup() {
     docker run --rm --volumes-from $(docker ps -a | grep ${project_name}_${app_name}_1 | awk '{print $1}') -v ${app_path}/backup:/backup busybox tar cvzf /backup/${prefix}.tar.gz /var/www/html
 }
 
-function _restore() {
+function __restore() {
     prefix=$(cat ${app_path}/backup/history.txt | peco)
     docker run --rm --volumes-from $(docker ps -a | grep ${project_name}_${app_name}-data_1 | awk '{print $1}') -v ${app_path}/backup:/backup busybox tar xvzf /backup/${prefix}_db.tar.gz
     docker run --rm --volumes-from $(docker ps -a | grep ${project_name}_${app_name}_1 | awk '{print $1}') -v ${app_path}/backup:/backup busybox tar xvzf /backup/${prefix}.tar.gz

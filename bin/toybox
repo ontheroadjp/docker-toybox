@@ -3,24 +3,24 @@
 project_name=toybox
 version=0.1.0
 
-function applicationlist() {
+applist=$TOYBOX_HOME/stack/applications.txt
+
+# ----------------------------------------
+# Private Functions
+# ----------------------------------------
+
+function __usage() {
   cat <<-EOF
-available applications are below:
-
-    proxy                 Http proxy server based on nginx 
-    wordpress             CMS 
-    owncloud              Personal cloud strage like a Dropbox
-
-EOF
-}
-
-function _usage() {
-  cat <<-EOF
-Usage: ${project_name} [-vh] [-d domain] [-s subdomain] [<application>] [<command>]
+Usage: 
+    ${project_name} 
+    ${project_name} [-s|-d] <application> new
+    ${project_name} [URL] <command>
+    ${project_name} [-e|-v|-h]
 
 option:
-    -d domain       Assigning specific sub domain name
-    -s subdomain    Assigning specific sub domain name
+    -d              Assigning specific sub domain name
+    -s              Assigning specific sub domain name
+    -e              Show the environment variables
     -v              Show the version of ${project_name}
     -h              Show this message
 
@@ -30,88 +30,274 @@ application:
     owncloud        Personal cloud strage like a Dropbox
 
 command:
-    init            Create docker-compose.yml and data directory
     start           Start ${app_name} containers
     stop            Stop ${app_name} containers
-    status          Show ${app_name} containers status
+    ps              Show ${app_name} containers status
     clear           Stop and Remove all of ${app_name} containers
     backup          Backup DB data
     source          get source code of containers
 
-    env                   Show the environment variables
-    version               Show the version of ${app_name}
-    help                  Show this message
-
 EOF
 }
 
-function _is_executable() {
-    local command="$1"
-    type "$command" > /dev/null 2>&1
-}
-
-function _version() { 
-    echo $version 
-}
-
-function _help() { 
-    #applicationlist
-    _usage 
-}
-
-function _env() {
+function __env() {
     echo "TOYBOX_HOME: $TOYBOX_HOME"
     echo "TOYBOX_DOMAIN: $TOYBOX_DOMAIN"
 }
 
-function _list() {
-    echo 'proxy:'
-    proxy=$(docker ps | grep toybox_ | grep proxy)
-    if [ 0 -eq $? ]; then
-        echo '  running!'
+function __version() { 
+    echo $version 
+}
+
+function __help() { 
+    __usage 
+}
+
+function __is_executable() {
+    local command="$1"
+    type "$command" > /dev/null 2>&1
+}
+
+function __list() {
+    if [ -f $applist ]; then
+        cat $applist | awk 'BEGIN{ OFS=" " }
+            function red(s) { printf "\033[1;31m%s\033[0m",s }
+            function green(s) { printf "\033[1;32m%s\033[0m",s }
+            function blue(s) { printf "\033[1;34m%s\033[0m",s }
+            function app(s) { printf "%-15s",s }
+            function status(s) { 
+                if(s == "running")
+                    printf "\033[1;32m%s\033[0m",s
+                else if(s == "stopped")
+                    printf "\033[1;31m%s\033[0m",s
+                else
+                    printf "%s",s
+            }
+            { printf "%2s",NR } { printf ": http://%-35s",$1 }
+            { app($2) }
+            { status($3) }
+            { printf "\n" }'
     else
-        echo '  not running'
+        echo 'no applications available.'
     fi
-    echo ''
-    
-    echo 'WordPress:'
-    wp_url=$(docker ps | \
-        grep -o "toybox_.*\..*\..*-wordpress_" | \
-        sed -e "s/toybox_//g" | \
-        sed -e "s/-wordpress_//g")
-    echo ${wp_url}
-    echo ''
-    
-    echo 'OwnCloud:'
+}
+
+function __is_running() {
+    docker ps -a | grep ${url} | grep ${app}_ | grep Up > /dev/null 2>&1;
+}
+
+
+function _debug() {
+    echo '<Expect>'
+    __list
+
+    echo '<Exact(ps)>'
+    count=0
+    cat ${applist} | while read line; do
+        count=$(expr $count + 1)
+        printf "%2s: " $count
+        url=$(echo ${line} | awk '{print $1}')
+        app=$(echo ${line} | awk '{print $2}')
+        if [ $app = 'proxy' ]; then
+            docker ps -a | grep ${url} | grep ${app}_ | grep Up > /dev/null 2>&1; main=$?
+            #echo "${app}: ${main}"
+            printf "http://%-35s" $url
+            printf "%-15s" $app
+            if [ $main -eq 0 ]; then
+                printf "\033[1;32m%s\033[0m" "running"
+            else
+                printf "\033[1;31m%s\033[0m" "stopped"
+            fi
+            printf "\n"
+        elif [ $app = 'wordpress' ] || [ $app = 'owncloud' ]; then
+            docker ps -a | grep ${url} | grep ${app}_ | grep Up > /dev/null 2>&1; main=$?
+            docker ps -a | grep ${url} | grep ${app}-db_ | grep Up > /dev/null 2>&1; db=$?
+            docker ps -a | grep ${url} | grep ${app}-data_ | grep Exited> /dev/null 2>&1; data=$?
+            result=$(expr ${main} + ${db} + ${data})
+            printf "http://%-35s" $url
+            printf "%-15s" $app
+            if [ $result -eq 0 ]; then
+                printf "\033[1;32m%s\033[0m" "running"
+            elif [ $result -eq 1 ]; then
+                printf "\033[1;31m%s\033[0m" "error"
+            elif [ $result -eq 2 ]; then
+                printf "\033[1;31m%s\033[0m" "stopped"
+            elif [ $result -eq 3 ]; then
+                printf "%s" "removed"
+            fi
+            printf "\n"
+        fi
+    done
+}
+
+#function __list() {
+#    apps=()
+#    for path in $TOYBOX_HOME/stack/*; do
+#        if [ -d $path ]; then
+#            apps+=("$path")
+#        fi
+#    done
+#    for i in ${apps[@]}; do
+#        echo "<$i>" | sed "s:$TOYBOX_HOME/stack/::"
+#        domains=()
+#        for path in $i/*; do
+#            if [ -d $path ]; then
+#                domains+=("$path")
+#            fi
+#        done
+#        for ii in ${domains[@]}; do
+#            dom=$(echo $ii | sed "s:$i/::")
+#            subdomains=()
+#            for path in $ii/*; do
+#                if [ -d $path ]; then
+#                    subdomains+=("$path")
+#                fi
+#            done
+#            for iii in ${subdomains[@]}; do
+#                subdom=$(echo $iii | sed "s:$ii/::")
+#                echo '    http://'$subdom.$dom
+#            done
+#        done
+#        
+#    done
+#}
+
+# ----------------------------------------
+# Public Functions
+# ----------------------------------------
+
+function _new(){
+    applist=$TOYBOX_HOME/stack/applications.txt
+    if [ -f $applist ]; then
+        exist=$(cat $applist | grep $url)
+        if [ -n "$exist" ]; then
+            echo "${project_name}: 'http://$url' is already used for $(echo $exist | awk '{print $2}') application."
+            echo "Please try to 'new' command again with -d or -s option."
+            exit 1
+        fi
+    fi
+    __new && {
+        echo "${url} ${app_name} running ${app_path}" >> $applist
+    }
+}
+
+function _start() {
+    cd ${app_path}/bin
+    docker-compose -p ${project_name} start && {
+        if [ -f $applist ]; then
+            old=$(cat $applist | grep ${url})
+            new=$(cat $applist | grep ${url} | sed -e "s:stopped:running:")
+            sed -i -e "s:${old}:${new}:" $applist
+        else
+            echo "error@_start() in toybox"
+        fi
+    }
 }
 
 function _stop() {
     cd ${app_path}/bin
-    docker-compose -p ${project_name} stop
+    docker-compose -p ${project_name} stop && {
+        if [ -f $applist ]; then
+            old=$(cat $applist | grep ${url})
+            new=$(cat $applist | grep ${url} | sed -e "s:running:stopped:")
+            sed -i -e "s:${old}:${new}:" $applist
+        else
+            echo "error@_stop() in toybox"
+        fi
+    }
 }
 
 function _rm() {
-    cd ${app_path}/bin
-    docker-compose -p ${project_name} rm
+    if __is_running; then
+        echo ${project_name}: "'http://${url}' is running now."
+        echo "Please stop it first.( toybox http://${url} stop )"
+    else
+        cd ${app_path}/bin
+        docker-compose -p ${project_name} rm && {
+            if [ -f $applist ]; then
+                old=$(cat $applist | grep ${url})
+                new=$(cat $applist | grep ${url} | sed -e "s:stopped:removed:")
+                sed -i -e "s:${old}:${new}:" $applist
+                #sed -i -e "/${url}/d" $applist
+            else
+                echo "error@_rm() in toybox"
+            fi
+        }
+    fi
 }
 
-function _status() {
-    _init
+function _ps() {
     cd ${app_path}/bin
     docker-compose -p ${project_name} ps
 }
 
-function _clear() {
-    _backup
-    _stop
-    echo '---------------------------------'
-    cd ${app_path}/bin
-    docker-compose -p ${project_name} rm
+function _backup() {
+    __backup
+}
+
+function _restore() {
+    __restore
+}
+
+#function _clear() {
+#    _backup
+#    _stop
+#    echo '---------------------------------'
+#    cd ${app_path}/bin
+#    docker-compose -p ${project_name} rm
+#}
+
+function _reset() {
+    cat ${applist} | while read line; do
+        url=$(echo ${line} | awk '{print $1}')
+        app_path=$(echo ${line} | awk '{print $4}')
+        _stop
+    done
 }
 
 
+# ----------------------------------------
+# Main Function
+# ----------------------------------------
+
+function __docker_toybox() {
+    # Load application module
+    if [ -e $TOYBOX_HOME/lib/${app_name}.fnc ]; then
+        . $TOYBOX_HOME/lib/${app_name}.fnc
+        mkdir -p ${app_path}
+    else
+        echo "${project_name}: No such application as '${app_name}'"
+        exit 1
+    fi
+    
+    # Exec Command
+    command=$1
+    if __is_executable "_${command}" ; then
+        _${command} $@
+    else
+        echo "${project_name}: '${command}' is not a ${project_name} command." 
+        echo "See '${project_name} -h'." 
+        exit 1
+    fi
+}
+
+function __red() { 
+    printf "\033[1;31m${1}\033[0m"
+}
+function __green() { 
+    printf "\033[1;32m${1}\033[0m"
+}
+function __blue() { 
+    printf "\033[1;34m${1}\033[0m"
+}
+
+
+# ----------------------------------------
+# Main Routine
+# ----------------------------------------
+
 # check components
-_is_executable docker || {
+__is_executable docker || {
     cat <<EOF
 "docker" couldn't be found. Please install or set \$PATH.
 See: https://docs.docker.com/installation/#installation
@@ -119,31 +305,13 @@ EOF
     exit 1
   }
 
-_is_executable docker-compose || {
+__is_executable docker-compose || {
     cat <<EOF
 "docker-compose" couldn't be found. Please install or set \$PATH.
 See: https://docs.docker.com/compose/install/
 EOF
     exit 1
   }
-
-# check options
-while getopts vhs:d: OPT
-do
-  case $OPT in
-    "v" ) _version ; exit 0 ;;
-    "h" ) _help ; exit 0 ;;
-    "s" ) sub_domain="${OPTARG}" ;;
-    "d" ) domain="${OPTARG}" ;;
-  esac
-done
-shift $(expr $OPTIND - 1)
-
-# check arguments
-if [ $1 = "help" -o $1 = "version" -o $1 = "env" -o $1 = 'list' ]; then
-    _$1
-    exit 0
-fi
 
 # check $TOYBOX_HOME
 if [ -z "$TOYBOX_HOME" ] ; then
@@ -155,11 +323,65 @@ EOF
     exit 1
 fi
 
-# main routine
-if [ $# -ne 2 ]; then
-  _usage
-  exit 1
+# zero argument
+if [ $# -eq 0 ]; then
+    __list
+
+# single argument
+elif [ $1 = 'list' ] || [ $1 = 'reset' ] || [ $1 = 'debug' ]; then
+    _$1
+    exit 0
+    
+# URL argument
+elif [[ $1 =~ ^http://.* ]]; then
+    
+    arg=$1; shift
+    if [ $# -ne 1 ]; then
+        _help
+        exit 1
+    fi
+
+    url=$(echo $arg | sed "s?http://??")
+    applist=$TOYBOX_HOME/stack/applications.txt
+
+    if [ -f $applist ]; then
+        app_name=$(cat $applist | grep ${url} | awk '{print $2}')
+        app_path=$(cat $applist | grep ${url} | awk '{print $4}')
+       
+        if [ -n "$app_name" ] && [ -n "$app_path" ]; then
+            __docker_toybox $@
+        else
+            echo "${project_name}: 'http://${url}' may be invalid URL."
+        fi
+    else
+        echo "${project_name}: No application available."
+        echo "Please create application first."
+        exit 1
+    fi
+    exit 0
+
+# Generic Mode
 else
+
+    # check options
+    while getopts evhs:d: OPT
+    do
+      case $OPT in
+        "e" ) __env ; exit 0 ;;
+        "v" ) __version ; exit 0 ;;
+        "h" ) __help ; exit 0 ;;
+        "s" ) sub_domain="${OPTARG}" ;;
+        "d" ) domain="${OPTARG}" ;;
+      esac
+    done
+    shift $(expr $OPTIND - 1)
+    
+    # main routine(generic mode)
+    if [ $# -ne 2 ]; then
+      __usage
+      exit 1
+    fi
+
     app_name=$1; shift
 
     # set FQDN
@@ -176,32 +398,12 @@ else
     url=${sub_domain}.${domain}
 
     # set variables
-    #home_path=$(cd $(dirname $0);pwd)
-    #home_path=$TOYBOX_HOME
     app_path=$TOYBOX_HOME/stack/${app_name}/${domain}/${sub_domain}
     out=${app_path}/bin/docker-compose.yml
     #src=${app_path}/../../src/${app_name}
     src=${app_path}/src
     
-    # Load module
-    if [ -e $TOYBOX_HOME/lib/${app_name}.fnc ]; then
-        . $TOYBOX_HOME/lib/${app_name}.fnc
-        mkdir -p ${app_path}
-    else
-        echo "${project_name}: no such application \"${app_name}\""
-        applicationlist
-        exit 1
-    fi
-    
-    # Exec Command
-    command=$1
-    if _is_executable "_${command}" ; then
-        _${command} $@
-    else
-        echo "${project_name}: no such command \"${command}\""
-        _usage
-        exit 1
-    fi
+    __docker_toybox $@
 fi
 
 exit 0

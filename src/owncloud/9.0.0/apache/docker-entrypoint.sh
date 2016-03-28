@@ -7,6 +7,7 @@ if [ ! -e '/var/www/html/version.php' ]; then
 fi
 
 root_dir="/var/www/html"
+chown -R www-data:www-data ${root_dir}
 if [ -f "${root_dir}/config/config.php" ]; then
     sed -i -e "s/'dbhost' => '.*\..*\..*\..*'/'dbhost' => '${MYSQL_PORT_3306_TCP_ADDR}'/g" ${root_dir}/config/config.php
 fi

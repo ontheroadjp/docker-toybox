@@ -30,7 +30,8 @@ ${main_container}:
     #image: owncloud:9.0.0-apache
     image: nutsp/owncloud:9.0.0-apache
     links:
-    - ${db_container}:mysql
+        - ${db_container}:mysql
+        - memcached:memcached
     environment:
         - VIRTUAL_HOST=${fqdn}
     #volumes_from:
@@ -52,6 +53,9 @@ ${db_container}:
         MYSQL_DATABASE: ${db_name}
         MYSQL_USER: ${db_user}
         MYSQL_PASSWORD: ${db_user_pass}
+
+memcached:
+    image: memcached
 
 #${data_container}:
 #    image: busybox

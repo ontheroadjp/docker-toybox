@@ -11,15 +11,20 @@ __toyboxcomplete() {
     for path in ${files}; do
         applist="${applist} $(echo $path | sed "s:^${TOYBOX_HOME}/lib/::" | sed "s/\.fnc$//")"
     done
+    
+    local urls_file="$TOYBOX_HOME/stack/applications.txt"
+    local urls=''
+    if [ -f ${urls_file} ]; then
+        urls=$(cat ${urls_file} | awk '{print "http://" $1}')
+    fi
 
 	COMPREPLY=()
 	if (( $COMP_CWORD <= 1 )); then
-        local list=$(cat $TOYBOX_HOME/stack/applications.txt | awk '{print "http://" $1}')
-        list="${list} ${applist}"
+        list="${urls} ${applist}"
 		COMPREPLY=( $(compgen -W '${list}' -- $cur) );
 	elif [ $COMP_CWORD = 2 ]; then
 		if [[ "$prev" =~ ^http:\/\/.*$ ]]; then
-	        local list="start stop rm ps"
+	        local list="start stop rm clear ps"
 		    COMPREPLY=( $(compgen -W '${list}' -- $cur) );
         elif echo ${applist} | grep ${prev} > /dev/null 2>&1; then
 		    local list="new"

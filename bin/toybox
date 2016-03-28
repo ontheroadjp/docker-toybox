@@ -8,11 +8,10 @@ project_name="toybox"
 version="0.1.0"
 
 applist="$TOYBOX_HOME/stack/applications.txt"
-compose_file=${app_path}/bin/docker-compose.yml
+compose_file=""
 fqdn=""
 app_name=""
 app_path=""
-#compose_file=""
 src=""
 
 # ----------------------------------------
@@ -261,28 +260,36 @@ function _rm() {
     if __is_main_container_running; then
         echo ${project_name}: "'http://${fqdn}' is running now."
         echo "Please stop it first.( toybox http://${fqdn} stop )"
-    else
-        cd ${app_path}/bin
-        docker-compose -p ${project_name} rm && {
-            if [ -f ${applist} ]; then
-                old=$(cat ${applist} | grep ${fqdn})
-                new=$(cat ${applist} | grep ${fqdn} | sed -e "s:stopped:removed:")
-                sed -i -e "s:${old}:${new}:" ${applist}
-                #sed -i -e "/${fqdn}/d" ${applist}
-            else
-                echo "error@_rm() in toybox"
-            fi
-        }
+        exit 1
     fi
+
+    cd ${app_path}/bin
+    echo y | docker-compose -p ${project_name} rm && {
+        if [ -f ${applist} ]; then
+            old=$(cat ${applist} | grep ${fqdn})
+            new=$(cat ${applist} | grep ${fqdn} | sed -e "s:stopped:removed:")
+            sed -i -e "s:${old}:${new}:" ${applist}
+            #sed -i -e "/${fqdn}/d" ${applist}
+        else
+            echo "error@_rm() in toybox"
+        fi
+    }
 }
 
 function _clear() {
-echo ${app_path}
-    if [ -d ${app_path} ]; then
-        echo 'data exist.'
-    else
-        echo 'data does not exits.'
+    if __is_main_container_running; then
+        echo ${project_name}: "'http://${fqdn}' is running now."
+        echo "Please stop and remove t first.( toybox http://${fqdn} stop )"
+        exit 1
     fi
+    if __is_main_container_exist; then
+        echo ${project_name}: "'http://${fqdn}' is existing now."
+        echo "Please remove t first.( toybox http://${fqdn} rm )"
+        exit 1
+    fi
+
+    sed -i -e "/${fqdn}/d" ${applist}
+    sudo rm -rf ${app_path}
 }
 
 
@@ -389,7 +396,8 @@ elif [[ $1 =~ ^http://.* ]]; then
     else
         app_name=$(cat ${applist} | grep ${fqdn} | awk '{print $2}')
         app_path=$(cat ${applist} | grep ${fqdn} | awk '{print $4}')
-        #compose_file=${app_path}/bin/docker-compose.yml
+        compose_file=${app_path}/bin/docker-compose.yml
+        src=${app_path}/src
        
         if [ -n "${app_name}" ] && [ -n "${app_path}" ]; then
             __docker_toybox $@
@@ -421,7 +429,7 @@ else
       exit 1
     fi
 
-    #app_name=$1; shift
+    app_name=$1; shift
 
     # set FQDN
     if [ "${domain}" = '' ]; then
@@ -436,9 +444,8 @@ else
     fi
 
     fqdn=${sub_domain}.${domain}
-    app_name=$1; shift
     app_path="$TOYBOX_HOME/stack/${app_name}/${sub_domain}.${domain}"
-    #compose_file=${app_path}/bin/docker-compose.yml
+    compose_file=${app_path}/bin/docker-compose.yml
     src=${app_path}/src
    
     if [ $1 != "new" ]; then

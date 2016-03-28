@@ -6,19 +6,29 @@ db_user_pass=${app_name}
 
 function __source() {
     if [ ! -e ${src} ]; then
-        git clone https://github.com/docker-library/owncloud.git ${src}
+        #git clone https://github.com/docker-library/owncloud.git ${src}
+       : 
     fi
 }
+
+function __build() {
+    docker build -t nutsp/owncloud:9.0.0-apache $TOYBOX_HOME/src/owncloud/9.0.0/apache
+}
+
 
 main_container=${fqdn}-${app_name}
 db_container=${fqdn}-${app_name}-db
 data_container=${fqdn}-${app_name}-data
 
 function __init() {
+
+    __build
+
     mkdir -p ${app_path}/bin
     cat <<-EOF > ${compose_file}
 ${main_container}:
-    image: owncloud:9.0.0-apache
+    #image: owncloud:9.0.0-apache
+    image: nutsp/owncloud:9.0.0-apache
     links:
     - ${db_container}:mysql
     environment:
@@ -26,7 +36,8 @@ ${main_container}:
     #volumes_from:
     #    - ${data_container}
     volumes:
-        - ${app_path}/data/docroot:/var/www/html/data
+        - ${app_path}/data/config:/var/www/html/config
+        - ${app_path}/data/data:/var/www/html/data
     ports:
         - "40110"
 
@@ -51,6 +62,12 @@ EOF
 }
 
 function __new() {
+    #__source; local status=$?
+    #if [ ${status} -ne 0 ]; then
+    #    echo ${project_name}": source code of ${app_name} does not download."
+    #    exit 1
+    #fi
+
     __init && {
         cd ${app_path}/bin
         docker-compose -p ${project_name} up -d && {

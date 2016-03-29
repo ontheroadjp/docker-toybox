@@ -21,6 +21,11 @@ RUN { \
 
 VOLUME /var/www/html
 
+RUN mkdir -p /usr/src/default_docroot && \
+    cp /var/www/html/index.html /usr/src/default_docroot
+
+COPY doc /usr/src/default_docroot
+
 COPY docker-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 

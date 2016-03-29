@@ -154,7 +154,7 @@ function __monitor() {
             app_path=$(echo ${line} | awk '{print $5}')
 
             printf "http://%-35s" ${fqdn}
-            printf "%-15s" ${app_name}
+            printf "%-15s" ${app_name}:${app_version}
 
             if [ ${app_name} = 'proxy' ]; then
                 __is_main_container_exist; local exist_main=$?

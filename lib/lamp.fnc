@@ -15,14 +15,35 @@ main_container=${fqdn}-${app_name}
 db_container=${fqdn}-${app_name}-db
 data_container=${fqdn}-${app_name}-data
 
-version="5.6-apache"
+echo "app_name: ${app_name}"
+echo "app_version: ${app_version}"
+
+#app_version="7.0-apache"
+if [ -z ${app_version} ]; then
+    app_version=5.6-apache
+elif [ ${app_version} != "5.6" ] && [ ${app_version} != "7.0" ]; then
+    app_version=5.6-apache
+else
+    app_version=${app_version}-apache
+fi
+
+echo "app_name: ${app_name}"
+echo "app_version: ${app_version}"
+
+function __build() {
+    docker build -t nutsp/${app_name}:${app_version} $TOYBOX_HOME/src/${app_name}/${app_version}
+}
 
 function __init() {
+
+    __build
+
     mkdir -p ${app_path}/bin
     
     cat <<-EOF > ${compose_file}
 ${main_container}:
-    image: php:${version}
+    #image: php:${app_version}
+    image: nutsp/${app_name}:${app_version}
     links:
         - ${db_container}:mysql
     environment:

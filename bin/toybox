@@ -67,6 +67,16 @@ function __is_executable() {
     type "${command}" > /dev/null 2>&1
 }
 
+function __is_docker_gen_container_exist() {
+    docker ps -a | grep ${project_name}_nginx-docker-gen_ > /dev/null 2>&1;
+    :
+}
+
+function __is_docker_gen_container_running() {
+    docker ps -a | grep ${project_name}_nginx-docker-gen_ | grep Up > /dev/null 2>&1;
+    :
+}
+
 function __is_main_container_exist() {
     docker ps -a | grep ${project_name}_${fqdn}-${app_name}_ > /dev/null 2>&1;
 }
@@ -143,31 +153,53 @@ function __monitor() {
             app_name=$(echo ${line} | awk '{print $2}')
             app_path=$(echo ${line} | awk '{print $5}')
 
-            if [ ${app_name} = 'proxy' ]; then
-                printf "http://%-35s" ${fqdn}
-                printf "%-15s" ${app_name}
+            printf "http://%-35s" ${fqdn}
+            printf "%-15s" ${app_name}
 
-                if ! __is_main_container_exist; then
+            if [ ${app_name} = 'proxy' ]; then
+                __is_main_container_exist; local exist_main=$?
+                __is_docker_gen_container_exist; local exist_docker_gen=$?
+                local result=$(expr ${exist_main} + ${exist_docker_gen})
+
+                if [ ${result} -eq 2 ]; then
                     printf "%-10s" "removed"
-                else
-                    if __is_main_container_running; then
+                elif [ ${result} -eq 1 ]; then
+                    printf "\033[1;31m%-10s\033[0m" "error"
+                elif [ ${result} -eq 0 ]; then
+                    if __is_main_container_running && __is_docker_gen_container_running; then
                         printf "\033[1;32m%-10s\033[0m" "running"
-                    else
+                    elif ! __is_main_container_running && __is_docker_gen_container_running; then
+                        printf "%-10s" "error: nginx container is down"
+                    elif __is_main_container_running && ! __is_docker_gen_container_running; then
+                        printf "%-10s" "error: docker-gen container is down"
+                    elif ! __is_main_container_running && ! __is_docker_gen_container_running; then
                         printf "\033[1;31m%-10s\033[0m" "stopped"
                     fi
                 fi
+
+                #if ! __is_main_container_exist; then
+                #    printf "%-10s" "removed"
+                #else
+                #    if __is_main_container_running; then
+                #        printf "\033[1;32m%-10s\033[0m" "running"
+                #    else
+                #        printf "\033[1;31m%-10s\033[0m" "stopped"
+                #    fi
+                #fi
                 printf "\n"
                         
             elif [ ${app_name} = 'wordpress' ] || \
                     [ ${app_name} = 'owncloud' ] || \
                     [ ${app_name} = 'lychee' ] || \
                     [ ${app_name} = 'lamp' ]
-                    then
+                then
                 __is_main_container_exist; local exist_main=$?
                 __is_db_container_exist; local exist_db=$?
                 local result=$(expr ${exist_main} + ${exist_db})
-                printf "http://%-35s" ${fqdn}
-                printf "%-15s" ${app_name}
+
+                #printf "http://%-35s" ${fqdn}
+                #printf "%-15s" ${app_name}
+
                 if [ ${result} -eq 2 ]; then
                     printf "%-10s" "removed"
                 elif [ ${result} -eq 1 ]; then
@@ -259,6 +291,13 @@ function _stop() {
         fi
     }
 }
+
+function _restart() {
+    _stop
+    _rm
+    _start
+}
+
 
 function _rm() {
     if __is_main_container_running; then
@@ -433,7 +472,10 @@ else
       exit 1
     fi
 
-    app_name=$1; shift
+    app_name_temp=$1; shift
+
+    app_name=$(echo ${app_name_temp} | cut -d":" -f1)
+    app_version=$(echo ${app_name_temp} | cut -d":" -f2)
 
     # set FQDN
     if [ "${domain}" = '' ]; then

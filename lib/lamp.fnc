@@ -46,12 +46,13 @@ ${main_container}:
     image: nutsp/${app_name}:${app_version}
     links:
         - ${db_container}:mysql
-    environment:
-        - VIRTUAL_HOST=${fqdn}
     volumes:
         - ${app_path}/data/docroot:/var/www/html
+        #- ${TOYBOX_HOME}/src/lamp/5.6-apache/doc:/var/www/html
     #volumes_from:
     #    - ${data_container}
+    environment:
+        - VIRTUAL_HOST=${fqdn}
     ports:
         - "80"
 

@@ -158,7 +158,11 @@ function __monitor() {
                 fi
                 printf "\n"
                         
-            elif [ ${app_name} = 'wordpress' ] || [ ${app_name} = 'owncloud' ] || [ ${app_name} = 'lychee' ]; then
+            elif [ ${app_name} = 'wordpress' ] || \
+                    [ ${app_name} = 'owncloud' ] || \
+                    [ ${app_name} = 'lychee' ] || \
+                    [ ${app_name} = 'lamp' ]
+                    then
                 __is_main_container_exist; local exist_main=$?
                 __is_db_container_exist; local exist_db=$?
                 local result=$(expr ${exist_main} + ${exist_db})

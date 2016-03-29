@@ -39,6 +39,7 @@ ${db_container}:
     #    - ${data_container}
     environment:
         MYSQL_ROOT_PASSWORD: root
+        TERM: xterm
 
 #${data_container}:
 #    image: busybox

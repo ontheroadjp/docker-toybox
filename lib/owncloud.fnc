@@ -53,6 +53,7 @@ ${db_container}:
         MYSQL_DATABASE: ${db_name}
         MYSQL_USER: ${db_user}
         MYSQL_PASSWORD: ${db_user_pass}
+        TERM: xterm
 
 memcached:
     image: memcached

@@ -34,9 +34,12 @@ option:
     -h              Show this message
 
 application:
-    proxy           Http proxy server based on nginx 
+    proxy           Http dinamic proxy server based on nginx 
+    php5            LAMP with PHP5.6.x 
+    php7            LAMP with PHP7.0.x 
     wordpress       CMS 
     owncloud        Personal cloud strage like a Dropbox
+    lychee          Photo management system
 
 command:
     start           Start ${app_name} containers
@@ -176,29 +179,17 @@ function __monitor() {
                         printf "\033[1;31m%-10s\033[0m" "stopped"
                     fi
                 fi
-
-                #if ! __is_main_container_exist; then
-                #    printf "%-10s" "removed"
-                #else
-                #    if __is_main_container_running; then
-                #        printf "\033[1;32m%-10s\033[0m" "running"
-                #    else
-                #        printf "\033[1;31m%-10s\033[0m" "stopped"
-                #    fi
-                #fi
                 printf "\n"
                         
             elif [ ${app_name} = 'wordpress' ] || \
                     [ ${app_name} = 'owncloud' ] || \
                     [ ${app_name} = 'lychee' ] || \
+                    [ ${app_name} = 'monitor' ] || \
                     [ ${app_name} = 'lamp' ]
                 then
                 __is_main_container_exist; local exist_main=$?
                 __is_db_container_exist; local exist_db=$?
                 local result=$(expr ${exist_main} + ${exist_db})
-
-                #printf "http://%-35s" ${fqdn}
-                #printf "%-15s" ${app_name}
 
                 if [ ${result} -eq 2 ]; then
                     printf "%-10s" "removed"
@@ -250,7 +241,6 @@ function _start() {
         exit 1
     fi
 
-    #local exist=''
     cat ${applist} | grep ${fqdn} > /dev/null 2>&1
     if [ $? -ne 0  ]; then
         echo "${project_name}: 'http://${fqdn}' does not exist."
@@ -322,7 +312,7 @@ function _rm() {
 function _clear() {
     if __is_main_container_running; then
         echo ${project_name}: "'http://${fqdn}' is running now."
-        echo "Please stop and remove t first.( toybox http://${fqdn} stop )"
+        echo "Please stop and remove it first.( toybox http://${fqdn} stop )"
         exit 1
     fi
     if __is_main_container_exist; then

@@ -6,8 +6,7 @@ db_user_pass=${app_name}
 
 function __source() {
     if [ ! -e ${src} ]; then
-        #git clone https://github.com/docker-library/wordpress.git ${src}
-        :
+        git clone https://github.com/docker-library/wordpress.git ${src}
     fi
 }
 
@@ -15,58 +14,58 @@ main_container=${fqdn}-${app_name}
 db_container=${fqdn}-${app_name}-db
 data_container=${fqdn}-${app_name}-data
 
-echo "app_name: ${app_name}"
-echo "app_version: ${app_version}"
-
-#app_version="7.0-apache"
-if [ -z ${app_version} ]; then
-    app_version=5.6-apache
-elif [ ${app_version} != "5.6" ] && [ ${app_version} != "7.0" ]; then
-    app_version=5.6-apache
-else
-    app_version=${app_version}-apache
-fi
-
-echo "app_name: ${app_name}"
-echo "app_version: ${app_version}"
-
-function __build() {
-    docker build -t nutsp/${app_name}:${app_version} $TOYBOX_HOME/src/${app_name}/${app_version}
-}
+# https://www.peterhedenskog.com/blog/2015/04/open-source-performance-dashboard/
+# sudo docker run -d -p 8080:80 -p 2003:2003 sitespeedio/graphite
+# sudo docker run -d -p 80:3000 grafana/grafana
+# sudo docker run --privileged --rm sitespeedio/sitespeed.io sitespeed.io -u http://www.example.com -b firefox -n 11 --connection cable --graphiteHost $MY_IP
 
 function __init() {
-
-    __build
-
     mkdir -p ${app_path}/bin
     
     cat <<-EOF > ${compose_file}
-${main_container}:
-    image: nutsp/${app_name}:${app_version}
-    links:
-        - ${db_container}:mysql
-    volumes:
-        - ${app_path}/data/docroot:/var/www/html
-    environment:
-        - VIRTUAL_HOST=${fqdn}
+influxDB:
+    image: "tutum/influxdb:0.8.8"
     ports:
-        - "80"
-
-${db_container}:
-    image: mariadb
-    volumes:
-        - ${app_path}/data/mysql:/var/lib/mysql
-    #volumes_from:
-    #    - ${data_container}
+        #- "8083:8083"
+        #- "8086:8086"
+        - "8083"
+        - "8086"
+    expose:
+        - "8090"
+        - "8099"
     environment:
-        MYSQL_ROOT_PASSWORD: root
-        TERM: xterm
-
-#${data_container}:
-#    image: busybox
-#    volumes:
-#        - ${app_path}/data/docroot:/var/www/html
-#        - ${app_path}/data/mysql:/var/lib/mysql
+        - PRE_CREATE_DB=cadvisor
+        - VIRTUAL_HOST=influxdb.docker-toybox.com
+        - VIRTUAL_PORT=8083
+cadvisor:
+    image: "google/cadvisor:0.16.0"
+    volumes:
+        - "/:/rootfs:ro"
+        - "/var/run:/var/run:rw"
+        - "/sys:/sys:ro"
+        - "/var/lib/docker/:/var/lib/docker:ro"
+    links:
+        - "influxDB:influxdb"
+    environment:
+        - VIRTUAL_HOST=cadvisor.docker-toybox.com
+    command: "-storage_driver=influxdb -storage_driver_db=cadvisor -storage_driver_host=influxdb:8086 -storage_driver_user=root -storage_driver_password=root -storage_driver_secure=False"
+    ports:
+        - "8080"
+grafana:
+    image: "grafana/grafana:2.1.3"
+    links:
+        - "influxDB:influxdb"
+    environment:
+        - INFLUXDB_HOST=localhost
+        - INFLUXDB_PORT=8086
+        - INFLUXDB_NAME=cadvisor
+        - INFLUXDB_USER=root
+        - INFLUXDB_PASS=root
+        - VIRTUAL_HOST=grafana.docker-toybox.com
+    volumes:
+        - /home/nobita/workspace/docker-toybox/data:/hoge
+    ports:
+        - "3000"
 EOF
 }
 

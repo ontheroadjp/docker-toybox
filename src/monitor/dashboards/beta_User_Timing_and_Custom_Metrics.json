@@ -1,0 +1,311 @@
+{
+  "id": 9,
+  "title": "Sitespeed.io - User Timing and Custom Metrics",
+  "originalTitle": "Sitespeed.io - User Timing and Custom Metrics",
+  "tags": [],
+  "style": "dark",
+  "timezone": "browser",
+  "editable": true,
+  "hideControls": false,
+  "sharedCrosshair": false,
+  "rows": [
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "250px",
+      "panels": [
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Graphite",
+          "decimals": 3,
+          "editable": true,
+          "error": false,
+          "fill": 0,
+          "grid": {
+            "leftLogBase": 1,
+            "leftMax": null,
+            "leftMin": null,
+            "rightLogBase": 1,
+            "rightMax": null,
+            "rightMin": null,
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 1,
+          "legend": {
+            "avg": false,
+            "current": true,
+            "max": true,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": true
+          },
+          "lines": true,
+          "linewidth": 1,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "target": "aliasByNode(sitespeed.io.custom.mobile3g.http.www_sitespeed_io.slash.timings.logoTime.median, 8)"
+            },
+            {
+              "target": "aliasByNode(sitespeed.io.custom.mobile3g.http.www_sitespeed_io.slash.timings.headerTime.median, 8)"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "User Timings",
+          "tooltip": {
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "x-axis": true,
+          "y-axis": true,
+          "y_formats": [
+            "ms",
+            "short"
+          ]
+        },
+        {
+          "content": "# User Timings\nIf you collect timings using browsers that has implemented the  [User Timing API](http://www.w3.org/TR/user-timing/) (or if you are using a [User Timing polyfill](https://github.com/nicjansma/usertiming.js)) they will automatically be sent to Graphite so you can graph them. \n\nOn the example [site](http://www.sitespeed.io), we add a User Timing mark when the header is loaded and one for the logo and shape the traffic as *mobile3g*, testing using Chrome.\n\nHaven't heard of User Timings before? Read Patrick Meenans blog post [Measuring performance of the user experience](http://blog.patrickmeenan.com/2013/07/measuring-performance-of-user-experience.html).",
+          "editable": true,
+          "error": false,
+          "id": 2,
+          "links": [],
+          "mode": "markdown",
+          "span": 6,
+          "style": {},
+          "title": "",
+          "type": "text"
+        }
+      ],
+      "title": "Row"
+    },
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "250px",
+      "panels": [
+        {
+          "content": "# Custom Metrics\nDo you miss any metrics when you test with sitespeed.io? Hold on, you can collect your own metrics by running your own javascript in the browser. Create a directory, store each metric in an individiual file (the metric will be named as the filename) and use the parameter *customScripts* to point out your directory. The metrics will be sent to Graphite. \n\nRead more on how to implement it in the [documentation](http://www.sitespeed.io/documentation/browsers/#custom-metrics).",
+          "editable": true,
+          "error": false,
+          "id": 3,
+          "links": [],
+          "mode": "markdown",
+          "span": 6,
+          "style": {},
+          "title": "",
+          "type": "text"
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Graphite",
+          "decimals": 0,
+          "editable": true,
+          "error": false,
+          "fill": 0,
+          "grid": {
+            "leftLogBase": 1,
+            "leftMax": null,
+            "leftMin": null,
+            "rightLogBase": 1,
+            "rightMax": null,
+            "rightMin": null,
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 4,
+          "legend": {
+            "avg": false,
+            "current": true,
+            "max": true,
+            "min": true,
+            "show": true,
+            "total": false,
+            "values": true
+          },
+          "lines": true,
+          "linewidth": 1,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "target": "aliasByNode(sitespeed.io.custom.mobile3g.http.www_sitespeed_io.slash.custom.avgDOMDepth.median, 8)"
+            },
+            {
+              "target": "aliasByNode(sitespeed.io.custom.mobile3g.http.www_sitespeed_io.slash.custom.cssRules.median, 8)"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Custom Metrics",
+          "tooltip": {
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "x-axis": true,
+          "y-axis": true,
+          "y_formats": [
+            "short",
+            "short"
+          ]
+        }
+      ],
+      "title": "New row"
+    },
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "250px",
+      "panels": [
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Graphite",
+          "decimals": null,
+          "editable": true,
+          "error": false,
+          "fill": 0,
+          "grid": {
+            "leftLogBase": 1,
+            "leftMax": 1500,
+            "leftMin": 0,
+            "rightLogBase": 1,
+            "rightMax": null,
+            "rightMin": null,
+            "threshold1": 1000,
+            "threshold1Color": "rgba(133, 3, 3, 0.93)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)",
+            "thresholdLine": true
+          },
+          "id": 5,
+          "legend": {
+            "avg": false,
+            "current": true,
+            "max": true,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": true
+          },
+          "lines": true,
+          "linewidth": 1,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "target": "alias(sitespeed.io.custom.mobile3g.http.www_sitespeed_io.slash.timings.speedIndex.median, 'RUM Speed Index')"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "RUM Speed Index",
+          "tooltip": {
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "x-axis": true,
+          "y-axis": true,
+          "y_formats": [
+            "none",
+            "short"
+          ]
+        },
+        {
+          "content": "# RUM Speed Index\nWe use Pat Meenans [RUM Speed Index](https://github.com/WPO-Foundation/RUM-SpeedIndex) implementation to collect a feel of the [Speed Index](https://sites.google.com/a/webpagetest.org/docs/using-webpagetest/metrics/speed-index) for a page. It works best using Chrome. \n\nCheck out the graph, we have a limit of 1000 (the red line) that is the key value that we don't want to cross.\n\nYou can check and compare your RUM-SpeedIndex with the one you get at [http://www.webpagetest.org](http://www.webpagetest.org) to verify that they align and are ok to use. Throttling the connection is the same in sitespeed.io and WPT, you need *\"just\"* to make sure that the servers are at the aprox same place :) ",
+          "editable": true,
+          "error": false,
+          "id": 6,
+          "links": [],
+          "mode": "markdown",
+          "span": 6,
+          "style": {},
+          "title": "",
+          "type": "text"
+        }
+      ],
+      "title": "New row"
+    }
+  ],
+  "nav": [
+    {
+      "collapse": false,
+      "enable": true,
+      "notice": false,
+      "now": true,
+      "refresh_intervals": [
+        "5s",
+        "10s",
+        "30s",
+        "1m",
+        "5m",
+        "15m",
+        "30m",
+        "1h",
+        "2h",
+        "1d"
+      ],
+      "status": "Stable",
+      "time_options": [
+        "5m",
+        "15m",
+        "1h",
+        "6h",
+        "12h",
+        "24h",
+        "2d",
+        "7d",
+        "30d"
+      ],
+      "type": "timepicker"
+    }
+  ],
+  "time": {
+    "from": "now-12h",
+    "to": "now"
+  },
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  },
+  "schemaVersion": 6,
+  "version": 31
+}

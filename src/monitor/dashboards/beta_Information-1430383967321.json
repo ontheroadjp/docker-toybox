@@ -1,0 +1,78 @@
+{
+  "id": 7,
+  "title": "Information",
+  "originalTitle": "Information",
+  "tags": [],
+  "style": "dark",
+  "timezone": "browser",
+  "editable": true,
+  "hideControls": false,
+  "sharedCrosshair": false,
+  "rows": [
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "250px",
+      "panels": [
+        {
+          "content": "# sitespeed.io dashboard\nWelcome to the wonderful world of Open Source Web Performance Monitoring  :) \n\nThis is an example setup to show you what you can do by collecting web performance metrics using [sitespeed.io](http://www.sitespeed.io/), [WebPageTest](http://www.webpagetest.org/) and graph them using [Graphite](http://graphite.wikidot.com/) and [Grafana](http://grafana.org/). We call it the sitespeed.io dashboard.\n\n## The setup\nEvery 30 minutes we test 3 URL:s, 3 times (using Firefox) for https://www.united.com/ , http://www.aa.com , http://www.ryanair.com/ and http://www.lufthansa.com/, using [sitepeed.io](http://www.sitespeed.io). You can of course test each page as many times you want and how often you want. \n\nOnce an hour we test one page (we use the [free key](http://www.webpagetest.org/getkey.php) provided by Akamai)  for NYTimes.com using WebPageTest.  If you have your own instance you can test more URL:s and increase the number of tests. \n\nOnce an hour we test http://www.sitespeed.io with shaped traffic as mobile3g to collect User Timings and Custom Metrics.\n\n## Dashboards\nYou can check the dashboards to get inspired how you can graph your metrics. The current example dashboards:\n\n* **[Summary of a site [American Airlines Summary]](http://dashboard.sitespeed.io/dashboard/db/summary-of-a-site-america-airlines)** - summarized metrics for all pages tested on American Airlines. You can that some values are configured against a budget, making them green, yellow or red.\n* **[Metrics for one page [American Airlines Home Page]](http://dashboard.sitespeed.io/dashboard/db/metrics-for-one-page-american-airlines-home-page)** -  metrics from the [home page](http://www.aa.com/homePage.do?locale=en_US&pref=true).\n* **[Load Timings Per Asset](http://dashboard.sitespeed.io/dashboard/db/load-timings-per-asset)** - timings per asset/request for the American Airlines home page. Show all assets that have had a load time over 100 ms.\n* **[3rd party](http://dashboard.sitespeed.io/dashboard/db/3rd-party-america-airlines)** - keep track of your 3rd party content.\n* **[Compare multiple sites](http://dashboard.sitespeed.io/dashboard/db/compare-multiple-sites)** - compare all four different airlines webpages  (well only three URL:s per site).\n* **[Using WebPageTest](http://dashboard.sitespeed.io/dashboard/db/using-webpagetest)** -  we graph metrics collected from WebPageTest testing one URL for nytimes.com\n* **[User Timing and Custom Metrics](http://dashboard.sitespeed.io/dashboard/db/user-timing-and-custom-metrics)** - we graph User Timings and user defined custom metrics.\n\n## Get it up and running\n\nTo get this up and running, you need three Docker images: one with [Graphite](https://registry.hub.docker.com/u/sitespeedio/graphite/), one with [Grafana](https://registry.hub.docker.com/u/grafana/grafana/) and one including [sitespeed.io](https://registry.hub.docker.com/u/sitespeedio/sitespeed.io/). If you want to setup something like this, you will find more info [here](http://www.sitespeed.io/documentation/performance-dashboard/).\n\nStart Graphite & Grafana\n\n    sudo docker run -d  --name graphite -p 8080:80 -p 2003:2003 sitespeedio/graphite\n    sudo docker run -d -p 3000:3000 --name grafana grafana/grafana\n\nThen collect metrics using sitespeed.io every X minutes (remember to change the GRAPHITE_HOST to the IP/host where you run the server:\n\n    docker run --privileged --rm sitespeedio/sitespeed.io sitespeed.io -u http://mysite.com -b firefox -n 11 --connection cable -r /tmp/ --graphiteHost GRAPHITE_HOST\n\nThen you can surf into your Grafana instance (running on port 3000 on your machine), login using admin/admin and configure your Graphite container as the data provider (running on port 8080 and using Basic Auth guest/guest.\n\nYep that is actually what you need to do! Running this in production, there are some tweaks that you should do, check out the [documentation](http://www.sitespeed.io/documentation/performance-dashboard/). ",
+          "editable": true,
+          "error": false,
+          "id": 1,
+          "links": [],
+          "mode": "markdown",
+          "span": 12,
+          "style": {},
+          "title": "",
+          "type": "text"
+        }
+      ],
+      "title": "Row"
+    }
+  ],
+  "nav": [
+    {
+      "collapse": false,
+      "enable": true,
+      "notice": false,
+      "now": true,
+      "refresh_intervals": [
+        "5s",
+        "10s",
+        "30s",
+        "1m",
+        "5m",
+        "15m",
+        "30m",
+        "1h",
+        "2h",
+        "1d"
+      ],
+      "status": "Stable",
+      "time_options": [
+        "5m",
+        "15m",
+        "1h",
+        "6h",
+        "12h",
+        "24h",
+        "2d",
+        "7d",
+        "30d"
+      ],
+      "type": "timepicker"
+    }
+  ],
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  },
+  "schemaVersion": 6,
+  "version": 13
+}

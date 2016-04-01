@@ -1,0 +1,545 @@
+{
+  "id": 10,
+  "title": "Sitespeed.io - 3rd party",
+  "originalTitle": "Sitespeed.io - 3rd party",
+  "tags": [],
+  "style": "dark",
+  "timezone": "browser",
+  "editable": true,
+  "hideControls": false,
+  "sharedCrosshair": false,
+  "rows": [
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "200px",
+      "panels": [
+        {
+          "content": "# 3rd party\nToday most of the consumer web pages have about 40% of third party content. You don't want them to slow you down and so you need to keep track keep track of how they are doing. Here we keep track of the timings and how much of the content of a page that's third party.\n\nHere we check how much 3rd party content American Airlines is using, by saying that all URL:s that uses *.aa.com is first party content.\n\nThanks [Jeroen Vd Berghe](https://twitter.com/JrnVdb) for help, inspiration and input.",
+          "editable": true,
+          "error": false,
+          "id": 2,
+          "links": [],
+          "mode": "markdown",
+          "span": 6,
+          "style": {},
+          "title": "",
+          "type": "text"
+        },
+        {
+          "aliasColors": {
+            "3rd party": "#BF1B00",
+            "sumSeries(sitespeed.io.summary.dev.ontheroad.jp.domains.*.requests)": "#7EB26D"
+          },
+          "bars": false,
+          "datasource": "Graphite",
+          "editable": true,
+          "error": false,
+          "fill": 3,
+          "grid": {
+            "leftLogBase": 1,
+            "leftMax": 100,
+            "leftMin": 0,
+            "rightLogBase": 1,
+            "rightMax": null,
+            "rightMin": null,
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 3,
+          "legend": {
+            "avg": false,
+            "current": true,
+            "max": true,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": true
+          },
+          "lines": true,
+          "linewidth": 1,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": true,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [
+            {
+              "alias": "sumSeries(sitespeed.io.summary.dev.ontheroad.jp.domains.*.requests)",
+              "yaxis": 2
+            }
+          ],
+          "span": 6,
+          "stack": true,
+          "steppedLine": false,
+          "targets": [
+            {
+              "hide": true,
+              "target": "sumSeries(sitespeed.io.summary.dev.ontheroad.jp.domains.requests.*)"
+            },
+            {
+              "target": "alias(asPercent(sumSeries(sitespeed.io.summary.dev.ontheroad.jp.domains.requests.*aa_com*), #A), '1st party')"
+            },
+            {
+              "target": "alias(asPercent(sumSeries(exclude(sitespeed.io.summary.dev.ontheroad.jp.domains.requests.*, 'sitespeed.io.summary.dev.ontheroad.jp.domains.*aa_com*')), #A), '3rd party')"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "1st vs 3rd party requests %",
+          "tooltip": {
+            "shared": true,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "x-axis": true,
+          "y-axis": true,
+          "y_formats": [
+            "percent",
+            "short"
+          ]
+        }
+      ],
+      "title": "New row"
+    },
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "250px",
+      "panels": [
+        {
+          "aliasColors": {
+            "3rd party": "#BF1B00"
+          },
+          "bars": false,
+          "datasource": "Graphite",
+          "editable": true,
+          "error": false,
+          "fill": 3,
+          "grid": {
+            "leftLogBase": 1,
+            "leftMax": 100,
+            "leftMin": 0,
+            "rightLogBase": 1,
+            "rightMax": null,
+            "rightMin": null,
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 5,
+          "leftYAxisLabel": "",
+          "legend": {
+            "avg": false,
+            "current": true,
+            "max": true,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": true
+          },
+          "lines": true,
+          "linewidth": 1,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": true,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": true,
+          "steppedLine": false,
+          "targets": [
+            {
+              "hide": true,
+              "target": "aliasByNode(sumSeries(sitespeed.io.summary.dev.ontheroad.jp.domains.size.*.total), 8)"
+            },
+            {
+              "hide": false,
+              "target": "alias(asPercent(sumSeries(sitespeed.io.summary.dev.ontheroad.jp.domains.size.*_aa_com*.total), #A), '1st party')"
+            },
+            {
+              "hide": false,
+              "target": "alias(asPercent(sumSeries(exclude(sitespeed.io.summary.dev.ontheroad.jp.domains.size.*.total, 'sitespeed.io.summary.dev.ontheroad.jp.domains.*aa_com*')), #A), '3rd party')"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "1st vs 3rd party weight %",
+          "tooltip": {
+            "shared": true,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "x-axis": true,
+          "y-axis": true,
+          "y_formats": [
+            "percent",
+            "short"
+          ]
+        },
+        {
+          "aliasColors": {
+            "3rd party": "#BF1B00"
+          },
+          "bars": false,
+          "datasource": "Graphite",
+          "editable": true,
+          "error": false,
+          "fill": 3,
+          "grid": {
+            "leftLogBase": 1,
+            "leftMax": 100,
+            "leftMin": 0,
+            "rightLogBase": 1,
+            "rightMax": null,
+            "rightMin": null,
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 6,
+          "legend": {
+            "avg": false,
+            "current": true,
+            "max": true,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": true
+          },
+          "lines": true,
+          "linewidth": 1,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": true,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": true,
+          "steppedLine": false,
+          "targets": [
+            {
+              "hide": true,
+              "target": "alias(sumSeries(sitespeed.io.summary.dev.ontheroad.jp.domains.accumulatedTime.*), 'time')"
+            },
+            {
+              "hide": false,
+              "target": "alias(asPercent(sumSeries(sitespeed.io.summary.dev.ontheroad.jp.domains.accumulatedTime.*aa_com*), #A), '1st party')"
+            },
+            {
+              "hide": false,
+              "target": "alias(asPercent(sumSeries(exclude(sitespeed.io.summary.dev.ontheroad.jp.domains.accumulatedTime.*, 'sitespeed.io.summary.dev.ontheroad.jp.domains.accumulatedTime.*aa_com*')), #A), '3rd party')"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Time spent downloading 1st vs 3rd party content %",
+          "tooltip": {
+            "shared": true,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "x-axis": true,
+          "y-axis": true,
+          "y_formats": [
+            "percent",
+            "short"
+          ]
+        }
+      ],
+      "title": "Row"
+    },
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "200px",
+      "panels": [
+        {
+          "content": "### 3rd party requests per page\nYou can also keep track how many requests that are done for each domain. A quick way to find 3rd party content that could generate too many requests.\n",
+          "editable": true,
+          "error": false,
+          "id": 8,
+          "links": [],
+          "mode": "markdown",
+          "span": 6,
+          "style": {},
+          "title": "",
+          "type": "text"
+        },
+        {
+          "content": "### Load Timings Per Domain\nThis is a summary of all tested pages for a site, displaying the 3rd party domains that loads the slowest. In this example we graph the domains using the total load time, but you can choose between: *blocked*, *connect* , *DNS* , *receive*, *send*, *ssl*, *wait*, *total time*.\n\nThe timings are picked up from the HAR file, either generated by the browsers or by WebPageTest.",
+          "editable": true,
+          "error": false,
+          "id": 7,
+          "links": [],
+          "mode": "markdown",
+          "span": 6,
+          "style": {},
+          "title": "",
+          "type": "text"
+        }
+      ],
+      "title": "New row"
+    },
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "450px",
+      "panels": [
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Graphite",
+          "editable": true,
+          "error": false,
+          "fill": 0,
+          "grid": {
+            "leftLogBase": 1,
+            "leftMax": null,
+            "leftMin": null,
+            "rightLogBase": 1,
+            "rightMax": null,
+            "rightMin": null,
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 1,
+          "legend": {
+            "alignAsTable": true,
+            "avg": false,
+            "current": true,
+            "max": true,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": true
+          },
+          "lines": true,
+          "linewidth": 1,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "target": "aliasByNode(sortByMaxima(divideSeries(limit(currentAbove(sitespeed.io.summary.dev.ontheroad.jp.domains.requests.*, 0), 10), #B)), 8)"
+            },
+            {
+              "hide": true,
+              "target": "sitespeed.io.summary.dev.ontheroad.jp.testedPages"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Top 10 3rd party domains by number of requests per page",
+          "tooltip": {
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "x-axis": true,
+          "y-axis": true,
+          "y_formats": [
+            "short",
+            "short"
+          ]
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Graphite",
+          "editable": true,
+          "error": false,
+          "fill": 0,
+          "grid": {
+            "leftLogBase": 1,
+            "leftMax": null,
+            "leftMin": null,
+            "rightLogBase": 1,
+            "rightMax": null,
+            "rightMin": null,
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 4,
+          "legend": {
+            "alignAsTable": true,
+            "avg": false,
+            "current": true,
+            "max": true,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": true
+          },
+          "lines": true,
+          "linewidth": 1,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "target": "aliasByNode(highestMax(exclude(sitespeed.io.summary.dev.ontheroad.jp.domains.*.*.total.median, 'sitespeed.io.summary.dev.ontheroad.jp.domains.*ontheroad_jp*'), 10), 8)"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Timings 3rd party domains",
+          "tooltip": {
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "x-axis": true,
+          "y-axis": true,
+          "y_formats": [
+            "ms",
+            "short"
+          ]
+        }
+      ],
+      "title": "New row"
+    },
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "500px",
+      "panels": [
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Graphite",
+          "editable": true,
+          "error": false,
+          "fill": 0,
+          "grid": {
+            "leftLogBase": 1,
+            "leftMax": null,
+            "leftMin": null,
+            "rightLogBase": 1,
+            "rightMax": null,
+            "rightMin": null,
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 9,
+          "legend": {
+            "alignAsTable": true,
+            "avg": false,
+            "current": true,
+            "max": true,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": true
+          },
+          "lines": true,
+          "linewidth": 1,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 12,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "target": "aliasByNode(highestMax(exclude(exclude(maximumAbove(sitespeed.io.http.dev_ontheroad_jp.slash.requests.*.*.*.timings.total, 100), 'requests.http.metrics_aa_com'), 'requests.http.dev.ontheroad.jp'), 10), 6, 7, 8)"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Top 10 slowest 3rd party requests on the home page (have faith this query loads slowly)",
+          "tooltip": {
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "x-axis": true,
+          "y-axis": true,
+          "y_formats": [
+            "ms",
+            "short"
+          ]
+        }
+      ],
+      "title": "New row"
+    }
+  ],
+  "nav": [
+    {
+      "collapse": false,
+      "enable": true,
+      "notice": false,
+      "now": true,
+      "refresh_intervals": [
+        "5s",
+        "10s",
+        "30s",
+        "1m",
+        "5m",
+        "15m",
+        "30m",
+        "1h",
+        "2h",
+        "1d"
+      ],
+      "status": "Stable",
+      "time_options": [
+        "5m",
+        "15m",
+        "1h",
+        "6h",
+        "12h",
+        "24h",
+        "2d",
+        "7d",
+        "30d"
+      ],
+      "type": "timepicker"
+    }
+  ],
+  "time": {
+    "from": "now-12h",
+    "to": "now"
+  },
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  },
+  "schemaVersion": 6,
+  "version": 80
+}

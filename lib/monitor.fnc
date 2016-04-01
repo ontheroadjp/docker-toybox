@@ -1,5 +1,7 @@
 #!/bin/sh
 
+src=$TOYBOX_HOME/src/${app_name}
+
 db_name=${app_name}
 db_user=${app_name}
 db_user_pass=${app_name}
@@ -10,26 +12,37 @@ function __source() {
     fi
 }
 
+function __build() {
+    docker build -t nutsp/toybox-monitor ${src}
+}
+
 main_container=${fqdn}-${app_name}
 db_container=${fqdn}-${app_name}-db
 data_container=${fqdn}-${app_name}-data
 
 function __init() {
+
+    __build
+
     mkdir -p ${app_path}/bin
     
     cat <<-EOF > ${compose_file}
 influxDB:
-    image: "tutum/influxdb:0.8.8"
+    #image: "tutum/influxdb:0.8.8"
+    image: "tutum/influxdb:0.9"
     ports:
-        - "8083:8083" # for web ui
-        - "8086:8086" # for api
+        - "8083:8083" # for WEB UI
+        - "8086:8086" # for HTTP API
         #- "8083"
         #- "8086"
+    volumes:
+        - ${app_path}/data/influxdb:/data
+        - ${app_path}/data/influxdb/log:/var/log/influxdb
     expose:
         - "8090"
         - "8099"
     environment:
-        - PRE_CREATE_DB=cadvisor
+        - PRE_CREATE_DB=cadvisor;test;test2
         #- VIRTUAL_HOST=influxdb.docker-toybox.com
         #- VIRTUAL_PORT=8083
 
@@ -40,7 +53,31 @@ graphite:
         - "2003:2003"
     volumes:
         - ${app_path}/data/graphite:/opt/graphite/storage/whisper
+        - ${app_path}/data/graphite/log:/var/log/carbon
     
+grafana:
+    #image: "grafana/grafana:2.1.3"
+    #image: "grafana/grafana:2.6.0"
+    image: "nutsp/toybox-monitor"
+    links:
+        - "influxDB:influxdb"
+        - "graphite:graphite"
+    environment:
+        - INFLUXDB_HOST=localhost
+        - INFLUXDB_PORT=8086
+        - INFLUXDB_NAME=cadvisor
+        - INFLUXDB_USER=root
+        - INFLUXDB_PASS=root
+        - GF_SECURITY_ADMIN_USER=toybox
+        - GF_SECURITY_ADMIN_PASSWORD=toybox
+        - GF_DASHBOARDS_JSON_ENABLED=true
+        - VIRTUAL_HOST=grafana.docker-toybox.com
+    volumes:
+        - ${app_path}/data/grafana:/var/lib/grafana
+        - ${app_path}/data/grafana/log:/var/log/grafana
+    ports:
+        - "3000"
+
 cadvisor:
     image: "google/cadvisor:0.16.0"
     volumes:
@@ -55,40 +92,22 @@ cadvisor:
     command: "-storage_driver=influxdb -storage_driver_db=cadvisor -storage_driver_host=influxdb:8086 -storage_driver_user=root -storage_driver_password=root -storage_driver_secure=False"
     ports:
         - "8080"
-grafana:
-    image: "grafana/grafana:2.1.3"
-    links:
-        - "influxDB:influxdb"
-        - "graphite:graphite"
-    environment:
-        - INFLUXDB_HOST=localhost
-        - INFLUXDB_PORT=8086
-        - INFLUXDB_NAME=cadvisor
-        - INFLUXDB_USER=root
-        - INFLUXDB_PASS=root
-        - GF_SECURITY_ADMIN_USER=admin
-        - GF_SECURITY_ADMIN_PASSWORD=admin
-        - VIRTUAL_HOST=grafana.docker-toybox.com
-    volumes:
-        - ${app_path}/data/grafana:/var/lib/grafana
-    ports:
-        - "3000"
 
 sitespeedio:
-  image: sitespeedio/sitespeed.io
-  privileged: true
-  links:
-    - graphite
-  volumes:
-    - ${app_path}/data/sitespeed.io:/sitespeed.io
+    image: sitespeedio/sitespeed.io
+    privileged: true
+    links:
+        - graphite
+    volumes:
+        - ${app_path}/data/sitespeed.io:/sitespeed.io
 
 sitespeedio-chrome:
-  image: sitespeedio/sitespeed.io-chrome
-  privileged: true
-  links:
-    - graphite
-  volumes:
-    - ${app_path}/data/sitespeed.io:/sitespeed.io
+    image: sitespeedio/sitespeed.io-chrome
+    privileged: true
+    links:
+        - graphite
+    volumes:
+        - ${app_path}/data/sitespeed.io:/sitespeed.io
 EOF
 }
 
@@ -98,7 +117,8 @@ function __new() {
         docker-compose -p ${project_name} up -d && {
             echo '---------------------------------'
             echo 'URL: http://'${fqdn}
-            echo "URL: influxdb:http://xxx.xxx.xxx.xxx:8083 - root/root"
+            echo "URL: influxdb for web ui:http://xxx.xxx.xxx.xxx:8083 - root/root"
+            echo "URL: influxdb for api   :http://xxx.xxx.xxx.xxx:8086 - root/root"
             echo "URL: graphite:http://xxx.xxx.xxx.xxx:8080 - guest/guest"
             echo "URL: http://cadvisor.${domain}"
             echo "URL: http://grafana.${domain} - admin/admin"

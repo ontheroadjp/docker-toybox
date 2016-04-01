@@ -1,5 +1,5 @@
 {
-  "id": 4,
+  "id": 10,
   "title": "Docker Toybox Monitoring",
   "originalTitle": "Docker Toybox Monitoring",
   "tags": [],
@@ -10,14 +10,34 @@
   "sharedCrosshair": false,
   "rows": [
     {
+      "title": "New row",
+      "height": "250px",
+      "editable": true,
+      "collapse": false,
+      "panels": [
+        {
+          "title": "",
+          "error": false,
+          "span": 12,
+          "editable": true,
+          "type": "text",
+          "id": 11,
+          "mode": "markdown",
+          "content": "# Docker Toybox Monitoring\n\nYou can watch to Graph data via cadvisor for docker containers that is running now.\n",
+          "style": {},
+          "links": []
+        }
+      ]
+    },
+    {
       "collapse": false,
       "editable": true,
-      "height": "250px",
+      "height": "450px",
       "panels": [
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "influxdb",
+          "datasource": "Influxdb",
           "decimals": null,
           "editable": true,
           "error": false,
@@ -34,20 +54,21 @@
             "threshold2": null,
             "threshold2Color": "rgba(234, 112, 112, 0.22)"
           },
-          "id": 1,
+          "id": 9,
           "interval": "",
           "leftYAxisLabel": "CPU time/sec",
           "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
+            "alignAsTable": true,
+            "avg": true,
+            "current": true,
+            "max": true,
+            "min": true,
             "show": true,
-            "total": false,
-            "values": false
+            "total": true,
+            "values": true
           },
           "lines": true,
-          "linewidth": 2,
+          "linewidth": 1,
           "links": [],
           "nullPointMode": "null",
           "percentage": false,
@@ -85,18 +106,17 @@
           ]
         }
       ],
-      "showTitle": false,
       "title": "New row"
     },
     {
       "collapse": false,
       "editable": true,
-      "height": "250px",
+      "height": "450px",
       "panels": [
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "influxdb",
+          "datasource": "Influxdb",
           "decimals": null,
           "editable": true,
           "error": false,
@@ -113,18 +133,19 @@
             "threshold2": null,
             "threshold2Color": "rgba(234, 112, 112, 0.22)"
           },
-          "id": 2,
+          "id": 10,
           "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
+            "alignAsTable": true,
+            "avg": true,
+            "current": true,
+            "max": true,
+            "min": true,
             "show": true,
             "total": false,
-            "values": false
+            "values": true
           },
           "lines": true,
-          "linewidth": 2,
+          "linewidth": 1,
           "links": [],
           "nullPointMode": "connected",
           "percentage": false,
@@ -143,7 +164,8 @@
               "function": "mean",
               "groupby_field": "container_name",
               "query": "select container_name, mean(memory_usage) from \"stats\" where $timeFilter group by time($interval), container_name order asc",
-              "series": "stats"
+              "series": "stats",
+              "target": ""
             }
           ],
           "timeFrom": null,
@@ -175,7 +197,7 @@
             "FS Usage": "#E0F9D7"
           },
           "bars": false,
-          "datasource": "influxdb",
+          "datasource": "Influxdb",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -191,7 +213,7 @@
             "threshold2": null,
             "threshold2Color": "rgba(234, 112, 112, 0.22)"
           },
-          "id": 4,
+          "id": 7,
           "legend": {
             "avg": false,
             "current": false,
@@ -210,7 +232,7 @@
           "points": false,
           "renderer": "flot",
           "seriesOverrides": [],
-          "span": 12,
+          "span": 6,
           "stack": false,
           "steppedLine": false,
           "targets": [
@@ -219,7 +241,8 @@
               "column": "fs_limit",
               "function": "mean",
               "query": "select mean(fs_limit) from \"stats\" where $timeFilter group by time($interval) order asc",
-              "series": "stats"
+              "series": "stats",
+              "target": "carbon.agents.7b0f2a2211f2-a.select metric"
             },
             {
               "alias": "FS Usage",
@@ -244,21 +267,13 @@
             "bits",
             "short"
           ]
-        }
-      ],
-      "title": "New row"
-    },
-    {
-      "collapse": false,
-      "editable": true,
-      "height": "250px",
-      "panels": [
+        },
         {
           "aliasColors": {
             "TX": "#890F02"
           },
           "bars": false,
-          "datasource": "influxdb",
+          "datasource": "Influxdb",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -274,7 +289,7 @@
             "threshold2": null,
             "threshold2Color": "rgba(234, 112, 112, 0.22)"
           },
-          "id": 3,
+          "id": 8,
           "legend": {
             "avg": false,
             "current": false,
@@ -293,7 +308,7 @@
           "points": false,
           "renderer": "flot",
           "seriesOverrides": [],
-          "span": 12,
+          "span": 6,
           "stack": false,
           "steppedLine": false,
           "targets": [
@@ -302,7 +317,8 @@
               "column": "tx_bytes",
               "function": "last",
               "query": "select last(tx_bytes) from \"stats\" where $timeFilter group by time($interval) order asc",
-              "series": "stats"
+              "series": "stats",
+              "target": ""
             },
             {
               "alias": "RX",
@@ -366,7 +382,7 @@
     }
   ],
   "time": {
-    "from": "now-1h",
+    "from": "now-6h",
     "to": "now"
   },
   "templating": {
@@ -377,6 +393,6 @@
   },
   "refresh": false,
   "schemaVersion": 6,
-  "version": 9,
+  "version": 1,
   "links": []
 }

@@ -1,5 +1,4 @@
 FROM php:5.6-apache
-#COPY doc/ /var/www/html
 
 RUN a2enmod rewrite expires
 

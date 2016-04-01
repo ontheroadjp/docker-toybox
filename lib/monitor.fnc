@@ -25,7 +25,80 @@ function __init() {
     __build
 
     mkdir -p ${app_path}/bin
-    
+#    cat <<-EOF > ${app_path}/bin/sitespeed.sh
+##docker run --privileged --rm -v $(pwd)/data:/sitespeed.io sitespeedio/sitespeed.io sitespeed.io -u http://dev.ontheroad.jp -b firefox -n 3 --connection cable --graphiteHost 172.17.2.98 --graphiteData summary,rules,pagemetrics,timings,timings
+##docker run     \
+##    --privileged \ # 権限を与える
+##    --rm         \ # 実行したらコンテナを消す
+##    -v $(pwd)/data:/sitespeed.io \ # ディレクトリを共有
+##    sitespeedio/sitespeed.io \ # コンテナ名
+##    sitespeed.io             \ # ここからはコマンド実行
+##    -u http://dev.ontheroad.jp       \ # ターゲット URL
+##    -b firefox               \ # ブラウザ
+##    -n 3                     \ # 回数
+##    --connection cable       \ # 回線エミュレート
+##    --graphiteHost 160.16.229.167 \ # ここはホストを IP で指定 2003 ポートに送られる
+##    --graphiteData summary,rules,pagemetrics,timings,timings \ # 全ての情報を graphite に送る
+#EOF
+
+#    sitespeed_shell_file=${app_path}/bin/sitespeed.sh
+#    echo '#!/bin/bash' > ${app_path}/bin/sitespeed.sh
+#    echo 'YOU=`whoami`' >> ${app_path}/bin/sitespeed.sh
+#    echo 'HELP=' >> ${app_path}/bin/sitespeed.sh
+#    echo 'BROWSER="firefox"' >> ${app_path}/bin/sitespeed.sh
+#    echo 'IMAGE="sitespeed.io"' >> ${app_path}/bin/sitespeed.sh
+#    echo '' >> ${app_path}/bin/sitespeed.sh
+#    echo 'while getopts d: OPT; do' >> ${app_path}/bin/sitespeed.sh
+#    echo '    case $OPT in' >> ${app_path}/bin/sitespeed.sh
+#    echo '        d) BROWSER=$OPTARG' >> ${app_path}/bin/sitespeed.sh
+#    echo '           ;;' >> ${app_path}/bin/sitespeed.sh
+#    echo '    esac' >> ${app_path}/bin/sitespeed.sh
+#    echo 'done' >> ${app_path}/bin/sitespeed.sh
+#    echo '' >> ${app_path}/bin/sitespeed.sh
+#    echo 'usage_exit() {' >> ${app_path}/bin/sitespeed.sh
+#    echo '    echo "Measurement URL must be supplied!"' >> ${app_path}/bin/sitespeed.sh
+#    echo '    echo "Usage: "' >> ${app_path}/bin/sitespeed.sh
+#    echo '    echo "    ./sitespeedio.sh [-b browser] [URL]"' >> ${app_path}/bin/sitespeed.sh
+#    echo '    exit 1' >> ${app_path}/bin/sitespeed.sh
+#    echo '}' >> ${app_path}/bin/sitespeed.sh
+#    echo '' >> ${app_path}/bin/sitespeed.sh
+#    echo 'if [ "$1" = "" ];then' >> ${app_path}/bin/sitespeed.sh
+#    echo '    usage_exit' >> ${app_path}/bin/sitespeed.sh
+#    echo 'fi' >> ${app_path}/bin/sitespeed.sh
+#    echo '' >> ${app_path}/bin/sitespeed.sh
+#    echo 'if [ ! "$BROWSER" = "chrome" -a ! "$BROWSER" = "firefox" ]; then' >> ${app_path}/bin/sitespeed.sh
+#    echo '    echo "[ERROR] Invalid target browser."' >> ${app_path}/bin/sitespeed.sh
+#    echo '    usage_exit' >> ${app_path}/bin/sitespeed.sh
+#    echo 'fi' >> ${app_path}/bin/sitespeed.sh
+#    echo '' >> ${app_path}/bin/sitespeed.sh
+#    echo 'if [ "$BROWSER" = "chrome" ]; then' >> ${app_path}/bin/sitespeed.sh
+#    echo '    IMAGE="sitespeed.io-chrome"' >> ${app_path}/bin/sitespeed.sh
+#    echo 'fi' >> ${app_path}/bin/sitespeed.sh
+#    echo '' >> ${app_path}/bin/sitespeed.sh
+#    echo 'echo "==================================================="' >> ${app_path}/bin/sitespeed.sh
+#    echo 'echo "sitespeed.io performance tracking"' >> ${app_path}/bin/sitespeed.sh
+#    echo 'echo "==================================================="' >> ${app_path}/bin/sitespeed.sh
+#    echo '' >> ${app_path}/bin/sitespeed.sh
+#    
+#    echo 'selfpath=$(cd $(dirname $0);pwd)' >> ${app_path}/bin/sitespeed.sh
+#    
+#    echo '' >> ${app_path}/bin/sitespeed.sh
+#    echo 'docker run \' >> ${app_path}/bin/sitespeed.sh
+#    echo '    --privileged \' >> ${app_path}/bin/sitespeed.sh
+#    echo '    --rm \' >> ${app_path}/bin/sitespeed.sh
+#    echo '    --link toybox_graphite_1:graphite \' >> ${app_path}/bin/sitespeed.sh
+#    echo '    -v ${selfpath}/../data/sitespeed.io:/sitespeed.io \' >> ${app_path}/bin/sitespeed.sh
+#    echo '    sitespeedio/${IMAGE} \' >> ${app_path}/bin/sitespeed.sh
+#    echo '    ${IMAGE} \' >> ${app_path}/bin/sitespeed.sh
+#    echo '    -u $1 \' >> ${app_path}/bin/sitespeed.sh
+#    echo '    -b ${BROWSER} \' >> ${app_path}/bin/sitespeed.sh
+#    echo '    -n 5 \' >> ${app_path}/bin/sitespeed.sh
+#    echo '    -d 0 \' >> ${app_path}/bin/sitespeed.sh
+#    echo '    -r /tmp \' >> ${app_path}/bin/sitespeed.sh
+#    echo '    --graphiteHost graphite \' >> ${app_path}/bin/sitespeed.sh
+#    echo '    --graphiteNamespace sitespeed.io \' >> ${app_path}/bin/sitespeed.sh
+#    echo '    --graphiteDate summary,rules,pagemetrics,timings \' >> ${app_path}/bin/sitespeed.sh
+#    
     cat <<-EOF > ${compose_file}
 influxDB:
     #image: "tutum/influxdb:0.8.8"
@@ -123,7 +196,9 @@ function __new() {
             echo "URL: http://cadvisor.${domain}"
             echo "URL: http://grafana.${domain} - admin/admin"
             echo '---------------------------------'
+            echo "*/5 * * * * sh ${app_path}/bin/sitespeed.sh http://xxx.xxx.xxx"
         }
+        cp ${src}/sitespeed.sh ${app_path}/bin/
     }
 }
 

@@ -197,8 +197,8 @@ function __new() {
             echo "URL: http://grafana.${domain} - admin/admin"
             echo '---------------------------------'
             echo "*/5 * * * * sh ${app_path}/bin/sitespeed.sh http://xxx.xxx.xxx"
+            cp ${src}/sitespeed.sh ${app_path}/bin/
         }
-        cp ${src}/sitespeed.sh ${app_path}/bin/
     }
 }
 

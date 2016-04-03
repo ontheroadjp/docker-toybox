@@ -70,6 +70,14 @@ function __is_executable() {
     type "${command}" > /dev/null 2>&1
 }
 
+function __is_container_exist() {
+    docker ps -a | grep ${project_name}_${1}_ > /dev/null 2>&1;
+}
+
+function __is_container_running() {
+    docker ps -a | grep ${project_name}_${1}_ | grep Up > /dev/null 2>&1;
+}
+
 function __is_docker_gen_container_exist() {
     docker ps -a | grep ${project_name}_nginx-docker-gen_ > /dev/null 2>&1;
     :
@@ -181,6 +189,9 @@ function __monitor() {
                 fi
                 printf "\n"
                         
+            elif [ ${app_name} = 'grafana' ]; then
+                __is_container_exist ${influxdb_container}; local exist_influxdb=$?
+
             elif [ ${app_name} = 'wordpress' ] || \
                     [ ${app_name} = 'owncloud' ] || \
                     [ ${app_name} = 'lychee' ] || \

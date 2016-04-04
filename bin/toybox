@@ -81,38 +81,6 @@ function __is_container_running() {
     docker ps -a | grep ${project_name}_${1}_ | grep Up > /dev/null 2>&1;
 }
 
-#function __is_docker_gen_container_exist() {
-#    docker ps -a | grep ${project_name}_nginx-docker-gen_ > /dev/null 2>&1;
-#    :
-#}
-#
-#function __is_docker_gen_container_running() {
-#    docker ps -a | grep ${project_name}_nginx-docker-gen_ | grep Up > /dev/null 2>&1;
-#    :
-#}
-#
-#function __is_main_container_exist() {
-#    docker ps -a | grep ${project_name}_${fqdn}-${app_name}_ > /dev/null 2>&1;
-#}
-#
-#function __is_db_container_exist() {
-#    docker ps -a | grep ${project_name}_${fqdn}-${app_name}-db_ > /dev/null 2>&1;
-#}
-#
-#function __is_main_container_running() {
-#    docker ps -a | grep ${project_name}_${fqdn}-${app_name}_ | grep Up > /dev/null 2>&1;
-#}
-#
-#function __is_db_container_running() {
-#    docker ps -a | grep ${project_name}_${fqdn}-${app_name}-db_ | grep Up > /dev/null 2>&1;
-#}
-
-#function __is_connect() {
-#    docker ps | grep proxy_ | grep Up > /dev/null 2>&1 && {
-#        docker inspect $(docker ps -a | grep ${fqdn} | grep ${app}_ | awk '{print $1}') | grep "VIRTUAL_HOST=${fqdn}" > /dev/null 2>&1
-#    }
-#}
-
 function __list() {
     if [ -f ${applist} ]; then
         cat ${applist} | awk 'BEGIN{ OFS=" " }
@@ -151,8 +119,8 @@ function __monitor() {
 
     __print_header
 
-    echo '<Expect>'
-    __list
+    #echo '<Expect>'
+    #__list
 
     echo '<Exact(ps)>'
     if [ ! -f ${applist} ]; then
@@ -171,7 +139,6 @@ function __monitor() {
                 printf "%-42s" "n/a" # URL
                 printf "%-15s" ${app_name}:${app_version}
                 __is_container_exist ${app_name}; local exist_main=$?
-                #__is_docker_gen_container_exist; local exist_docker_gen=$?
                 local exist_docker_gen=$?
                 local result=$(expr ${exist_main} + ${exist_docker_gen})
 
@@ -204,16 +171,14 @@ function __monitor() {
             elif [ ${app_name} = 'grafana' ]; then
                 __is_container_exist ${influxdb_container}; local exist_influxdb=$?
 
-            elif [ ${app_name} = 'wordpress' ] || \
+            elif [ ${app_name} = 'wordpress' ] ||   \
                     [ ${app_name} = 'owncloud' ] || \
-                    [ ${app_name} = 'lychee' ] || \
-                    [ ${app_name} = 'monitor' ] || \
-                    [ ${app_name} = 'lamp' ]
+                    [ ${app_name} = 'lychee' ] ||   \
+                    [ ${app_name} = 'monitor' ] ||  \
+                    [ ${app_name} = 'php' ]
                 then
                 printf "http://%-35s" ${fqdn}
                 printf "%-15s" ${app_name}:${app_version}
-                #__is_main_container_exist; local exist_main=$?
-                #__is_db_container_exist; local exist_db=$?
 
                 main_container=${fqdn}-${app_name}
                 db_container=${main_container}-db
@@ -522,8 +487,8 @@ else
     compose_file="${app_path}/bin/docker-compose.yml"
     src="$TOYBOX_HOME/src/${app_name}"
    
-    if [ $1 != "new" ]; then
-        echo ${project_name}": Invirid argument(s)."
+    if [ $1 != "up" ]; then
+        echo ${project_name}": Invalid argument(s)."
         echo "See '${project_name} -h'." 
         exit 1
     fi

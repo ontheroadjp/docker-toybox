@@ -35,8 +35,8 @@ option:
 
 application:
     proxy           Http dinamic proxy server based on nginx 
-    php5            LAMP with PHP5.6.x 
-    php7            LAMP with PHP7.0.x 
+    php5            LAMP(Apache2 + MySQL5.6 + PHP5.6)
+    php7            LAMP(Apache2 + MySQL5.6 + PHP7.0)
     wordpress       CMS 
     owncloud        Personal cloud strage like a Dropbox
     lychee          Photo management system
@@ -45,9 +45,10 @@ command:
     start           Start ${app_name} containers
     stop            Stop ${app_name} containers
     ps              Show ${app_name} containers status
+    restart         Show ${app_name} containers status
     clear           Stop and Remove all of ${app_name} containers
     # backup          Backup DB data
-    source          get source code of containers
+    #source          get source code of containers
 
 EOF
 }
@@ -71,38 +72,40 @@ function __is_executable() {
 }
 
 function __is_container_exist() {
+    #$1 = ${app_name}
     docker ps -a | grep ${project_name}_${1}_ > /dev/null 2>&1;
 }
 
 function __is_container_running() {
+    #$1 = ${app_name}
     docker ps -a | grep ${project_name}_${1}_ | grep Up > /dev/null 2>&1;
 }
 
-function __is_docker_gen_container_exist() {
-    docker ps -a | grep ${project_name}_nginx-docker-gen_ > /dev/null 2>&1;
-    :
-}
-
-function __is_docker_gen_container_running() {
-    docker ps -a | grep ${project_name}_nginx-docker-gen_ | grep Up > /dev/null 2>&1;
-    :
-}
-
-function __is_main_container_exist() {
-    docker ps -a | grep ${project_name}_${fqdn}-${app_name}_ > /dev/null 2>&1;
-}
-
-function __is_db_container_exist() {
-    docker ps -a | grep ${project_name}_${fqdn}-${app_name}-db_ > /dev/null 2>&1;
-}
-
-function __is_main_container_running() {
-    docker ps -a | grep ${project_name}_${fqdn}-${app_name}_ | grep Up > /dev/null 2>&1;
-}
-
-function __is_db_container_running() {
-    docker ps -a | grep ${project_name}_${fqdn}-${app_name}-db_ | grep Up > /dev/null 2>&1;
-}
+#function __is_docker_gen_container_exist() {
+#    docker ps -a | grep ${project_name}_nginx-docker-gen_ > /dev/null 2>&1;
+#    :
+#}
+#
+#function __is_docker_gen_container_running() {
+#    docker ps -a | grep ${project_name}_nginx-docker-gen_ | grep Up > /dev/null 2>&1;
+#    :
+#}
+#
+#function __is_main_container_exist() {
+#    docker ps -a | grep ${project_name}_${fqdn}-${app_name}_ > /dev/null 2>&1;
+#}
+#
+#function __is_db_container_exist() {
+#    docker ps -a | grep ${project_name}_${fqdn}-${app_name}-db_ > /dev/null 2>&1;
+#}
+#
+#function __is_main_container_running() {
+#    docker ps -a | grep ${project_name}_${fqdn}-${app_name}_ | grep Up > /dev/null 2>&1;
+#}
+#
+#function __is_db_container_running() {
+#    docker ps -a | grep ${project_name}_${fqdn}-${app_name}-db_ | grep Up > /dev/null 2>&1;
+#}
 
 #function __is_connect() {
 #    docker ps | grep proxy_ | grep Up > /dev/null 2>&1 && {
@@ -164,26 +167,35 @@ function __monitor() {
             app_name=$(echo ${line} | awk '{print $2}')
             app_path=$(echo ${line} | awk '{print $5}')
 
-            printf "http://%-35s" ${fqdn}
-            printf "%-15s" ${app_name}:${app_version}
-
             if [ ${app_name} = 'proxy' ]; then
-                __is_main_container_exist; local exist_main=$?
-                __is_docker_gen_container_exist; local exist_docker_gen=$?
+                printf "%-42s" "n/a" # URL
+                printf "%-15s" ${app_name}:${app_version}
+                __is_container_exist ${app_name}; local exist_main=$?
+                #__is_docker_gen_container_exist; local exist_docker_gen=$?
+                local exist_docker_gen=$?
                 local result=$(expr ${exist_main} + ${exist_docker_gen})
 
+                # for one container
                 if [ ${result} -eq 2 ]; then
                     printf "%-10s" "removed"
                 elif [ ${result} -eq 1 ]; then
                     printf "\033[1;31m%-10s\033[0m" "error"
+
+                # for two containers
+                #elif [ ${result} -eq 0 ]; then
+                #    if __is_main_container_running && __is_docker_gen_container_running; then
+                #        printf "\033[1;32m%-10s\033[0m" "running"
+                #    elif ! __is_main_container_running && __is_docker_gen_container_running; then
+                #        printf "%-10s" "error: nginx container is down"
+                #    elif __is_main_container_running && ! __is_docker_gen_container_running; then
+                #        printf "%-10s" "error: docker-gen container is down"
+                #    elif ! __is_main_container_running && ! __is_docker_gen_container_running; then
+                #        printf "\033[1;31m%-10s\033[0m" "stopped"
+                #    fi
                 elif [ ${result} -eq 0 ]; then
-                    if __is_main_container_running && __is_docker_gen_container_running; then
+                    if __is_container_running ${app_name}; then
                         printf "\033[1;32m%-10s\033[0m" "running"
-                    elif ! __is_main_container_running && __is_docker_gen_container_running; then
-                        printf "%-10s" "error: nginx container is down"
-                    elif __is_main_container_running && ! __is_docker_gen_container_running; then
-                        printf "%-10s" "error: docker-gen container is down"
-                    elif ! __is_main_container_running && ! __is_docker_gen_container_running; then
+                    else
                         printf "\033[1;31m%-10s\033[0m" "stopped"
                     fi
                 fi
@@ -198,8 +210,16 @@ function __monitor() {
                     [ ${app_name} = 'monitor' ] || \
                     [ ${app_name} = 'lamp' ]
                 then
-                __is_main_container_exist; local exist_main=$?
-                __is_db_container_exist; local exist_db=$?
+                printf "http://%-35s" ${fqdn}
+                printf "%-15s" ${app_name}:${app_version}
+                #__is_main_container_exist; local exist_main=$?
+                #__is_db_container_exist; local exist_db=$?
+
+                main_container=${fqdn}-${app_name}
+                db_container=${main_container}-db
+
+                __is_container_exist ${main_container}; local exist_main=$?
+                __is_container_exist ${db_container}; local exist_db=$?
                 local result=$(expr ${exist_main} + ${exist_db})
 
                 if [ ${result} -eq 2 ]; then
@@ -207,13 +227,13 @@ function __monitor() {
                 elif [ ${result} -eq 1 ]; then
                     printf "\033[1;31m%-10s\033[0m" "error"
                 elif [ ${result} -eq 0 ]; then
-                    if __is_main_container_running && __is_db_container_running; then
+                    if __is_container_running ${main_container} && __is_container_running ${db_container}; then
                         printf "\033[1;32m%-10s\033[0m" "running"
-                    elif ! __is_main_container_running && __is_db_container_running; then
+                    elif ! __is_container_running ${main_container} && __is_container_running ${db_container}; then
                         printf "%-10s" "error: Main container is down"
-                    elif __is_main_container_running && ! __is_db_container_running; then
+                    elif __is_container_running ${main_container} && ! __is_container_running ${db_container}; then
                         printf "%-10s" "error: DB container is down"
-                    elif ! __is_main_container_running && ! __is_db_container_running; then
+                    elif !  __is_container_running ${main_container} && ! __is_container_running ${db_container}; then
                         printf "\033[1;31m%-10s\033[0m" "stopped"
                     fi
                 fi
@@ -227,7 +247,7 @@ function __monitor() {
 # Public Functions
 # ----------------------------------------
 
-function _new(){
+function _up(){
     local exist=''
     if [ -f ${applist} ]; then
         exist=$(cat ${applist} | grep ${fqdn})
@@ -239,8 +259,12 @@ function _new(){
     else
         touch ${applist}
     fi
-    __new && {
-        new="${fqdn} ${app_name} running ${app_path}"
+    __up && {
+        if [ ${app_name} = 'proxy' ]; then
+            new="n/a ${app_name} running #${port}"
+        else
+            new="${fqdn} ${app_name} running ${app_path}"
+        fi
         echo ${new} >> ${applist}
     }
 }
@@ -263,7 +287,7 @@ function _start() {
 
     # when container removed
     if ! __is_main_container_exist; then
-        __new
+        _up
 
     # when container running
     elif __is_main_container_running; then
@@ -417,64 +441,67 @@ EOF
     exit 1
 fi
 
-# zero argument form
+# check options
+while getopts evhs:d: OPT
+do
+  case $OPT in
+    "e" ) __env ; exit 0 ;;
+    "v" ) __version ; exit 0 ;;
+    "h" ) __help ; exit 0 ;;
+    "s" ) sub_domain="${OPTARG}" ;;
+    "d" ) domain="${OPTARG}" ;;
+  esac
+done
+shift $(expr $OPTIND - 1)
+
+# check arguments
 if [ $# -eq 0 ]; then
     #__list
     __monitor
+    exit 0
 
-# URL argument form
-elif [[ $1 =~ ^http://.* ]]; then
+elif [ $# -ne 2 ]; then
+    __usage
+    exit 1
+fi
+
+# ----------------------------------------
+# set variables
+# ----------------------------------------
+
+arg=$1; shift
+
+# URL argument
+if [[ ${arg} =~ ^http://.* ]]; then
     
-    arg=$1; shift
-    if [ $# -ne 1 ]; then
-        _help
-        exit 1
-    fi
-
     fqdn=$(echo ${arg} | sed "s?http://??")
 
     if [ ! -f ${applist} ]; then
         echo "${project_name}: No application available."
         echo "Please create application first."
         exit 1
-    else
-        app_name=$(cat ${applist} | grep ${fqdn} | awk '{print $2}')
-        app_path=$(cat ${applist} | grep ${fqdn} | awk '{print $4}')
-        compose_file=${app_path}/bin/docker-compose.yml
-        src=${app_path}/src
-       
-        if [ -n "${app_name}" ] && [ -n "${app_path}" ]; then
-            __docker_toybox $@
-        else
-            echo "${project_name}: 'http://${fqdn}' may be invalid URL."
-            exit 1
-        fi
+    fi
+
+    app_name="$(cat ${applist} | grep ${fqdn} | awk '{print $2}')"
+    app_path="$(cat ${applist} | grep ${fqdn} | awk '{print $4}')"
+    compose_file="${app_path}/bin/docker-compose.yml"
+    src="$TOYBOX_HOME/src/${app_name}"
+    
+    if [ ! -n "${app_name}" ] && [ ! -n "${app_path}" ]; then
+        echo "${project_name}: 'http://${fqdn}' may be invalid URL."
+        exit 1
     fi
 
 # Generic Form
+elif [ ${arg} = "proxy" ]; then
+    port=80
+    app_name=${arg}
+    app_path="$TOYBOX_HOME/stack/${app_name}/${port}"
+    compose_file="${app_path}/bin/docker-compose.yml"
+    src="$TOYBOX_HOME/src/${app_name}"
+
 else
-
-    # check options
-    while getopts evhs:d: OPT
-    do
-      case $OPT in
-        "e" ) __env ; exit 0 ;;
-        "v" ) __version ; exit 0 ;;
-        "h" ) __help ; exit 0 ;;
-        "s" ) sub_domain="${OPTARG}" ;;
-        "d" ) domain="${OPTARG}" ;;
-      esac
-    done
-    shift $(expr $OPTIND - 1)
-    
-    # check arguments
-    if [ $# -ne 2 ]; then
-      __usage
-      exit 1
-    fi
-
-    app_name_temp=$1; shift
-
+    app_name_temp=${arg}
     app_name=$(echo ${app_name_temp} | cut -d":" -f1)
     app_version=$(echo ${app_name_temp} | cut -d":" -f2)
 
@@ -490,17 +517,18 @@ else
         sub_domain=${app_name}
     fi
 
-    fqdn=${sub_domain}.${domain}
+    fqdn="${sub_domain}.${domain}"
     app_path="$TOYBOX_HOME/stack/${app_name}/${sub_domain}.${domain}"
-    compose_file=${app_path}/bin/docker-compose.yml
-    src=${app_path}/src
+    compose_file="${app_path}/bin/docker-compose.yml"
+    src="$TOYBOX_HOME/src/${app_name}"
    
     if [ $1 != "new" ]; then
         echo ${project_name}": Invirid argument(s)."
         echo "See '${project_name} -h'." 
         exit 1
     fi
-    __docker_toybox $@
 fi
+
+__docker_toybox $@
 
 exit 0

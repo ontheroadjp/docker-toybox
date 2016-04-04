@@ -69,7 +69,7 @@ grafana:
 EOF
 }
 
-function __new() {
+function __up() {
     __init && {
         cd ${app_path}/bin
         docker-compose -p ${project_name} up -d && {

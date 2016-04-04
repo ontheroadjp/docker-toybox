@@ -6,7 +6,7 @@ function __source() {
     fi
 }
 
-main_container=${fqdn}-${app_name}
+main_container=${app_name}
 
 src=${TOYBOX_HOME}/src/${app_name}
 
@@ -50,7 +50,7 @@ ${main_container}:
 EOF
 }
 
-function __new() {
+function __up() {
     __init && {
         cd ${app_path}/bin
         if docker-compose -p ${project_name} up -d; then

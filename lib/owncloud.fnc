@@ -66,7 +66,7 @@ memcached:
 EOF
 }
 
-function __new() {
+function __up() {
     #__source; local status=$?
     #if [ ${status} -ne 0 ]; then
     #    echo ${project_name}": source code of ${app_name} does not download."

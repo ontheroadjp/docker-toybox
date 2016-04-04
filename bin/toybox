@@ -40,6 +40,7 @@ application:
     wordpress       CMS 
     owncloud        Personal cloud strage like a Dropbox
     lychee          Photo management system
+    reichat         Paint chat
 
 command:
     start           Start ${app_name} containers
@@ -170,6 +171,20 @@ function __monitor() {
                         
             elif [ ${app_name} = 'grafana' ]; then
                 __is_container_exist ${influxdb_container}; local exist_influxdb=$?
+            elif [ ${app_name} = 'reichat' ]; then
+                printf "http://%-35s" ${fqdn}
+                printf "%-15s" ${app_name}:${app_version}
+
+                main_container=${fqdn}-${app_name}
+
+                if ! __is_container_exist ${main_container}; then
+                    printf "%-10s" "removed"
+                elif __is_container_running ${main_container}; then
+                    printf "\033[1;32m%-10s\033[0m" "running"
+                else
+                    printf "\033[1;31m%-10s\033[0m" "stopped"
+                fi
+                printf "\n"
 
             elif [ ${app_name} = 'wordpress' ] ||   \
                     [ ${app_name} = 'owncloud' ] || \
@@ -251,11 +266,11 @@ function _start() {
     cd ${app_path}/bin
 
     # when container removed
-    if ! __is_main_container_exist; then
-        _up
+    if ! __is_container_exist ${fqdn}-${app_name}; then
+        __up
 
     # when container running
-    elif __is_main_container_running; then
+    elif __is_container_running ${fqdn}-${app_name}; then
         echo ${project_name}: "'http://${fqdn}' is already running"
         exit 1
 
@@ -290,7 +305,7 @@ function _restart() {
 
 
 function _rm() {
-    if __is_main_container_running; then
+    if __is_container_running ${fqdn}-${app_name}; then
         echo ${project_name}: "'http://${fqdn}' is running now."
         echo "Please stop it first.( toybox http://${fqdn} stop )"
         exit 1
@@ -310,12 +325,12 @@ function _rm() {
 }
 
 function _clear() {
-    if __is_main_container_running; then
+    if __is_container_running ${fqdn}-${app_name}; then
         echo ${project_name}: "'http://${fqdn}' is running now."
         echo "Please stop and remove it first.( toybox http://${fqdn} stop )"
         exit 1
     fi
-    if __is_main_container_exist; then
+    if __is_container_exist ${fqdn}-${app_name}; then
         echo ${project_name}: "'http://${fqdn}' is existing now."
         echo "Please remove t first.( toybox http://${fqdn} rm )"
         exit 1

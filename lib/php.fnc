@@ -43,10 +43,11 @@ function __init() {
     cat <<-EOF > ${compose_file}
 ${main_container}:
     image: nutsp/${app_name}:${app_version}
+    volumes:
+        - ${app_path}/data/apache2/docroot:/var/www/html
+        #- ${app_path}/data/apache2/conf:/etc/apache2
     links:
         - ${db_container}:mysql
-    volumes:
-        - ${app_path}/data/docroot:/var/www/html
     environment:
         - VIRTUAL_HOST=${fqdn}
     ports:
@@ -65,7 +66,8 @@ ${db_container}:
 #${data_container}:
 #    image: busybox
 #    volumes:
-#        - ${app_path}/data/docroot:/var/www/html
+#        - ${app_path}/data/apache2/docroot:/var/www/html
+#        - ${app_path}/data/apache2/conf:/etc/apache2
 #        - ${app_path}/data/mysql:/var/lib/mysql
 EOF
 }

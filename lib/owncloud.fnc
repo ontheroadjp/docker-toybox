@@ -12,7 +12,7 @@ function __source() {
 }
 
 function __build() {
-    docker build -t nutsp/owncloud:9.0.0-apache $TOYBOX_HOME/src/owncloud/9.0.0/apache
+    docker build -t nutsp/owncloud:9.0.0-apache $TOYBOX_HOME/src/owncloud/9.0.0-apache
 }
 
 
@@ -31,9 +31,11 @@ ${main_container}:
     image: nutsp/owncloud:9.0.0-apache
     links:
         - ${db_container}:mysql
-        - memcached:memcached
+        - ${fqdn}-${app_name}-redis:redis
+    #    - memcached:memcached
     environment:
         - VIRTUAL_HOST=${fqdn}
+        - TIMEZONE=${timezone}
     #volumes_from:
     #    - ${data_container}
     volumes:
@@ -54,9 +56,14 @@ ${db_container}:
         MYSQL_USER: ${db_user}
         MYSQL_PASSWORD: ${db_user_pass}
         TERM: xterm
+        TIMEZONE: ${timezone}
+${fqdn}-${app_name}-redis:
+    image: redis:3.0
+    environment:
+        - TIMEZONE=${timezone}
 
-memcached:
-    image: memcached
+#memcached:
+#    image: memcached
 
 #${data_container}:
 #    image: busybox

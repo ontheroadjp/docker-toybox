@@ -50,11 +50,6 @@ function __up() {
             echo '---------------------------------'
             echo 'URL: http://'${fqdn}
             echo '---------------------------------'
-            echo -n 'Database Host: '
-            docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
-                $(docker ps | grep ${db_container}_1 | awk '{print $1}')
-            echo 'Database Username: '${db_user}
-            echo 'Database Password: '${db_user_pass}
         }
     }
 }

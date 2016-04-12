@@ -43,7 +43,7 @@ ${main_container}:
 EOF
 }
 
-function __up() {
+function __new() {
     __init && {
         cd ${app_path}/bin
         docker-compose -p ${project_name} up -d && {

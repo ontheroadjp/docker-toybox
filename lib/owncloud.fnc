@@ -34,12 +34,13 @@ ${main_container}:
         - ${fqdn}-${app_name}-redis:redis
     #    - memcached:memcached
     environment:
+        - security-opt=label:type:docker_t
         - VIRTUAL_HOST=${fqdn}
         - TIMEZONE=${timezone}
     #volumes_from:
     #    - ${data_container}
     volumes:
-        - ${app_path}/data/config:/var/www/html/config
+    #    - ${app_path}/data/config:/var/www/html/config
         - ${app_path}/data/data:/var/www/html/data
     ports:
         - "40110"
@@ -51,6 +52,7 @@ ${db_container}:
     volumes:
         - ${app_path}/data/mysql:/var/lib/mysql
     environment:
+        security-opt: label:type:docker_t
         MYSQL_ROOT_PASSWORD: root
         MYSQL_DATABASE: ${db_name}
         MYSQL_USER: ${db_user}
@@ -73,7 +75,7 @@ ${fqdn}-${app_name}-redis:
 EOF
 }
 
-function __up() {
+function __new() {
     #__source; local status=$?
     #if [ ${status} -ne 0 ]; then
     #    echo ${project_name}": source code of ${app_name} does not download."
@@ -87,9 +89,9 @@ function __up() {
             echo 'URL: http://'${fqdn}
             echo 'WebDAV: http://'${fqdn}'/remote.php/webdav/'
             echo '---------------------------------'
-            echo -n 'Database Host: '
-            docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
-                $(docker ps | grep ${project_name}_${db_container}_1 | awk '{print $1}')
+            #echo -n 'Database Host: '
+            #docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
+            #    $(docker ps | grep ${project_name}_${db_container}_1 | awk '{print $1}')
             echo 'Database Username: '${db_user}
             echo 'Database Password: '${db_user_pass}
         }

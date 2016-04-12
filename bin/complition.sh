@@ -27,7 +27,7 @@ __toyboxcomplete() {
 	        local list="start stop restart rm clear ps"
 		    COMPREPLY=( $(compgen -W '${list}' -- $cur) );
         elif echo ${applist} | grep ${prev} > /dev/null 2>&1; then
-		    local list="up"
+		    local list="new"
 		    COMPREPLY=( $(compgen -W '${list}' -- $cur) );
 		fi
 	fi

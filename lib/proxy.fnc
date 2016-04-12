@@ -14,13 +14,13 @@ src=${TOYBOX_HOME}/src/${app_name}
 #    mkdir -p ${app_path}/bin
 #    cat <<-EOF > ${compose_file}
 #${main_container}:
-#    restart: always
 #    image: nginx:1.9
 #    volumes:
 #        - "/tmp/nginx:/etc/nginx/conf.d"
 #        - "${src}/certs:/etc/nginx/certs"
 #    ports:
 #        - "80:80"
+#        - "443:443"
 #nginx-docker-gen:
 #    restart: always
 #    image: jwilder/docker-gen
@@ -31,6 +31,10 @@ src=${TOYBOX_HOME}/src/${app_name}
 #    volumes:
 #        - /var/run/docker.sock:/tmp/docker.sock:ro
 #        - ${src}/templates:/etc/docker-gen/templates
+#    environment:
+#        - DOCKER_HOST=tcp://127.0.0.1:2376
+#        - DOCKER_TLS_VERIFY=1
+#        - DOCKER_CERT_PATH=$HOME/.docker
 #    command: -notify-sighup ${main_container} -watch -only-exposed /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
 #EOF
 #}
@@ -47,10 +51,11 @@ ${main_container}:
         - "/var/run/docker.sock:/tmp/docker.sock"
     ports:
         - "80:80"
+        - "443:443"
 EOF
 }
 
-function __up() {
+function __new() {
     __init && {
         cd ${app_path}/bin
         if docker-compose -p ${project_name} up -d; then

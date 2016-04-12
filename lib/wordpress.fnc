@@ -23,6 +23,9 @@ ${main_container}:
     links:
         - ${db_container}:mysql
     environment:
+    #    - DOCKER_HOST=tcp://127.0.0.1:2376
+    #    - DOCKER_TLS_VERIFY=1
+    #    - DOCKER_CERT_PATH=$HOME/.docker
         - VIRTUAL_HOST=${fqdn}
     volumes:
         - ${app_path}/data/docroot:/var/www/html
@@ -38,8 +41,11 @@ ${db_container}:
     #volumes_from:
     #    - ${data_container}
     environment:
-        MYSQL_ROOT_PASSWORD: root
-        TERM: xterm
+    #    - DOCKER_HOST=tcp://127.0.0.1:2376
+    #    - DOCKER_TLS_VERIFY=1
+    #    - DOCKER_CERT_PATH=~/.docker
+        - MYSQL_ROOT_PASSWORD=root
+        - TERM=xterm
 
 #${data_container}:
 #    image: busybox
@@ -49,7 +55,7 @@ ${db_container}:
 EOF
 }
 
-function __up() {
+function __new() {
     __init && {
         cd ${app_path}/bin
         docker-compose -p ${project_name} up -d && {
@@ -57,8 +63,8 @@ function __up() {
             echo 'URL: http://'${fqdn}
             echo '---------------------------------'
             echo -n 'Database Host: '
-            docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
-                $(docker ps | grep ${db_container}_1 | awk '{print $1}')
+            #docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
+            #    $(docker ps | grep ${db_container}_1 | awk '{print $1}')
             echo 'Database Username: '${db_user}
             echo 'Database Password: '${db_user_pass}
         }

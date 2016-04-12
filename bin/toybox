@@ -125,43 +125,33 @@ function __monitor() {
     #echo '<Expect>'
     #__list
 
-    echo '<Exact(ps)>'
     if [ ! -f ${applist} ]; then
         echo 'no application available.'
     else
+        echo '<Proxy>'
         local count=0
+
         cat ${applist} | while read line; do
-            count=$(expr ${count} + 1)
-            printf "%2s: " ${count}
 
             fqdn=$(echo ${line} | awk '{print $1}')
             app_name=$(echo ${line} | awk '{print $2}')
             app_path=$(echo ${line} | awk '{print $5}')
 
             if [ ${app_name} = 'proxy' ]; then
+                count=$(expr ${count} + 1)
+                printf "%2s: " ${count}
+    
                 printf "%-42s" "n/a" # URL
                 printf "%-15s" ${app_name}:${app_version}
                 __is_container_exist ${app_name}; local exist_main=$?
                 local exist_docker_gen=$?
                 local result=$(expr ${exist_main} + ${exist_docker_gen})
 
-                # for one container
+                # print status running|stopped|removed|error
                 if [ ${result} -eq 2 ]; then
                     printf "%-10s" "removed"
                 elif [ ${result} -eq 1 ]; then
                     printf "\033[1;31m%-10s\033[0m" "error"
-
-                # for two containers
-                #elif [ ${result} -eq 0 ]; then
-                #    if __is_main_container_running && __is_docker_gen_container_running; then
-                #        printf "\033[1;32m%-10s\033[0m" "running"
-                #    elif ! __is_main_container_running && __is_docker_gen_container_running; then
-                #        printf "%-10s" "error: nginx container is down"
-                #    elif __is_main_container_running && ! __is_docker_gen_container_running; then
-                #        printf "%-10s" "error: docker-gen container is down"
-                #    elif ! __is_main_container_running && ! __is_docker_gen_container_running; then
-                #        printf "\033[1;31m%-10s\033[0m" "stopped"
-                #    fi
                 elif [ ${result} -eq 0 ]; then
                     if __is_container_running ${app_name}; then
                         printf "\033[1;32m%-10s\033[0m" "running"
@@ -170,8 +160,27 @@ function __monitor() {
                     fi
                 fi
                 printf "\n"
-                        
-            elif [ ${app_name} = 'grafana' ]; then
+            fi
+        done
+
+        printf "\n"
+
+        echo '<Application>'
+        local count=0
+        cat ${applist} | while read line; do
+
+            fqdn=$(echo ${line} | awk '{print $1}')
+            app_name=$(echo ${line} | awk '{print $2}')
+            app_path=$(echo ${line} | awk '{print $5}')
+
+            if [ ${app_name} = 'proxy' ]; then
+                continue
+            else
+                count=$(expr ${count} + 1)
+                printf "%2s: " ${count}
+            fi
+
+            if [ ${app_name} = 'grafana' ]; then
                 __is_container_exist ${influxdb_container}; local exist_influxdb=$?
             elif [ ${app_name} = 'reichat' ]; then
                 printf "http://%-35s" ${fqdn}
@@ -229,21 +238,31 @@ function __monitor() {
 # Public Functions
 # ----------------------------------------
 
-function _up(){
+function _new(){
     local exist=''
     if [ -f ${applist} ]; then
-        exist=$(cat ${applist} | grep ${fqdn})
-        if [ -n "${exist}" ]; then
-            echo "${project_name}: 'http://${fqdn}' is already used."
-            echo "Please try to 'new' command again with -d or -s option."
-            exit 1
+        if [ ${app_name} = "proxy" ]; then
+            exist=$(cat ${applist} | grep ${port})
+            if [ -n "${exist}" ]; then
+                echo "${project_name}: 'proxy #${port}' is already used."
+                echo "Please try to 'new' command again with -d or -s option."
+                exit 1
+            fi
+        else
+            exist=$(cat ${applist} | grep ${fqdn})
+            if [ -n "${exist}" ]; then
+                echo "${project_name}: 'http://${fqdn}' is already used."
+                echo "Please try to 'new' command again with -d or -s option."
+                exit 1
+            fi
         fi
     else
         touch ${applist}
     fi
-    __up && {
+
+    __new && {
         if [ ${app_name} = 'proxy' ]; then
-            new="n/a ${app_name} running #${port}"
+            new="${port} ${app_name} running #${port}"
         else
             new="${fqdn} ${app_name} running ${app_path}"
         fi
@@ -252,51 +271,59 @@ function _up(){
 }
 
 function _start() {
-    if [ ! -f ${applist} ]; then
-        echo "${project_name}: 'http://${fqdn}' does not exist."
-        echo "Please try to 'new' command to create '${fqdn}'"
-        exit 1
-    fi
-
-    cat ${applist} | grep ${fqdn} > /dev/null 2>&1
-    if [ $? -ne 0  ]; then
-        echo "${project_name}: 'http://${fqdn}' does not exist."
-        echo "Please try to 'new' command to create '${fqdn}'"
-        exit 1
-    fi
-
-    cd ${app_path}/bin
-
-    # when container removed
-    if ! __is_container_exist ${fqdn}-${app_name}; then
-        __up
-
-    # when container running
-    elif __is_container_running ${fqdn}-${app_name}; then
-        echo ${project_name}: "'http://${fqdn}' is already running"
-        exit 1
-
-    # when container stopped
+    if [ ${app_name} = "proxy" ]; then
+        __new
     else
-        docker-compose -p ${project_name} start && {
-            local old=$(cat ${applist} | grep ${fqdn})
-            local new=$(cat ${applist} | grep ${fqdn} | sed -e "s:stopped:running:")
-            sed -i -e "s:${old}:${new}:" ${applist}
-        }
+        if [ ! -f ${applist} ]; then
+            echo "${project_name}: 'http://${fqdn}' does not exist."
+            echo "Please try to 'new' command to create '${fqdn}'"
+            exit 1
+        fi
+    
+        cat ${applist} | grep ${fqdn} > /dev/null 2>&1
+        if [ $? -ne 0  ]; then
+            echo "${project_name}: 'http://${fqdn}' does not exist."
+            echo "Please try to 'new' command to create '${fqdn}'"
+            exit 1
+        fi
+
+        cd ${app_path}/bin
+
+        # when container removed
+        if ! __is_container_exist ${fqdn}-${app_name}; then
+            __new
+
+        # when container running
+        elif __is_container_running ${fqdn}-${app_name}; then
+            echo ${project_name}: "'http://${fqdn}' is already running"
+            exit 1
+
+        # when container stopped
+        else
+            docker-compose -p ${project_name} start && {
+                local old=$(cat ${applist} | grep ${fqdn})
+                local new=$(cat ${applist} | grep ${fqdn} | sed -e "s:stopped:running:")
+                sed -i -e "s:${old}:${new}:" ${applist}
+            }
+        fi
     fi
 }
 
 function _stop() {
-    cd ${app_path}/bin
-    docker-compose -p ${project_name} stop && {
-        if [ -f ${applist} ]; then
-            local old=$(cat ${applist} | grep ${fqdn})
-            local new=$(cat ${applist} | grep ${fqdn} | sed -e "s:running:stopped:")
-            sed -i -e "s:${old}:${new}:" ${applist}
-        else
-            echo "error@_stop() in toybox"
-        fi
-    }
+    if [ ${app_name} = "proxy" ]; then
+        __stop
+    else
+        cd ${app_path}/bin
+        docker-compose -p ${project_name} stop && {
+            if [ -f ${applist} ]; then
+                local old=$(cat ${applist} | grep ${fqdn})
+                local new=$(cat ${applist} | grep ${fqdn} | sed -e "s:running:stopped:")
+                sed -i -e "s:${old}:${new}:" ${applist}
+            else
+                echo "error@_stop() in toybox"
+            fi
+        }
+    fi
 }
 
 function _restart() {
@@ -504,7 +531,7 @@ else
     compose_file="${app_path}/bin/docker-compose.yml"
     src="$TOYBOX_HOME/src/${app_name}"
    
-    if [ $1 != "up" ]; then
+    if [ $1 != "new" ]; then
         echo ${project_name}": Invalid argument(s)."
         echo "See '${project_name} -h'." 
         exit 1

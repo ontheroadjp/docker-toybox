@@ -20,14 +20,14 @@ __toyboxcomplete() {
 
 	COMPREPLY=()
 	if (( $COMP_CWORD <= 1 )); then
-        list="${urls} ${applist}"
+        list="${urls} ${applist} reset"
 		COMPREPLY=( $(compgen -W '${list}' -- $cur) );
 	elif [ $COMP_CWORD = 2 ]; then
 		if [[ "$prev" =~ ^http:\/\/.*$ ]]; then
-	        local list="start stop restart rm clear ps"
+	        local list="start stop restart rm clear ps logs"
 		    COMPREPLY=( $(compgen -W '${list}' -- $cur) );
         elif echo ${applist} | grep ${prev} > /dev/null 2>&1; then
-		    local list="new"
+		    local list="new logs"
 		    COMPREPLY=( $(compgen -W '${list}' -- $cur) );
 		fi
 	fi

@@ -1,3 +1,7 @@
 .DS_Store
 stack/
 data/
+src/proxy/certs/ca.pem
+src/proxy/certs/cert.pem
+src/proxy/certs/key.pem
+

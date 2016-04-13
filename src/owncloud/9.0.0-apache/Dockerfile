@@ -1,4 +1,4 @@
-FROM owncloud:9.0.0-apache
+FROM owncloud:9.0.1-apache
 
 RUN apt-get update && apt-get install -y sudo
 #RUN apt-get install -y redis-server php5-redis

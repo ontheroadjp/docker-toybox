@@ -40,7 +40,7 @@ ${main_container}:
     #volumes_from:
     #    - ${data_container}
     volumes:
-    #    - ${app_path}/data/config:/var/www/html/config
+        - ${app_path}/data/config:/var/www/html/config
         - ${app_path}/data/data:/var/www/html/data
     ports:
         - "40110"

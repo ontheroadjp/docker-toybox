@@ -29,26 +29,59 @@ map $http_upgrade $proxy_connection {
   '' close;
 }
 
-gzip_types text/plain text/css application/javascript application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript;
+# ------------------------------------
+# base settings
+# ------------------------------------
+#default_type  text/plain;
+server_names_hash_bucket_size 64;
+client_body_buffer_size  64k;
+
+#sendfile          on;
+tcp_nopush        on;
+server_tokens     off;
+
+# ------------------------------------
+# enable gzip compression
+# ------------------------------------
+gzip_types text/plain 
+            text/xml 
+            text/css 
+            text/javascript
+            application/xml 
+            application/xml+rss 
+            application/xhtml+xml 
+            application/rss+xml 
+            application/atom_xml 
+            application/javascript 
+            application/x-javascript 
+            application/x-httpd-php 
+            application/json;
+
+gzip_disable      "MSIE [1-6]\.";
+gzip_disable      "Mozilla/4";
+gzip_comp_level   1;
+gzip_buffers      4 8k;
+gzip_min_length   1100;
 
 log_format vhost '$host $remote_addr - $remote_user [$time_local] '
                  '"$request" $status $body_bytes_sent '
                  '"$http_referer" "$http_user_agent"';
 
-access_log off;
+#access_log off;
 
 {{ if (exists "/etc/nginx/proxy.conf") }}
 include /etc/nginx/proxy.conf;
+proxy_temp_path /var/cache/nginx/tmp;
 {{ else }}
 # HTTP 1.1 support
 proxy_http_version 1.1;
 proxy_buffering off;
-proxy_set_header Host $http_host;
-proxy_set_header Upgrade $http_upgrade;
-proxy_set_header Connection $proxy_connection;
-proxy_set_header X-Real-IP $remote_addr;
-proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
+proxy_set_header    Host                $http_host;
+proxy_set_header    Upgrade             $http_upgrade;
+proxy_set_header    Connection          $proxy_connection;
+proxy_set_header    X-Real-IP           $remote_addr;
+proxy_set_header    X-Forwarded-For     $proxy_add_x_forwarded_for;
+proxy_set_header    X-Forwarded-Proto   $proxy_x_forwarded_proto;
 {{ end }}
 
 server {
@@ -145,6 +178,10 @@ server {
 
 	location / {
 		proxy_pass {{ trim $proto }}://{{ trim $host }};
+        proxy_cache {{ $host }};
+        proxy_cache_key $scheme$proxy_host$uri$is_args$args;
+        proxy_cache_valid  200 1d;
+
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
 		auth_basic	"Restricted {{ $host }}";
 		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $host) }};
@@ -171,6 +208,10 @@ server {
 
 	location / {
 		proxy_pass {{ trim $proto }}://{{ trim $host }};
+        proxy_cache {{ $host }};
+        proxy_cache_key $scheme$proxy_host$uri$is_args$args;
+        proxy_cache_valid  200 1d;
+
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
 		auth_basic	"Restricted {{ $host }}";
 		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $host) }};

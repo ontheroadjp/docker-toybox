@@ -6,6 +6,10 @@ function __source() {
     fi
 }
 
+function __build() {
+    docker build -t nutsp/nginx-proxy ${src}
+}
+
 main_container=${app_name}-nginx
 docker_gen_container=${app_name}-docker-genn
 
@@ -17,9 +21,11 @@ function __init() {
 ${main_container}:
     restart: always
     image: nginx:1.9
+    #image: nutsp/nginx-proxy
     volumes:
         - "/tmp/nginx:/etc/nginx/conf.d"
         - "${src}/certs:/etc/nginx/certs"
+        - "${src}/proxy.conf:/etc/nginx/proxy.conf"
     #environment:
     #    #- DOCKER_HOST=tcp://160.16.229.167:2376
     #    - DOCKER_HOST=tcp://$(ip r | grep 'docker0' | awk '{print $9}'):2376
@@ -39,9 +45,6 @@ ${docker_gen_container}:
         - "${src}/docker-gen.conf:/docker-gen.conf"
         - "${src}/templates:/etc/docker-gen/templates"
         - "$HOME/.docker:/certs"
-    #    - "$HOME/.docker/ca.pem:/certs/ca.pem"
-    #    - "$HOME/.docker/cert.pem:/certs/cert.pem"
-    #    - "$HOME/.docker/key.pem:/certs/key.pem"
     environment:
         - DOCKER_HOST=tcp://$(ip r | grep 'docker0' | awk '{print $9}'):2376
         - DOCKER_CERT_PATH=/certs

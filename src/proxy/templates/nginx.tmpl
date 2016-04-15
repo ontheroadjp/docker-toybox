@@ -41,7 +41,7 @@ tcp_nopush        on;
 server_tokens     off;
 
 # ------------------------------------
-# enable gzip compression
+# gzip compression
 # ------------------------------------
 gzip_types text/plain 
             text/xml 
@@ -63,27 +63,54 @@ gzip_comp_level   1;
 gzip_buffers      4 8k;
 gzip_min_length   1100;
 
+# ------------------------------------
+# Log
+# ------------------------------------
 log_format vhost '$host $remote_addr - $remote_user [$time_local] '
                  '"$request" $status $body_bytes_sent '
                  '"$http_referer" "$http_user_agent"';
 
 #access_log off;
 
-{{ if (exists "/etc/nginx/proxy.conf") }}
-include /etc/nginx/proxy.conf;
-proxy_temp_path /var/cache/nginx/tmp;
-{{ else }}
-# HTTP 1.1 support
-proxy_http_version 1.1;
-proxy_buffering off;
-proxy_set_header    Host                $http_host;
-proxy_set_header    Upgrade             $http_upgrade;
-proxy_set_header    Connection          $proxy_connection;
-proxy_set_header    X-Real-IP           $remote_addr;
-proxy_set_header    X-Forwarded-For     $proxy_add_x_forwarded_for;
-proxy_set_header    X-Forwarded-Proto   $proxy_x_forwarded_proto;
-{{ end }}
+# ------------------------------------
+# HTTP header
+# ------------------------------------
+#{{ if (exists "/etc/nginx/proxy.conf") }}
+#include /etc/nginx/proxy.conf;
+#{{ else }}
+## HTTP 1.1 support
+#proxy_http_version 1.1;
+#proxy_buffering off;
+#proxy_set_header    Host                $http_host;
+#proxy_set_header    Upgrade             $http_upgrade;
+#proxy_set_header    Connection          $proxy_connection;
+#proxy_set_header    X-Real-IP           $remote_addr;
+#proxy_set_header    X-Forwarded-For     $proxy_add_x_forwarded_for;
+#proxy_set_header    X-Forwarded-Proto   $proxy_x_forwarded_proto;
+#{{ end }}
 
+# ------------------------------------
+# HTTP header for proxy cache
+# ------------------------------------
+proxy_http_version 1.1;
+#proxy_buffering off;
+proxy_connect_timeout   60;
+proxy_send_timeout      60;
+proxy_read_timeout      60;
+proxy_set_header        Host                $host;
+proxy_set_header        Upgrade             $http_upgrade;
+proxy_set_header        Connection          $proxy_connection;
+proxy_set_header        X-Real-IP           $remote_addr;
+proxy_set_header        X-Forwarded-Host    $host;
+proxy_set_header        X-Forwarded-Server  $host;
+proxy_set_header        X-Forwarded-For     $proxy_add_x_forwarded_for;
+proxy_set_header        X-Forwarded-Proto   $proxy_x_forwarded_proto;
+
+proxy_temp_path         /var/cache/nginx/tmp;
+
+# ------------------------------------
+# Host settings
+# ------------------------------------
 server {
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
 	listen 80;
@@ -103,7 +130,17 @@ server {
 }
 {{ end }}
 
+# ------------------------------------
+# Virtual host settings
+# ------------------------------------
 {{ range $host, $containers := groupByMulti $ "Env.VIRTUAL_HOST" "," }}
+
+
+{{ $proxy_cache := or (first (groupByKeys $containers "Env.PROXY_CACHE")) "" }}
+{{ if $proxy_cache }}
+proxy_cache_path /var/cache/nginx/{{ $host }} levels=1:2 keys_zone={{ $host }}:4m inactive=7d max_size=50m;
+{{ end }}
+
 
 upstream {{ $host }} {
 {{ range $container := $containers }}
@@ -126,6 +163,7 @@ upstream {{ $host }} {
 
 {{/* Get the VIRTUAL_PROTO defined by containers w/ the same vhost, falling back to "http" */}}
 {{ $proto := or (first (groupByKeys $containers "Env.VIRTUAL_PROTO")) "http" }}
+
 
 {{/* Get the first cert name defined by containers w/ the same vhost */}}
 {{ $certName := (first (groupByKeys $containers "Env.CERT_NAME")) }}
@@ -178,9 +216,11 @@ server {
 
 	location / {
 		proxy_pass {{ trim $proto }}://{{ trim $host }};
+        {{ if ($proxy_cache) }}
         proxy_cache {{ $host }};
         proxy_cache_key $scheme$proxy_host$uri$is_args$args;
         proxy_cache_valid  200 1d;
+        {{ end }}
 
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
 		auth_basic	"Restricted {{ $host }}";
@@ -208,9 +248,11 @@ server {
 
 	location / {
 		proxy_pass {{ trim $proto }}://{{ trim $host }};
+        {{ if ($proxy_cache) }}
         proxy_cache {{ $host }};
         proxy_cache_key $scheme$proxy_host$uri$is_args$args;
         proxy_cache_valid  200 1d;
+        {{ end }}
 
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
 		auth_basic	"Restricted {{ $host }}";

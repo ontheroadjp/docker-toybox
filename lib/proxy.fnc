@@ -11,7 +11,7 @@ function __build() {
 }
 
 main_container=${app_name}-nginx
-docker_gen_container=${app_name}-docker-genn
+docker_gen_container=${app_name}-docker-gen
 
 src=${TOYBOX_HOME}/src/${app_name}
 
@@ -25,7 +25,7 @@ ${main_container}:
     volumes:
         - "/tmp/nginx:/etc/nginx/conf.d"
         - "${src}/certs:/etc/nginx/certs"
-        - "${src}/proxy.conf:/etc/nginx/proxy.conf"
+    #    - "${src}/proxy.conf:/etc/nginx/proxy.conf"
     #environment:
     #    #- DOCKER_HOST=tcp://160.16.229.167:2376
     #    - DOCKER_HOST=tcp://$(ip r | grep 'docker0' | awk '{print $9}'):2376

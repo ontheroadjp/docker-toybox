@@ -32,6 +32,7 @@ ${main_container}:
     image: nutsp/lychee
     environment:
         - VIRTUAL_HOST=${fqdn}
+        - PROXY_CACHE=true
     links:
         - ${db_container}:lychee-mysql
     volumes:

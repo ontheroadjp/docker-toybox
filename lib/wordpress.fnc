@@ -27,6 +27,7 @@ ${main_container}:
     #    - DOCKER_TLS_VERIFY=1
     #    - DOCKER_CERT_PATH=$HOME/.docker
         - VIRTUAL_HOST=${fqdn}
+        - PROXY_CACHE=true
     volumes:
         - ${app_path}/data/docroot:/var/www/html
     #volumes_from:

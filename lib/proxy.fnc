@@ -10,15 +10,16 @@ function __build() {
     docker build -t nutsp/nginx-proxy ${src}
 }
 
-main_container=${app_name}-nginx
-docker_gen_container=${app_name}-docker-gen
+containers=( ${app_name}-nginx ${app_name}-docker-gen )
+#main_container=${app_name}-nginx
+#docker_gen_container=${app_name}-docker-gen
 
 src=${TOYBOX_HOME}/src/${app_name}
 
 function __init() {
     mkdir -p ${app_path}/bin
     cat <<-EOF > ${compose_file}
-${main_container}:
+${containers[0]}:
     restart: always
     image: nginx:1.9
     #image: nutsp/nginx-proxy
@@ -33,13 +34,13 @@ ${main_container}:
     ports:
         - "80:80"
         - "443:443"
-${docker_gen_container}:
+${containers[1]}:
     restart: always
     image: jwilder/docker-gen
     links:
-        - ${main_container}
+        - ${containers[0]}
     volumes_from:
-        - ${main_container}
+        - ${containers[0]}
     volumes:
     #    - /var/run/docker.sock:/tmp/docker.sock:ro
         - "${src}/docker-gen.conf:/docker-gen.conf"
@@ -51,8 +52,8 @@ ${docker_gen_container}:
         - DOCKER_TLS_VERIFY=1
         - security-opt=label:type:docker_t
     command: -config /docker-gen.conf
-    #command: -notify-sighup ${project_name}_${main_container}_1 -watch -only-exposed /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
-    #command: -tlscacert=$HOME/.docker/ca.pem -tlscert=$HOME/.docker/cert.pem -tlskey=$HOME/.docker/key.pem -notify-sighup ${project_name}_${main_container}_1 -watch -only-exposed /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
+    #command: -notify-sighup ${project_name}_${containers[0]}_1 -watch -only-exposed /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
+    #command: -tlscacert=$HOME/.docker/ca.pem -tlscert=$HOME/.docker/cert.pem -tlskey=$HOME/.docker/key.pem -notify-sighup ${project_name}_${containers[0]}_1 -watch -only-exposed /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
 EOF
 }
 

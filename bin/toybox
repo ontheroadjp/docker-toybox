@@ -144,28 +144,32 @@ function __monitor() {
 
             if [ ${app_name} = 'proxy' ]; then
                 printf "proxy is "
+                #print_proxy="proxy is "
                 
-                __is_container_exist ${main_container}; local exist_main=$?
-                __is_container_exist ${docker_gen_container}; local exist_docker_gen=$?
-                local result=$(expr ${exist_main} + ${exist_docker_gen})
-
-                # print status running|stopped|removed|error
-                if [ ${result} -eq 2 ]; then
+                for container in ${containers[@]}; do
+                    __is_container_exist ${container}; local exist=$(( ${exist} + $? ))
+                    __is_container_running ${container}; local running=$(( ${running} + $? ))
+                done
+                
+                if [ ${exist} -eq ${#containers[@]} ]; then
                     printf "%-10s" "removed"
-                elif [ ${result} -eq 1 ]; then
+                    #print_proxy=${print_proxy}"%-10s" "removed\n"
+                elif [ ${exist} -eq 0 ] && [ ${running} -eq 0 ]; then
+                    printf "\033[1;32m%-10s\033[0m" "running"
+                    #print_proxy=${print_proxy}"\033[1;32m%-10s\033[0m" "running\n"
+                elif [ ${exist} -eq 0 ] && [ ${running} -ne 0 ]; then
+                    printf "\033[1;31m%-10s\033[0m" "stopped"
+                    #print_proxy=${print_proxy}"\033[1;31m%-10s\033[0m" "stopped\n"
+                else
                     printf "\033[1;31m%-10s\033[0m" "error"
-                elif [ ${result} -eq 0 ]; then
-                    if __is_container_running ${main_container}; then
-                        printf "\033[1;32m%-10s\033[0m" "running"
-                    else
-                        printf "\033[1;31m%-10s\033[0m" "stopped"
-                    fi
+                    #print_proxy=${print_proxy}"\033[1;31m%-10s\033[0m" "error\n"
                 fi
                 printf "\n"
             fi
         done
 
         printf "\n"
+        #echo ${print_proxy}
 
         echo '<Application>'
         local count=0
@@ -408,7 +412,6 @@ function _ps() {
 function __docker_toybox() {
     # Load application module
     if [ -e $TOYBOX_HOME/lib/${app_name}.fnc ]; then
-        echo 'hogehoge'
         . $TOYBOX_HOME/lib/${app_name}.fnc
         mkdir -p ${app_path}
     else

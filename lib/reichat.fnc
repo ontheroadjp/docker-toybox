@@ -16,9 +16,11 @@ function __build(){
 }
 
 
-main_container=${fqdn}-${app_name}
-db_container=${fqdn}-${app_name}-db
-data_container=${fqdn}-${app_name}-data
+containers=( ${fqdn}-${app_name} )
+
+#main_container=${fqdn}-${app_name}
+#db_container=${fqdn}-${app_name}-db
+#data_container=${fqdn}-${app_name}-data
 
 function __init() {
 
@@ -27,7 +29,7 @@ function __init() {
     mkdir -p ${app_path}/bin
     
     cat <<-EOF > ${compose_file}
-${main_container}:
+${containers[0]}:
     image: nutsp/reichat
     environment:
         - VIRTUAL_HOST=${fqdn}
@@ -35,7 +37,7 @@ ${main_container}:
         #- "10133"
         - "10133"
 
-#${data_container}:
+#${containers[1]}:
 #    image: busybox
 #    volumes:
 #        - ${app_path}/data/docroot:/var/www/html

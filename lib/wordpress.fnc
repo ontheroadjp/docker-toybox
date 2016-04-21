@@ -10,45 +10,37 @@ function __source() {
     fi
 }
 
-main_container=${fqdn}-${app_name}
-db_container=${fqdn}-${app_name}-db
-data_container=${fqdn}-${app_name}-data
+containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-db )
+
+#main_container=${fqdn}-${app_name}
+#db_container=${fqdn}-${app_name}-db
+#data_container=${fqdn}-${app_name}-data
 
 function __init() {
     mkdir -p ${app_path}/bin
     
     cat <<-EOF > ${compose_file}
-${main_container}:
+${containers[0]}:
     image: wordpress
     links:
-        - ${db_container}:mysql
+        - ${containers[1]}:mysql
     environment:
-    #    - DOCKER_HOST=tcp://127.0.0.1:2376
-    #    - DOCKER_TLS_VERIFY=1
-    #    - DOCKER_CERT_PATH=$HOME/.docker
         - VIRTUAL_HOST=${fqdn}
         - PROXY_CACHE=true
     volumes:
         - ${app_path}/data/docroot:/var/www/html
-    #volumes_from:
-    #    - ${data_container}
     ports:
         - "80"
 
-${db_container}:
+${containers[1]}:
     image: mariadb
     volumes:
         - ${app_path}/data/mysql:/var/lib/mysql
-    #volumes_from:
-    #    - ${data_container}
     environment:
-    #    - DOCKER_HOST=tcp://127.0.0.1:2376
-    #    - DOCKER_TLS_VERIFY=1
-    #    - DOCKER_CERT_PATH=~/.docker
         - MYSQL_ROOT_PASSWORD=root
         - TERM=xterm
 
-#${data_container}:
+#${containers[2]}:
 #    image: busybox
 #    volumes:
 #        - ${app_path}/data/docroot:/var/www/html
@@ -64,8 +56,8 @@ function __new() {
             echo 'URL: http://'${fqdn}
             echo '---------------------------------'
             echo -n 'Database Host: '
-            #docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
-            #    $(docker ps | grep ${db_container}_1 | awk '{print $1}')
+            docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
+                $(docker ps | grep ${containers[1]}_1 | awk '{print $1}')
             echo 'Database Username: '${db_user}
             echo 'Database Password: '${db_user_pass}
         }

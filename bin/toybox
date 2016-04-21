@@ -134,108 +134,54 @@ function __monitor() {
         echo 'no application available.'
     else
 
-        cat ${applist} | while read line; do
-
-            fqdn=$(echo ${line} | awk '{print $1}')
-            app_name=$(echo ${line} | awk '{print $2}')
-            app_path=$(echo ${line} | awk '{print $5}')
-
-            . $TOYBOX_HOME/lib/${app_name}.fnc
-
-            if [ ${app_name} = 'proxy' ]; then
-                printf "proxy is "
-                #print_proxy="proxy is "
-                
-                for container in ${containers[@]}; do
-                    __is_container_exist ${container}; local exist=$(( ${exist} + $? ))
-                    __is_container_running ${container}; local running=$(( ${running} + $? ))
-                done
-                
-                if [ ${exist} -eq ${#containers[@]} ]; then
-                    printf "%-10s" "removed"
-                    #print_proxy=${print_proxy}"%-10s" "removed\n"
-                elif [ ${exist} -eq 0 ] && [ ${running} -eq 0 ]; then
-                    printf "\033[1;32m%-10s\033[0m" "running"
-                    #print_proxy=${print_proxy}"\033[1;32m%-10s\033[0m" "running\n"
-                elif [ ${exist} -eq 0 ] && [ ${running} -ne 0 ]; then
-                    printf "\033[1;31m%-10s\033[0m" "stopped"
-                    #print_proxy=${print_proxy}"\033[1;31m%-10s\033[0m" "stopped\n"
-                else
-                    printf "\033[1;31m%-10s\033[0m" "error"
-                    #print_proxy=${print_proxy}"\033[1;31m%-10s\033[0m" "error\n"
-                fi
-                printf "\n"
-            fi
+        . $TOYBOX_HOME/lib/proxy.fnc
+        for container in ${containers[@]}; do
+            __is_container_exist "proxy"${container}; local exist=$(( ${exist} + $? ))
+            __is_container_running "proxy"${container}; local running=$(( ${running} + $? ))
         done
 
+        if [ ${exist} -eq 0 ] && [ ${running} -eq 0 ]; then
+            printf "proxy is "
+            printf "\033[1;32m%-10s\033[0m" "running"
+        else
+            printf "you must start proxy"
+        fi
         printf "\n"
-        #echo ${print_proxy}
 
-        echo '<Application>'
-        local count=0
         cat ${applist} | while read line; do
 
             fqdn=$(echo ${line} | awk '{print $1}')
             app_name=$(echo ${line} | awk '{print $2}')
             app_path=$(echo ${line} | awk '{print $5}')
+            . $TOYBOX_HOME/lib/${app_name}.fnc
 
             if [ ${app_name} = 'proxy' ]; then
                 continue
             else
-                count=$(expr ${count} + 1)
-                printf "%2s: " ${count}
+                printf "http://%-35s" ${fqdn}
             fi
 
-            if [ ${app_name} = 'grafana' ]; then
-                __is_container_exist ${influxdb_container}; local exist_influxdb=$?
-            elif [ ${app_name} = 'reichat' ]; then
-                printf "http://%-35s" ${fqdn}
-                printf "%-15s" ${app_name}:${app_version}
+            printf "%-15s" ${app_name}:${app_version}
 
-                main_container=${fqdn}-${app_name}
+            local exist=0
+            local running=0
 
-                if ! __is_container_exist ${main_container}; then
-                    printf "%-10s" "removed"
-                elif __is_container_running ${main_container}; then
-                    printf "\033[1;32m%-10s\033[0m" "running"
-                else
-                    printf "\033[1;31m%-10s\033[0m" "stopped"
-                fi
-                printf "\n"
+            for container in ${containers[@]}; do
+                __is_container_exist ${container}; exist=$(( ${exist} + $? ))
+                __is_container_running ${container}; running=$(( ${running} + $? ))
+            done
 
-            elif [ ${app_name} = 'wordpress' ] ||   \
-                    [ ${app_name} = 'owncloud' ] || \
-                    [ ${app_name} = 'lychee' ] ||   \
-                    [ ${app_name} = 'monitor' ] ||  \
-                    [ ${app_name} = 'php' ]
-                then
-                printf "http://%-35s" ${fqdn}
-                printf "%-15s" ${app_name}:${app_version}
-
-                main_container=${fqdn}-${app_name}
-                db_container=${main_container}-db
-
-                __is_container_exist ${main_container}; local exist_main=$?
-                __is_container_exist ${db_container}; local exist_db=$?
-                local result=$(expr ${exist_main} + ${exist_db})
-
-                if [ ${result} -eq 2 ]; then
-                    printf "%-10s" "removed"
-                elif [ ${result} -eq 1 ]; then
-                    printf "\033[1;31m%-10s\033[0m" "error"
-                elif [ ${result} -eq 0 ]; then
-                    if __is_container_running ${main_container} && __is_container_running ${db_container}; then
-                        printf "\033[1;32m%-10s\033[0m" "running"
-                    elif ! __is_container_running ${main_container} && __is_container_running ${db_container}; then
-                        printf "%-10s" "error: Main container is down"
-                    elif __is_container_running ${main_container} && ! __is_container_running ${db_container}; then
-                        printf "%-10s" "error: DB container is down"
-                    elif !  __is_container_running ${main_container} && ! __is_container_running ${db_container}; then
-                        printf "\033[1;31m%-10s\033[0m" "stopped"
-                    fi
-                fi
-                printf "\n"
+            if [ ${exist} -eq ${#containers[@]} ]; then
+                printf "%-10s" "removed"
+            elif [ ${exist} -eq 0 ] && [ ${running} -eq 0 ]; then
+                printf "\033[1;32m%-10s\033[0m" "running"
+            elif [ ${exist} -eq 0 ] && [ ${running} -eq ${#containers[@]} ]; then
+                printf "\033[1;31m%-10s\033[0m" "stopped"
+            else
+                printf "\033[1;31m%-10s\033[0m" "error"
             fi
+            printf "\n"
+
         done
     fi
 }

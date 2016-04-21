@@ -17,9 +17,11 @@ function __build() {
     docker build -t nutsp/lychee ${src}
 }
 
-main_container=${fqdn}-${app_name}
-db_container=${fqdn}-${app_name}-db
-data_container=${fqdn}-${app_name}-data
+containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-db )
+
+#main_container=${fqdn}-${app_name}
+#db_container=${fqdn}-${app_name}-db
+#data_container=${fqdn}-${app_name}-data
 
 function __init() {
     
@@ -28,13 +30,13 @@ function __init() {
     __build && {
     
         cat <<-EOF > ${compose_file}
-${main_container}:
+${containers[0]}:
     image: nutsp/lychee
     environment:
         - VIRTUAL_HOST=${fqdn}
         - PROXY_CACHE=true
     links:
-        - ${db_container}:lychee-mysql
+        - ${containers[1]}:lychee-mysql
     volumes:
         - ${app_path}/data/data:/data
         - ${app_path}/data/uploads/big:/uploads/big
@@ -42,22 +44,22 @@ ${main_container}:
         - ${app_path}/data/uploads/thumb:/uploads/thumb
         - ${app_path}/data/uploads/import:/uploads/import
     #volumes_from:
-    #    - ${data_container}
+    #    - ${containers[2]}
     ports:
         - "80"
-${db_container}:
+${containers[1]}:
     image: mariadb
     volumes:
         - ${app_path}/data/mysql:/var/lib/mysql
     #volumes_from:
-    #    - ${data_container}
+    #    - ${containers[2]}
     environment:
         MYSQL_ROOT_PASSWORD: root
         MYSQL_DATABASE: ${db_name}
         MYSQL_USER: ${db_user}
         MYSQL_PASSWORD: ${db_user_pass}
         TERM: xterm
-#${data_container}:
+#${containers[2]}:
 #    image: busybox
 #    volumes:
 #        - /var/lib/mysql
@@ -79,7 +81,7 @@ function __new() {
     echo '---------------------------------'
     echo -n 'Database Host: '
     docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
-        $(docker ps | grep ${db_container} | awk '{print $1}')
+        $(docker ps | grep ${containers[1]} | awk '{print $1}')
     echo 'Database Username: '${db_user}
     echo 'Database Password: '${db_user_pass}
     echo 'New Username: username as you like'

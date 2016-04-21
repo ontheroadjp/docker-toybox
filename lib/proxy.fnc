@@ -24,6 +24,7 @@ ${containers[0]}:
     image: nginx:1.9
     #image: nutsp/nginx-proxy
     volumes:
+    #    - "/etc/localtime:/etc/localtime:ro"
         - "/tmp/nginx:/etc/nginx/conf.d"
         - "${src}/certs:/etc/nginx/certs"
     #    - "${src}/proxy.conf:/etc/nginx/proxy.conf"
@@ -42,6 +43,7 @@ ${containers[1]}:
     volumes_from:
         - ${containers[0]}
     volumes:
+    #    - "/etc/localtime:/etc/localtime:ro"
     #    - /var/run/docker.sock:/tmp/docker.sock:ro
         - "${src}/docker-gen.conf:/docker-gen.conf"
         - "${src}/templates:/etc/docker-gen/templates"

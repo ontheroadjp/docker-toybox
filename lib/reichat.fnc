@@ -3,6 +3,7 @@
 db_name=${app_name}
 db_user=${app_name}
 db_user_pass=${app_name}
+containers=( ${fqdn}-${app_name} )
 
 function __source() {
     if [ ! -e ${src} ]; then
@@ -16,11 +17,6 @@ function __build(){
 }
 
 
-containers=( ${fqdn}-${app_name} )
-
-#main_container=${fqdn}-${app_name}
-#db_container=${fqdn}-${app_name}-db
-#data_container=${fqdn}-${app_name}-data
 
 function __init() {
 
@@ -45,16 +41,16 @@ ${containers[0]}:
 EOF
 }
 
-function __new() {
-    __init && {
-        cd ${app_path}/bin
-        docker-compose -p ${project_name} up -d && {
-            echo '---------------------------------'
-            echo 'URL: http://'${fqdn}
-            echo '---------------------------------'
-        }
-    }
-}
+#function __new() {
+#    __init && {
+#        cd ${app_path}/bin
+#        docker-compose -p ${project_name} up -d && {
+#            echo '---------------------------------'
+#            echo 'URL: http://'${fqdn}
+#            echo '---------------------------------'
+#        }
+#    }
+#}
 
 #function __backup() {
 #    prefix=$(date '+%Y%m%d_%H%M%S')

@@ -16,7 +16,11 @@ function __build() {
 }
 
 
-containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-mariadb ${fqdn}-${app_name}-redis )
+containers=( \
+    ${fqdn}-${app_name} \
+    ${fqdn}-${app_name}-mariadb \
+    ${fqdn}-${app_name}-redis \
+)
 
 #main_container=${fqdn}-${app_name}
 #db_container=${fqdn}-${app_name}-db
@@ -83,28 +87,28 @@ ${containers[2]}:
 EOF
 }
 
-function __new() {
-    #__source; local status=$?
-    #if [ ${status} -ne 0 ]; then
-    #    echo ${project_name}": source code of ${app_name} does not download."
-    #    exit 1
-    #fi
-
-    __init && {
-        cd ${app_path}/bin
-        docker-compose -p ${project_name} up -d && {
-            echo '---------------------------------'
-            echo 'URL: http://'${fqdn}
-            echo 'WebDAV: http://'${fqdn}'/remote.php/webdav/'
-            echo '---------------------------------'
-            #echo -n 'Database Host: '
-            #docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
-            #    $(docker ps | grep ${project_name}_${db_container}_1 | awk '{print $1}')
-            echo 'Database Username: '${db_user}
-            echo 'Database Password: '${db_user_pass}
-        }
-    }
-}
+#function __new() {
+#    #__source; local status=$?
+#    #if [ ${status} -ne 0 ]; then
+#    #    echo ${project_name}": source code of ${app_name} does not download."
+#    #    exit 1
+#    #fi
+#
+#    __init && {
+#        cd ${app_path}/bin
+#        docker-compose -p ${project_name} up -d && {
+#            echo '---------------------------------'
+#            echo 'URL: http://'${fqdn}
+#            echo 'WebDAV: http://'${fqdn}'/remote.php/webdav/'
+#            echo '---------------------------------'
+#            #echo -n 'Database Host: '
+#            #docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
+#            #    $(docker ps | grep ${project_name}_${db_container}_1 | awk '{print $1}')
+#            echo 'Database Username: '${db_user}
+#            echo 'Database Password: '${db_user_pass}
+#        }
+#    }
+#}
 
 #function __backup() {
 #    prefix=$(date '+%Y%m%d_%H%M%S')

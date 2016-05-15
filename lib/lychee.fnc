@@ -5,6 +5,7 @@ src=$TOYBOX_HOME/src/${app_name}
 db_name=lychee
 db_user=lychee
 db_user_pass=lychee
+containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-db )
 
 function __source() {
     #if [ ! -e $src ]; then
@@ -17,11 +18,6 @@ function __build() {
     docker build -t nutsp/lychee ${src}
 }
 
-containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-db )
-
-#main_container=${fqdn}-${app_name}
-#db_container=${fqdn}-${app_name}-db
-#data_container=${fqdn}-${app_name}-data
 
 function __init() {
     
@@ -72,21 +68,21 @@ EOF
     }
 }
 
-function __new() {
-    __init
-    cd ${app_path}/bin
-    docker-compose -p ${project_name} up -d
-    echo '---------------------------------'
-    echo 'URL: http://'${fqdn}
-    echo '---------------------------------'
-    echo -n 'Database Host: '
-    docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
-        $(docker ps | grep ${containers[1]} | awk '{print $1}')
-    echo 'Database Username: '${db_user}
-    echo 'Database Password: '${db_user_pass}
-    echo 'New Username: username as you like'
-    echo 'New Password: password as you like'
-}
+#function __new() {
+#    __init
+#    cd ${app_path}/bin
+#    docker-compose -p ${project_name} up -d
+#    echo '---------------------------------'
+#    echo 'URL: http://'${fqdn}
+#    echo '---------------------------------'
+#    echo -n 'Database Host: '
+#    docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
+#        $(docker ps | grep ${containers[1]} | awk '{print $1}')
+#    echo 'Database Username: '${db_user}
+#    echo 'Database Password: '${db_user_pass}
+#    echo 'New Username: username as you like'
+#    echo 'New Password: password as you like'
+#}
 
 #function __backup() {
 #    prefix=$(date '+%Y%m%d_%H%M%S')

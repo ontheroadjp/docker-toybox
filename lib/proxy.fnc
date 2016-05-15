@@ -10,7 +10,7 @@ function __build() {
     docker build -t nutsp/nginx-proxy ${src}
 }
 
-containers=( ${app_name}-nginx ${app_name}-docker-gen )
+containers=(${app_name}-nginx ${app_name}-docker-gen)
 #main_container=${app_name}-nginx
 #docker_gen_container=${app_name}-docker-gen
 

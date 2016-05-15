@@ -85,21 +85,21 @@ ${containers[2]}:
     ports:
         - "3000"
 
-#cadvisor:
-#    image: "google/cadvisor:0.16.0"
-#    volumes:
-#        - "/:/rootfs:ro"
-#        - "/var/run:/var/run:rw"
-#        - "/sys:/sys:ro"
-#        - "/var/lib/docker/:/var/lib/docker:ro"
-#    links:
-#        - ${influxdb_container}:influxdb
-#    environment:
-#        - VIRTUAL_HOST=cadvisor.docker-toybox.com
-#    command: "-storage_driver=influxdb -storage_driver_db=cadvisor -storage_driver_host=influxdb:8086 -storage_driver_user=root -storage_driver_password=root -storage_driver_secure=False"
-#    ports:
-#        - "8080"
-#
+cadvisor:
+    image: "google/cadvisor:0.16.0"
+    volumes:
+        - "/:/rootfs:ro"
+        - "/var/run:/var/run:rw"
+        - "/sys:/sys:ro"
+        - "/var/lib/docker/:/var/lib/docker:ro"
+    links:
+        - ${containers[0]}:influxdb
+    environment:
+        - VIRTUAL_HOST=cadvisor.docker-toybox.com
+    command: "-storage_driver=influxdb -storage_driver_db=cadvisor -storage_driver_host=influxdb:8086 -storage_driver_user=root -storage_driver_password=root -storage_driver_secure=False"
+    ports:
+        - "8080"
+
 #sitespeedio:
 #    image: sitespeedio/sitespeed.io
 #    privileged: true

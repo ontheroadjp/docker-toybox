@@ -200,12 +200,17 @@ function __list() {
 }
 
 # ----------------------------------------
-# Public Functions
+# Command
 # ----------------------------------------
+
+function _containers() {
+    source ~/.bash_profile > /dev/null 2>&1
+    DD
+}
 
 function _new() {
     local exist=''
-    #if [ -f ${applist} ]; then
+    if [ -f ${applist} ]; then
         if __is_exist_in_applist && [ ${app_name} = "proxy" ]; then
             echo "${project_name}: 'proxy #${port}' is already used."
             exit 1
@@ -213,7 +218,7 @@ function _new() {
             echo "${project_name}: 'http://${fqdn}' is already used."
             echo "Please try to 'new' command again with -d or -s option."
             exit 1
-        #fi
+        fi
     else
         touch ${applist}
     fi
@@ -258,7 +263,7 @@ function _start() {
         # when container removed
         if ! __is_container_exist ${fqdn}-${app_name}; then
             __init && {
-                docker-compose -p ${project_name} up && {
+                docker-compose -p ${project_name} up -d && {
                     local old=$(cat ${applist} | grep ${fqdn})
                     local new=$(cat ${applist} | grep ${fqdn} | sed -e "s:removed:running:")
                     sed -i -e "s:${old}:${new}:" ${applist}

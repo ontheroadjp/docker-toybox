@@ -46,13 +46,12 @@ function __init() {
     mkdir -p ${app_path}/bin
     mkdir -p ${app_path}/data
 
-    docker build -t nuts/wordpress:${wordpress_version} ${src}/wordpress
-    docker build -t nuts/mariadb:${mariadb_version} ${src}/mariadb
+    docker build -t toybox/wordpress:${wordpress_version} ${src}/wordpress
+    docker build -t toybox/mariadb:${mariadb_version} ${src}/mariadb
     
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    #image: wordpress
-    image: nuts/wordpress:${wordpress_version}
+    image: toybox/wordpress:${wordpress_version}
     links:
         - ${containers[1]}:mysql
     environment:
@@ -61,12 +60,13 @@ ${containers[0]}:
         - TOYBOX_WWW_DATA_UID=${wordpress_uid}
         - TOYBOX_WWW_DATA_GID=${wordpress_gid}
     volumes:
-        - ${app_path}/data/docroot:/var/www/html
+        - ${app_path}/data/wordpress/docroot:/var/www/html
+        - ${app_path}/data/wordpress/logs:/var/log/apache2
     ports:
         - "80"
 
 ${containers[1]}:
-    image: nuts/mariadb:${mariadb_version}
+    image: toybox/mariadb:${mariadb_version}
     volumes:
         - ${app_path}/data/mysql:/var/lib/mysql
         #- ${TOYBOX_HOME}/src/wordpress/mysql/conf.d:/etc/mysql/conf.d

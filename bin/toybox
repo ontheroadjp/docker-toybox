@@ -408,7 +408,6 @@ function _ps() {
 function __docker_toybox() {
     # Load application module
     if [ -e $TOYBOX_HOME/lib/${app_name}.fnc ]; then
-        echo 'hogehoge'
         . $TOYBOX_HOME/lib/${app_name}.fnc
         mkdir -p ${app_path}
     else

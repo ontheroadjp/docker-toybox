@@ -1,19 +1,20 @@
 #!/bin/sh
 
-db_name=${app_name}
-db_user=${app_name}
-db_user_pass=${app_name}
-containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-db )
+db_root_password="root"
+db_name="toybox_wordpress"
+db_user="toybox"
+db_password="toybox"
+db_table_prefix=""
 
 containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-db )
 wordpress_version="4.5.2-apache"
 mariadb_version="10.1.14"
 
-function __source() {
-    if [ ! -e ${src} ]; then
-        git clone https://github.com/docker-library/wordpress.git ${src}
-    fi
-}
+#function __source() {
+#    if [ ! -e ${src} ]; then
+#        git clone https://github.com/docker-library/wordpress.git ${src}
+#    fi
+#}
 
 function __init() {
     id www-data > /dev/null 2>&1
@@ -38,21 +39,15 @@ function __init() {
     local mysql_uid=$(cat /etc/passwd | grep ^mysql | cut -d : -f3)
     local mysql_gid=$(cat /etc/group | grep ^mysql | cut -d: -f3)
 
-    #echo "wordpress_uid=${wordpress_uid}"
-    #echo "wordpress_gid=${wordpress_gid}"
-    #echo "mysql_uid=${mysql_uid}"
-    #echo "mysql_gid=${mysql_gid}"
-
     mkdir -p ${app_path}/bin
     mkdir -p ${app_path}/data
 
-    docker build -t nuts/wordpress:${wordpress_version} ${src}/wordpress
-    docker build -t nuts/mariadb:${mariadb_version} ${src}/mariadb
+    docker build -t toybox/wordpress:${wordpress_version} ${src}/wordpress
+    docker build -t toybox/mariadb:${mariadb_version} ${src}/mariadb
     
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    #image: wordpress
-    image: nuts/wordpress:${wordpress_version}
+    image: toybox/wordpress:${wordpress_version}
     links:
         - ${containers[1]}:mysql
     environment:
@@ -60,19 +55,25 @@ ${containers[0]}:
         - PROXY_CACHE=true
         - TOYBOX_WWW_DATA_UID=${wordpress_uid}
         - TOYBOX_WWW_DATA_GID=${wordpress_gid}
+        - WORDPRESS_DB_NAME=${db_name}
+        - WORDPRESS_DB_USER=${db_user}
+        - WORDPRESS_DB_PASSWORD=${db_password}
+        - WORDPRESS_TABLE_PREFIX=${db_table_prefix}
     volumes:
-        - ${app_path}/data/docroot:/var/www/html
+        - ${app_path}/data/wordpress/docroot:/var/www/html
     ports:
         - "80"
 
 ${containers[1]}:
-    image: nuts/mariadb:${mariadb_version}
+    image: toybox/mariadb:${mariadb_version}
     volumes:
         - ${app_path}/data/mysql:/var/lib/mysql
         #- ${TOYBOX_HOME}/src/wordpress/mysql/conf.d:/etc/mysql/conf.d
     environment:
-        - MYSQL_ROOT_PASSWORD=root
-        - MYSQL_DATABASE=wordpress
+        - MYSQL_ROOT_PASSWORD=${db_root_password}
+        - MYSQL_DATABASE=${db_name}
+        - MYSQL_USER=${db_user}
+        - MYSQL_PASSWORD=${db_password}
         - TERM=xterm
         - TOYBOX_MYSQL_UID=${mysql_uid}
         - TOYBOX_MYSQL_GID=${mysql_gid}
@@ -112,7 +113,7 @@ EOF
 #    docker run --rm --volumes-from $(docker ps -a | grep ${project_name}_${data_container}_1 | awk '{print $1}') -v ${app_path}/backup:/backup busybox tar cvzf /backup/${prefix}_db.tar.gz /var/lib/mysql
 #    docker run --rm --volumes-from $(docker ps -a | grep ${project_name}_${main_container}_1 | awk '{print $1}') -v ${app_path}/backup:/backup busybox tar cvzf /backup/${prefix}.tar.gz /var/www/html
 #}
-#
+
 #function __restore() {
 #    prefix=$(cat ${app_path}/backup/history.txt | peco)
 #    docker run --rm --volumes-from $(docker ps -a | grep ${project_name}_${data_container}_1 | awk '{print $1}') -v ${app_path}/backup:/backup busybox tar xvzf /backup/${prefix}_db.tar.gz

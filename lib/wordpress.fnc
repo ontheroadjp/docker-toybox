@@ -3,6 +3,7 @@
 db_name=${app_name}
 db_user=${app_name}
 db_user_pass=${app_name}
+containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-db )
 
 containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-db )
 wordpress_version="4.5.2-apache"
@@ -53,19 +54,14 @@ ${containers[0]}:
     #image: wordpress
     image: nuts/wordpress:${wordpress_version}
     links:
-        - ${db_container}:mysql
+        - ${containers[1]}:mysql
     environment:
-    #    - DOCKER_HOST=tcp://127.0.0.1:2376
-    #    - DOCKER_TLS_VERIFY=1
-    #    - DOCKER_CERT_PATH=$HOME/.docker
         - VIRTUAL_HOST=${fqdn}
         - PROXY_CACHE=true
         - TOYBOX_WWW_DATA_UID=${wordpress_uid}
         - TOYBOX_WWW_DATA_GID=${wordpress_gid}
     volumes:
         - ${app_path}/data/docroot:/var/www/html
-    #volumes_from:
-    #    - ${data_container}
     ports:
         - "80"
 
@@ -75,16 +71,13 @@ ${containers[1]}:
         - ${app_path}/data/mysql:/var/lib/mysql
         #- ${TOYBOX_HOME}/src/wordpress/mysql/conf.d:/etc/mysql/conf.d
     environment:
-    #    - DOCKER_HOST=tcp://127.0.0.1:2376
-    #    - DOCKER_TLS_VERIFY=1
-    #    - DOCKER_CERT_PATH=~/.docker
         - MYSQL_ROOT_PASSWORD=root
         - MYSQL_DATABASE=wordpress
         - TERM=xterm
         - TOYBOX_MYSQL_UID=${mysql_uid}
         - TOYBOX_MYSQL_GID=${mysql_gid}
 
-#${data_container}:
+#${containers[2]}:
 #    image: busybox
 #    volumes:
 #        - ${app_path}/data/docroot:/var/www/html
@@ -92,21 +85,21 @@ ${containers[1]}:
 EOF
 }
 
-function __new() {
-    __init && {
-        cd ${app_path}/bin
-        docker-compose -p ${project_name} up -d && {
-            echo '---------------------------------'
-            echo 'URL: http://'${fqdn}
-            echo '---------------------------------'
-            echo -n 'Database Host: '
-            #docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
-            #    $(docker ps | grep ${db_container}_1 | awk '{print $1}')
-            echo 'Database Username: '${db_user}
-            echo 'Database Password: '${db_user_pass}
-        }
-    }
-}
+#function __new() {
+#    __init && {
+#        cd ${app_path}/bin
+#        docker-compose -p ${project_name} up -d && {
+#            echo '---------------------------------' | tee -a ${app_path}/info.txt
+#            echo 'URL: http://'${fqdn} | tee -a ${app_path}/info.txt
+#            echo '---------------------------------' | tee -a ${app_path}/info.txt
+#            echo -n 'Database Host: ' | tee -a ${app_path}/info.txt
+#            docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
+#                $(docker ps | grep ${containers[1]}_1 | awk '{print $1}' | tee -a ${app_path}/info.txt)
+#            echo 'Database Username: '${db_user} | tee -a ${app_path}/info.txt
+#            echo 'Database Password: '${db_user_pass} | tee -a ${app_path}/info.txt
+#        }
+#    }
+#}
 
 #function __backup() {
 #    prefix=$(date '+%Y%m%d_%H%M%S')

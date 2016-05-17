@@ -17,13 +17,15 @@ function __build() {
     docker build -t nutsp/toybox-grafana ${src}
 }
 
-main_container=${fqdn}-${app_name}
-db_container=${fqdn}-${app_name}-db
-data_container=${fqdn}-${app_name}-data
+containers=( ${app_name}-influxdb ${app_name}-graphite ${app_name}-grafana )
 
-influxdb_container=influxdb
-graphite_container=graphite
-grafana_container=grafana
+#main_container=${fqdn}-${app_name}
+#db_container=${fqdn}-${app_name}-db
+#data_container=${fqdn}-${app_name}-data
+
+#influxdb_container=influxdb
+#graphite_container=graphite
+#grafana_container=grafana
 
 function __init() {
 
@@ -31,7 +33,8 @@ function __init() {
 
     mkdir -p ${app_path}/bin
     cat <<-EOF > ${compose_file}
-${influxdb_container}:
+#${influxdb_container}:
+${containers[0]}:
     #image: "tutum/influxdb:0.8.8"
     image: "tutum/influxdb:0.9"
     ports:
@@ -50,7 +53,7 @@ ${influxdb_container}:
         #- VIRTUAL_HOST=influxdb.docker-toybox.com
         #- VIRTUAL_PORT=8083
 
-${graphite_container}:
+${containers[1]}:
     image: sitespeedio/graphite
     ports:
         - "8080:80"
@@ -59,13 +62,13 @@ ${graphite_container}:
         - ${app_path}/data/graphite:/opt/graphite/storage/whisper
         - ${app_path}/data/graphite/log:/var/log/carbon
     
-${grafana_container}:
+${containers[2]}:
     #image: "grafana/grafana:2.1.3"
     #image: "grafana/grafana:2.6.0"
     image: "nutsp/toybox-grafana"
     links:
-        - ${influxdb_container}:influxdb
-        - ${graphite_container}:graphite
+        - ${containers[0]}:influxdb
+        - ${containers[1]}:graphite
     environment:
         - INFLUXDB_HOST=localhost
         - INFLUXDB_PORT=8086
@@ -82,21 +85,21 @@ ${grafana_container}:
     ports:
         - "3000"
 
-#cadvisor:
-#    image: "google/cadvisor:0.16.0"
-#    volumes:
-#        - "/:/rootfs:ro"
-#        - "/var/run:/var/run:rw"
-#        - "/sys:/sys:ro"
-#        - "/var/lib/docker/:/var/lib/docker:ro"
-#    links:
-#        - ${influxdb_container}:influxdb
-#    environment:
-#        - VIRTUAL_HOST=cadvisor.docker-toybox.com
-#    command: "-storage_driver=influxdb -storage_driver_db=cadvisor -storage_driver_host=influxdb:8086 -storage_driver_user=root -storage_driver_password=root -storage_driver_secure=False"
-#    ports:
-#        - "8080"
-#
+cadvisor:
+    image: "google/cadvisor:0.16.0"
+    volumes:
+        - "/:/rootfs:ro"
+        - "/var/run:/var/run:rw"
+        - "/sys:/sys:ro"
+        - "/var/lib/docker/:/var/lib/docker:ro"
+    links:
+        - ${containers[0]}:influxdb
+    environment:
+        - VIRTUAL_HOST=cadvisor.docker-toybox.com
+    command: "-storage_driver=influxdb -storage_driver_db=cadvisor -storage_driver_host=influxdb:8086 -storage_driver_user=root -storage_driver_password=root -storage_driver_secure=False"
+    ports:
+        - "8080"
+
 #sitespeedio:
 #    image: sitespeedio/sitespeed.io
 #    privileged: true

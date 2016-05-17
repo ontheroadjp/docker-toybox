@@ -5,6 +5,10 @@ db_user=${app_name}
 db_user_pass=${app_name}
 containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-db )
 
+containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-db )
+wordpress_version="4.5.2-apache"
+mariadb_version="10.1.14"
+
 function __source() {
     if [ ! -e ${src} ]; then
         git clone https://github.com/docker-library/wordpress.git ${src}
@@ -12,49 +16,66 @@ function __source() {
 }
 
 function __init() {
-    local uid
-    local gid
-
     id www-data > /dev/null 2>&1
     if [ $? -ne 0 ]; then
-        sudo groupadd -g ${gid} www-data
-        echo "create www-data group"
-        sudo useradd -u ${uid} -g www-data www-data
-        echo "create www-data user"
+        sudo groupadd www-data
+        echo "www-data group created."
+        sudo useradd -g www-data www-data
+        echo "www-data user created."
     fi
     
-    uid=$(cat /etc/passwd | grep ^www-data | cut -d : -f3)
-    gid=$(cat /etc/group | grep ^www-data | cut -d: -f3)
+    local wordpress_uid=$(cat /etc/passwd | grep ^www-data | cut -d : -f3)
+    local wordpress_gid=$(cat /etc/group | grep ^www-data | cut -d: -f3)
 
-    echo "uid=${uid}"
-    echo "gid=${gid}"
+    id mysql > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        sudo groupadd mysql
+        echo "mysql group created."
+        sudo useradd -g mysql mysql
+        echo "mysql user created."
+    fi
+    
+    local mysql_uid=$(cat /etc/passwd | grep ^mysql | cut -d : -f3)
+    local mysql_gid=$(cat /etc/group | grep ^mysql | cut -d: -f3)
+
+    #echo "wordpress_uid=${wordpress_uid}"
+    #echo "wordpress_gid=${wordpress_gid}"
+    #echo "mysql_uid=${mysql_uid}"
+    #echo "mysql_gid=${mysql_gid}"
 
     mkdir -p ${app_path}/bin
+    mkdir -p ${app_path}/data
+
+    docker build -t nuts/wordpress:${wordpress_version} ${src}/wordpress
+    docker build -t nuts/mariadb:${mariadb_version} ${src}/mariadb
     
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    image: wordpress
+    #image: wordpress
+    image: nuts/wordpress:${wordpress_version}
     links:
         - ${containers[1]}:mysql
     environment:
         - VIRTUAL_HOST=${fqdn}
         - PROXY_CACHE=true
-        - UID=${uid}
-        - GID=${gid}
+        - TOYBOX_WWW_DATA_UID=${wordpress_uid}
+        - TOYBOX_WWW_DATA_GID=${wordpress_gid}
     volumes:
         - ${app_path}/data/docroot:/var/www/html
     ports:
         - "80"
 
 ${containers[1]}:
-    image: mariadb
+    image: nuts/mariadb:${mariadb_version}
     volumes:
         - ${app_path}/data/mysql:/var/lib/mysql
-    #    - ${app_path}/data/docroot/db-dump.sql:/docker-entrypoint-initdb.d
-    #    - ${app_path}/data/docroot/db-dump.sql:/db-dump.sql
+        #- ${TOYBOX_HOME}/src/wordpress/mysql/conf.d:/etc/mysql/conf.d
     environment:
         - MYSQL_ROOT_PASSWORD=root
+        - MYSQL_DATABASE=wordpress
         - TERM=xterm
+        - TOYBOX_MYSQL_UID=${mysql_uid}
+        - TOYBOX_MYSQL_GID=${mysql_gid}
 
 #${containers[2]}:
 #    image: busybox
@@ -100,4 +121,3 @@ EOF
 #        _start
 #    }
 #}
-

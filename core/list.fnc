@@ -1,0 +1,101 @@
+#!/bin/sh
+
+#function __applist() {
+#    if [ -f ${applist} ]; then
+#        cat ${applist} | awk 'BEGIN{ OFS=" " }
+#            function red(s) { printf "\033[1;31m%s\033[0m",s }
+#            function green(s) { printf "\033[1;32m%s\033[0m",s }
+#            function blue(s) { printf "\033[1;34m%s\033[0m",s }
+#            function app(s) { printf "%-15s",s }
+#            function status(s) { 
+#                if(s == "running")
+#                    printf "\033[1;32m%s\033[0m",s
+#                else if(s == "stopped")
+#                    printf "\033[1;31m%s\033[0m",s
+#                else
+#                    printf "%s",s
+#            }
+#            { printf "%2s",NR } { printf ": http://%-35s",$1 }
+#            { app($2) }
+#            { status($3) }
+#            { printf "\n" }'
+#    else
+#        echo 'no application available.'
+#    fi
+#}
+
+function __print_header() {
+    echo ''
+    echo '  _____         ___          '
+    echo ' |_   _|__ _  _| _ ) _____ __'
+    echo '   | |/ _ \ || | _ \/ _ \ \ /'
+    echo '   |_|\___/\_, |___/\___/_\_\'
+    echo '           |__/  Nuts Project'
+    echo ''
+}
+
+function __list() {
+
+    __print_header
+
+    if [ ! -f ${applist} ]; then
+        echo 'no application available.'
+
+    else
+        app_name="proxy"
+        . $TOYBOX_HOME/lib/proxy.fnc
+        for container in ${containers[@]}; do
+            __is_container_exist ${container}; local exist=$(( ${exist} + $? ))
+            __is_container_running ${container}; local running=$(( ${running} + $? ))
+        done
+
+
+        if [ ${exist} -eq 0 ] && [ ${running} -eq 0 ]; then
+            printf "proxy is "
+            printf "\033[1;32m%-10s\033[0m" "running"
+        else
+            printf "you must start proxy"
+        fi
+        printf "\n"
+
+        cat ${applist} | while read line; do
+
+            fqdn=$(echo ${line} | awk '{print $1}')
+            applist_grep_key=${fqdn}
+            app_name=$(echo ${line} | awk '{print $2}')
+            app_path=$(echo ${line} | awk '{print $4}')
+            compose_file="${app_path}/bin/docker-compose.yml"
+            src="$TOYBOX_HOME/src/${app_name}"
+            . $TOYBOX_HOME/lib/${app_name}.fnc
+
+            if [ ${app_name} = 'proxy' ]; then
+                continue
+            else
+                printf "http://%-35s" ${fqdn}
+            fi
+
+            printf "%-15s" ${app_name}:${app_version}
+
+            local exist=0
+            local running=0
+
+            for container in ${containers[@]}; do
+                __is_container_exist ${container}; exist=$(( ${exist} + $? ))
+                __is_container_running ${container}; running=$(( ${running} + $? ))
+            done
+
+            if [ ${exist} -eq ${#containers[@]} ]; then
+                printf "%-10s" "removed"
+            elif [ ${exist} -eq 0 ] && [ ${running} -eq 0 ]; then
+                printf "\033[1;32m%-10s\033[0m" "running"
+            elif [ ${exist} -eq 0 ] && [ ${running} -eq ${#containers[@]} ]; then
+                printf "\033[1;31m%-10s\033[0m" "stopped"
+            else
+                printf "\033[1;31m%-10s\033[0m" "error"
+            fi
+            printf "\n"
+
+        done
+    fi
+}
+

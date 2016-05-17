@@ -2,6 +2,7 @@
 
 . $TOYBOX_HOME/core/usage.fnc
 . $TOYBOX_HOME/core/list.fnc
+. $TOYBOX_HOME/core/dockerinfo.fnc
 
 # ----------------------------------------
 # Global variables
@@ -41,6 +42,10 @@ function _help() {
     __usage 
 }
 
+# ----------------------------------------
+# Utilities
+# ----------------------------------------
+
 function __is_set_env() {
     env | grep $1 > /dev/null 2>&1;
 }
@@ -53,7 +58,6 @@ function __is_executable() {
 function __is_exist_in_applist() {
     cat ${applist} | grep ${applist_grep_key} > /dev/null 2>&1
 }
-
 
 function __is_container_exist() {
     #$1 = ${app_name}
@@ -68,11 +72,6 @@ function __is_container_running() {
 # ----------------------------------------
 # Command
 # ----------------------------------------
-
-function _containers() {
-    source ~/.bash_profile > /dev/null 2>&1
-    DD
-}
 
 function _new() {
     local exist=''
@@ -163,14 +162,6 @@ function _stop() {
    }
 }
 
-function _restart() {
-    _stop && {
-        _rm && {
-            _start
-        }
-    }
-}
-
 function _rm() {
     if __is_container_running ${fqdn}-${app_name}; then
         echo ${project_name}: "'http://${fqdn}' is running now."
@@ -191,6 +182,14 @@ function _rm() {
     }
 }
 
+function _restart() {
+    _stop && {
+        _rm && {
+            _start
+        }
+    }
+}
+
 function _clear() {
     if __is_container_running ${fqdn}-${app_name}; then
         echo ${project_name}: "'http://${fqdn}' is running now."
@@ -206,7 +205,6 @@ function _clear() {
     sed -i -e "/${fqdn}/d" ${applist}
     sudo rm -rf ${app_path}
 }
-
 
 function _logs() {
     cd ${app_path}/bin

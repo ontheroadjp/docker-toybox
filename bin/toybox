@@ -1,5 +1,6 @@
 #!/bin/sh
 
+. $TOYBOX_HOME/core/usage.fnc
 . $TOYBOX_HOME/core/list.fnc
 
 # ----------------------------------------
@@ -27,41 +28,41 @@ timezone=$(date +%Z)
 # Private Functions
 # ----------------------------------------
 
-function __usage() {
-  cat <<-EOF
-Usage: 
-    ${project_name} [-s|-d] <application> new
-    ${project_name} <URL> <command>
-    ${project_name} <command>
-
-option:
-    -s              Assigning specific sub domain name(e.x: -s www) 
-    -d              Assigning specific sub domain name(e.x: -d example.com)
-
-application:
-    proxy           Http dinamic proxy server based on nginx 
-    php5            LAMP(Apache2.4 + MySQL5.6 + PHP5.6)
-    php7            LAMP(Apache2.4 + MySQL5.6 + PHP7.0)
-    wordpress       The most popular CMS
-    owncloud        Personal cloud strage like Dropbox
-    lychee          Photo management system
-    reichat         Paint chat
-
-command with URL:
-    start           Start ${project_name} application
-    stop            Stop ${project_name} application
-    restart         Stop and Start ${project_name} application
-    ps              Show ${project_name} application status
-    ip              Show containers IP Address
-    clear           Stop and Remove all of ${project_name} application
-
-command:
-    env             Show the environment variables
-    version         Show the version of ${project_name}
-    help            Show this message
-
-EOF
-}
+#function __usage() {
+#  cat <<-EOF
+#Usage: 
+#    ${project_name} [-s|-d] <application> new
+#    ${project_name} <URL> <command>
+#    ${project_name} <command>
+#
+#option:
+#    -s              Assigning specific sub domain name(e.x: -s www) 
+#    -d              Assigning specific sub domain name(e.x: -d example.com)
+#
+#application:
+#    proxy           Http dinamic proxy server based on nginx 
+#    php5            LAMP(Apache2.4 + MySQL5.6 + PHP5.6)
+#    php7            LAMP(Apache2.4 + MySQL5.6 + PHP7.0)
+#    wordpress       The most popular CMS
+#    owncloud        Personal cloud strage like Dropbox
+#    lychee          Photo management system
+#    reichat         Paint chat
+#
+#command with URL:
+#    start           Start ${project_name} application
+#    stop            Stop ${project_name} application
+#    restart         Stop and Start ${project_name} application
+#    ps              Show ${project_name} application status
+#    ip              Show containers IP Address
+#    clear           Stop and Remove all of ${project_name} application
+#
+#command:
+#    env             Show the environment variables
+#    version         Show the version of ${project_name}
+#    help            Show this message
+#
+#EOF
+#}
 
 function _env() {
     echo "TOYBOX_HOME: $TOYBOX_HOME"

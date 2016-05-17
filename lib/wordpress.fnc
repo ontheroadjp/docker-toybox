@@ -42,7 +42,6 @@ function __init() {
     #echo "mysql_uid=${mysql_uid}"
     #echo "mysql_gid=${mysql_gid}"
 
-function __init() {
     mkdir -p ${app_path}/bin
     mkdir -p ${app_path}/data
 
@@ -129,4 +128,3 @@ function __new() {
 #        _start
 #    }
 #}
-

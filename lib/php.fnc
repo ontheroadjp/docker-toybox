@@ -11,9 +11,11 @@ function __source() {
     fi
 }
 
-main_container=${fqdn}-${app_name}
-db_container=${fqdn}-${app_name}-db
-data_container=${fqdn}-${app_name}-data
+containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-db ${fqdn}-${app_name}-data )
+
+#main_container=${fqdn}-${app_name}
+#db_container=${fqdn}-${app_name}-db
+#data_container=${fqdn}-${app_name}-data
 
 echo "app_name: ${app_name}"
 echo "app_version: ${app_version}"
@@ -41,19 +43,19 @@ function __init() {
     mkdir -p ${app_path}/bin
     
     cat <<-EOF > ${compose_file}
-${main_container}:
+${containers[0]}:
     image: nutsp/${app_name}:${app_version}
     volumes:
         - ${app_path}/data/apache2/docroot:/var/www/html
         #- ${app_path}/data/apache2/conf:/etc/apache2
     links:
-        - ${db_container}:mysql
+        - ${containers[0]}:mysql
     environment:
         - VIRTUAL_HOST=${fqdn}
     ports:
         - "80"
 
-${db_container}:
+${containers[1]}:
     image: mariadb
     volumes:
         - ${app_path}/data/mysql:/var/lib/mysql

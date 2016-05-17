@@ -20,7 +20,7 @@ __toyboxcomplete() {
 
 	COMPREPLY=()
 	if (( $COMP_CWORD <= 1 )); then
-        list="${urls} ${applist} reset env version"
+        list="${urls} ${applist} reset env version containers images"
 		COMPREPLY=( $(compgen -W '${list}' -- $cur) );
 	elif [ $COMP_CWORD = 2 ]; then
 		if [[ "$prev" =~ ^http:\/\/.*$ ]]; then

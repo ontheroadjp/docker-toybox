@@ -12,7 +12,7 @@ containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-db )
 wordpress_version="4.5.2-apache"
 mariadb_version="10.1.14"
 
-tmp_dir=$TOYBOX_HOME/tmp/${fqdn}
+components_path=${app_path}/components
 
 #function __source() {
 #    if [ ! -e ${src} ]; then
@@ -21,31 +21,35 @@ tmp_dir=$TOYBOX_HOME/tmp/${fqdn}
 #    fi
 #}
 
-function __get_remote_db_dump_data(){
-    if [ ! -f ${src}/mariadb/db_dump.sql ]; then
+function __get_original_wp_data(){
+    if [ ! -f ${components_path}/wp-sync/data/dump.sql.tar.gz ]; then
         echo -n "Enter remote host: "
         read ssh_remotehost
         echo -n "Enter remote wordpress dir: "
         read wp_path
 
-        git clone https://github.com/ontheroadjp/wp-sync.git ${tmp_dir}/wp-sync
-        cp ${tmp_dir}/wp-sync/.env.sample ${tmp_dir}/wp-sync/.env
-        sed -i -e "s:^wp_host=\"\":wp_host=\"${ssh_remotehost}\":" ${tmp_dir}/wp-sync/.env
-        sed -i -e "s:^wp_root=\"/var/www/wordpress\":wp_root=\"${wp_path}\":" ${tmp_dir}/wp-sync/.env
-        sh ${tmp_dir}/wp-sync/wpsync mysqldump
-        cp ${tmp_dir}/wp-sync/data/db_dump.sql ${src}/mariadb
+        git clone https://github.com/ontheroadjp/wp-sync.git ${components_path}/wp-sync
+        cp ${components_path}/wp-sync/.env.sample ${components_path}/wp-sync/.env
+        sed -i -e "s:^wp_host=\"\":wp_host=\"${ssh_remotehost}\":" ${components_path}/wp-sync/.env
+        sed -i -e "s:^wp_root=\"/var/www/wordpress\":wp_root=\"${wp_path}\":" ${components_path}/wp-sync/.env
+        sh ${components_path}/wp-sync/remote-admin.sh mysqldump
     fi
 }
 
-function __get_search_replace_db() {
-    dist=${tmp_dir}/wordpress/bin/Search-Replace-DB
-    git clone https://github.com/interconnectit/Search-Replace-DB.git ${dist}
-}
+function __get_wp_components() {
+    local dist=${components_path}/wordpress/bin
+    mkdir -p ${dist}
 
-function __write_wordpress_Dockerfile() {
-    search_replace_db_cmd="php /var/www/html/Search-Replace-DB/srdb.cli.php -h='mysql' -u='toybox' -p='toybox' -n='toybox_wordpress' -s='dev.ontheroad.jp' -r='wpclone.docker-toybox.com'"
-    cat <<-EOF > ${tmp_dir}/wordpress/bin/Dockerfile
-FROM wordpress
+    # Search-Replace-DB
+    git clone https://github.com/interconnectit/Search-Replace-DB.git ${dist}/Search-Replace-DB
+
+    # entrypoint-ex.sh
+    cp ${src}/wordpress/docker-entrypoint-ex.sh ${dist}
+
+    # Dockerfile
+    local search_replace_db_cmd="php /var/www/html/Search-Replace-DB/srdb.cli.php -h='mysql' -u='toybox' -p='toybox' -n='toybox_wordpress' -s='dev.ontheroad.jp' -r='wpclone.docker-toybox.com'"
+    cat <<-EOF > ${components_path}/wordpress/bin/Dockerfile
+FROM wordpress:${wordpress_version}
 MAINTAINER NutsProject,LLC
 
 COPY Search-Replace-DB/ /usr/src/wordpress/Search-Replace-DB/
@@ -58,19 +62,32 @@ ENTRYPOINT ["/entrypoint-ex.sh"]
 EOF
 }
 
+function __get_mariadb_components() {
+    local dist=${components_path}/mariadb/bin
+    mkdir -p ${dist}
+
+    # DB dump data
+    tar xvzf ${components_path}/wp-sync/data/dump.sql.tar.gz -C ${dist}
+
+    # entrypoint-ex.sh
+    cp ${src}/mariadb/docker-entrypoint-ex.sh ${dist}
+
+    # Dockerfile
+    cp ${src}/mariadb/Dockerfile ${dist}
+}
+
 function __init() {
 
+    # wpclone only
+    if [ ${remote_clone} -eq 1 ]; then
+        __get_original_wp_data
+        __get_wp_components
+        __get_mariadb_components
+    fi
+
+    # general wordpress
     mkdir -p ${app_path}/bin
     mkdir -p ${app_path}/data
-
-    if [ ${remote_clone} -eq 1 ]; then
-        mkdir -p ${tmp_dir}/wordpress/bin
-        __get_remote_db_dump_data
-        __get_search_replace_db
-        cp ${src}/wordpress/docker-entrypoint-ex.sh ${tmp_dir}/wordpress/bin
-
-        __write_wordpress_Dockerfile
-    fi
 
     id www-data > /dev/null 2>&1
     if [ $? -ne 0 ]; then
@@ -94,8 +111,8 @@ function __init() {
     local mysql_uid=$(cat /etc/passwd | grep ^mysql | cut -d : -f3)
     local mysql_gid=$(cat /etc/group | grep ^mysql | cut -d: -f3)
 
-    docker build -t toybox/wordpress:${wordpress_version} ${tmp_dir}/wordpress/bin
-    docker build -t toybox/mariadb:${mariadb_version} ${src}/mariadb
+    docker build -t toybox/wordpress:${wordpress_version} ${components_path}/wordpress/bin
+    docker build -t toybox/mariadb:${mariadb_version} ${components_path}/mariadb/bin
     
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
@@ -119,8 +136,7 @@ ${containers[0]}:
 ${containers[1]}:
     image: toybox/mariadb:${mariadb_version}
     volumes:
-        - ${app_path}/data/mysql:/var/lib/mysql
-        #- ${TOYBOX_HOME}/src/wordpress/mysql/conf.d:/etc/mysql/conf.d
+        - ${app_path}/data/mariadb:/var/lib/mysql
 
     environment:
         - MYSQL_ROOT_PASSWORD=${db_root_password}

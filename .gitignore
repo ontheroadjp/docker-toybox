@@ -1,8 +1,10 @@
 .DS_Store
+hoge.sh
 stack/
 data/
 tmp/
 src/proxy/certs/ca.pem
 src/proxy/certs/cert.pem
 src/proxy/certs/key.pem
-
+src/wpclone/wordpress/Search-Replace-DB
+src/wpclone/mariadb/*.sql

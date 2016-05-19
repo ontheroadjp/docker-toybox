@@ -101,6 +101,10 @@ function _new() {
                 new="${fqdn} ${app_name} running ${app_path}"
             fi
             echo ${new} >> ${applist}
+
+            if [ ${app_name} = 'wpclone' ]; then
+                __after_start
+            fi
         }
     }
 }

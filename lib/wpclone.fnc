@@ -3,17 +3,19 @@
 remote_clone=1
 
 db_root_password="root"
+containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-db )
+wordpress_version="4.5.2-apache"
+mariadb_version="10.1.14"
+
 db_name="toybox_wordpress"
 db_user="toybox"
 db_password="toybox"
 db_table_prefix="wp_dev_"
 db_alias="mysql"
-
-containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-db )
-wordpress_version="4.5.2-apache"
-mariadb_version="10.1.14"
 document_root="/var/www/html"
 
+uid=""
+gid=""
 
 #function __source() {
 #    if [ ! -e ${src} ]; then
@@ -42,16 +44,9 @@ function __get_original_wp_data(){
         cp ${components_path}/wp-sync/.env.sample ${dist}/.env
         sed -i -e "s:^wp_host=\"\":wp_host=\"${ssh_remotehost}\":" ${dist}/.env
         sed -i -e "s:^wp_root=\"/var/www/wordpress\":wp_root=\"${wp_path}\":" ${dist}/.env
-        sh ${dist}/remote-admin.sh mysqldump
-        cp ${TOYBOX_HOME}/wp.tar.gz ${dist}/data
+        sh ${dist}/remote-admin.sh mysqldump        # temporary
+        cp ${TOYBOX_HOME}/wp.tar.gz ${dist}/data    # temporary
     fi
-}
-
-function __after_start() {
-    cd ${app_path}/data/wordpress
-    sudo cp -r ./original/wp-content ./docroot
-    sudo cp -r ./original/.htaccess ./docroot
-    sudo chown -R www-data:www-data ./docroot
 }
 
 function __get_wp_components() {
@@ -120,11 +115,44 @@ ENTRYPOINT ["/entrypoint-ex.sh"]
 EOF
 }
 
+function __after_start() {
+    cd ${app_path}/data/wordpress
+    sudo cp -r ./original/wp-content ./docroot
+    sudo cp -r ./original/.htaccess ./docroot
+    #sudo chown -R www-data:www-data ./docroot
+    sudo chown -R $(whoami) ./docroot
+}
+
 function __init() {
 
     # general wordpress
     mkdir -p ${app_path}/bin
     mkdir -p ${app_path}/data
+
+    uid=$(cat /etc/passwd | grep ^$(whoami) | cut -d : -f3)
+    gid=$(cat /etc/group | grep ^$(whoami) | cut -d: -f3)
+    
+    ##id www-data > /dev/null 2>&1
+    ##if [ $? -ne 0 ]; then
+    ##    sudo groupadd www-data
+    ##    echo "www-data group created."
+    ##    sudo useradd -g www-data www-data
+    ##    echo "www-data user created."
+    ##fi
+    ##
+    ##local wordpress_uid=$(cat /etc/passwd | grep ^www-data | cut -d : -f3)
+    ##local wordpress_gid=$(cat /etc/group | grep ^www-data | cut -d: -f3)
+
+    ##id mysql > /dev/null 2>&1
+    ##if [ $? -ne 0 ]; then
+    ##    sudo groupadd mysql
+    ##    echo "mysql group created."
+    ##    sudo useradd -g mysql mysql
+    ##    echo "mysql user created."
+    ##fi
+    ##
+    ##local mysql_uid=$(cat /etc/passwd | grep ^mysql | cut -d : -f3)
+    ##local mysql_gid=$(cat /etc/group | grep ^mysql | cut -d: -f3)
 
     # ---- wpclone only ----
     if [ ${remote_clone} -eq 1 ]; then
@@ -132,33 +160,10 @@ function __init() {
         __get_wp_components
         __get_mariadb_components
     fi
-    # ---- wpclone only ----
-
-    id www-data > /dev/null 2>&1
-    if [ $? -ne 0 ]; then
-        sudo groupadd www-data
-        echo "www-data group created."
-        sudo useradd -g www-data www-data
-        echo "www-data user created."
-    fi
-    
-    local wordpress_uid=$(cat /etc/passwd | grep ^www-data | cut -d : -f3)
-    local wordpress_gid=$(cat /etc/group | grep ^www-data | cut -d: -f3)
-
-    id mysql > /dev/null 2>&1
-    if [ $? -ne 0 ]; then
-        sudo groupadd mysql
-        echo "mysql group created."
-        sudo useradd -g mysql mysql
-        echo "mysql user created."
-    fi
-    
-    local mysql_uid=$(cat /etc/passwd | grep ^mysql | cut -d : -f3)
-    local mysql_gid=$(cat /etc/group | grep ^mysql | cut -d: -f3)
-
     docker build -t toybox/wordpress:${wordpress_version} ${components_path}/wordpress/bin
     docker build -t toybox/mariadb:${mariadb_version} ${components_path}/mariadb/bin
-    
+    # ---- wpclone only ----
+
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
     image: toybox/wordpress:${wordpress_version}
@@ -167,8 +172,10 @@ ${containers[0]}:
     environment:
         - VIRTUAL_HOST=${fqdn}
         - PROXY_CACHE=true
-        - TOYBOX_WWW_DATA_UID=${wordpress_uid}
-        - TOYBOX_WWW_DATA_GID=${wordpress_gid}
+        #- TOYBOX_WWW_DATA_UID=${wordpress_uid}
+        #- TOYBOX_WWW_DATA_GID=${wordpress_gid}
+        - TOYBOX_WWW_DATA_UID=${uid}
+        - TOYBOX_WWW_DATA_GID=${gid}
         - WORDPRESS_DB_NAME=${db_name}
         - WORDPRESS_DB_USER=${db_user}
         - WORDPRESS_DB_PASSWORD=${db_password}
@@ -190,8 +197,10 @@ ${containers[1]}:
         - MYSQL_USER=${db_user}
         - MYSQL_PASSWORD=${db_password}
         - TERM=xterm
-        - TOYBOX_MYSQL_UID=${mysql_uid}
-        - TOYBOX_MYSQL_GID=${mysql_gid}
+        #- TOYBOX_MYSQL_UID=${mysql_uid}
+        #- TOYBOX_MYSQL_GID=${mysql_gid}
+        - TOYBOX_MYSQL_UID=${uid}
+        - TOYBOX_MYSQL_GID=${gid}
 
 #${containers[2]}:
 #    image: busybox

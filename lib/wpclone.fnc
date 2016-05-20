@@ -33,6 +33,10 @@ wp_build_dir=${build_dir}/wordpress
 mariadb_build_dir=${build_dir}/mariadb
 original_wp_data=${app_path}/data/wordpress/original_wp_data
 
+# --------------------------------------------------------
+# Build function
+# --------------------------------------------------------
+
 function __prepare_wp_data(){
     local dist=${build_dir}/wp-sync
 
@@ -131,10 +135,31 @@ EOF
 }
 
 function __post_run() {
-    rm -rf ${original_wp_data}/../docroot/wp-content/plugins/
-    cp -f -r ${original_wp_data}/wp-content ${original_wp_data}/../docroot
-    cp -f ${original_wp_data}/.htaccess ${original_wp_data}/../docroot
+    if [ ${remote_clone} -eq 1 ]; then
+        echo ">>> Apply original WordPress data..."
+        local host_docroot=${app_path}/data/wordpress/docroot
+        rm -rf ${host_docroot}/wp-content
+        cp -f -r ${original_wp_data}/wp-content ${host_docroot}
+        cp -f ${original_wp_data}/.htaccess ${host_docroot}
+
+        local out=${original_wp_data}/wp-config.php
+
+        # for DB Connection
+        sed -i -e "s:^define('DB_NAME', '.*');:define('DB_NAME', '${db_name}');:" ${out}
+        sed -i -e "s:^define('DB_USER', '.*');:define('DB_USER', '${db_user}');:" ${out}
+        sed -i -e "s:^define('DB_PASSWORD', '.*');:define('DB_PASSWORD', '${db_password}');:" ${out}
+        sed -i -e "s:^define('DB_HOST', '.*');:define('DB_HOST', '${db_host}');:" ${out}
+
+        # for wp-supercache
+        local wpcachehome=${document_root}/wp-content/plugins/wp-super-cache/
+        sed -i -e "s:^define( 'WPCACHEHOME', '.*' );:define( 'WPCACHEHOME', '${wpcachehome}' );:" ${out}
+        cp -f ${out} ${host_docroot}
+    fi
 }
+
+# --------------------------------------------------------
+# Initialize
+# --------------------------------------------------------
 
 function __init() {
 

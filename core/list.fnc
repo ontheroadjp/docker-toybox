@@ -30,7 +30,7 @@ function __print_header() {
     echo ' |_   _|__ _  _| _ ) _____ __'
     echo '   | |/ _ \ || | _ \/ _ \ \ /'
     echo '   |_|\___/\_, |___/\___/_\_\'
-    echo '           |__/  Nuts Project'
+    echo '           |__/  Nuts Project,LLC'
     echo ''
 }
 

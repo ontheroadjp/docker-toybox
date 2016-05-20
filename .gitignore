@@ -1,5 +1,8 @@
 .DS_Store
-hoge.sh
+
+wp.tar.gz
+bin/rr
+
 stack/
 data/
 tmp/

@@ -1,12 +1,13 @@
 #!/bin/sh
+#set -eu
 
 remote_clone=1
 
-db_root_password="root"
 containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-db )
 wordpress_version="4.5.2-apache"
 mariadb_version="10.1.14"
 
+db_root_password="root"
 db_name="toybox_wordpress"
 db_user="toybox"
 db_password="toybox"
@@ -24,40 +25,58 @@ gid=""
 #    fi
 #}
 
-components_path=${app_path}/components
+build_dir=${app_path}/build
 wp_path=""
 original_fqdn=""
 
-function __get_original_wp_data(){
-    local dist=${components_path}/wp-sync
+wp_build_dir=${build_dir}/wordpress
+mariadb_build_dir=${build_dir}/mariadb
+original_wp_data=${app_path}/data/wordpress/original_wp_data
 
-    if [ ! -f ${components_path}/wp-sync/data/dump.sql.tar.gz ]; then
+function __prepare_wp_data(){
+    local dist=${build_dir}/wp-sync
+
+    if [ ! -f ${build_dir}/wp-sync/data/dump.sql.tar.gz ]; then
+        set -eu
         echo -n "Enter remote host: "
         read ssh_remotehost
         echo -n "Enter remote wordpress dir: "
         read wp_path
-        echo -n "Enter original wordpress's fqdn: "
+        echo -n "Enter original FQDN: "
         read original_fqdn
+        echo "------------------------------------------------------------"
+        echo "Remote Host: ${ssh_remotehost}"
+        echo "Remote WordPress dir: ${wp_path}"
+        echo "Remote WordPress  FQDN: ${original_fqdn}"
+        echo "------------------------------------------------------------"
+        echo -n "Are you sure? (y/n): " 
+        read confirm
+        if [ ${confirm} != "y" ]; then
+            exit 1
+        fi
+        echo ""
 
         # wp-sync 
+        echo ">>> Get wp-sync..."
         git clone https://github.com/ontheroadjp/wp-sync.git ${dist}
-        cp ${components_path}/wp-sync/.env.sample ${dist}/.env
+        cp ${build_dir}/wp-sync/.env.sample ${dist}/.env
         sed -i -e "s:^wp_host=\"\":wp_host=\"${ssh_remotehost}\":" ${dist}/.env
         sed -i -e "s:^wp_root=\"/var/www/wordpress\":wp_root=\"${wp_path}\":" ${dist}/.env
         sh ${dist}/remote-admin.sh mysqldump        # temporary
         cp ${TOYBOX_HOME}/wp.tar.gz ${dist}/data    # temporary
+        echo ""
+        set +eu
     fi
 }
 
-function __get_wp_components() {
-    local dist=${components_path}/wordpress/bin
+function __prepare_wp_build() {
+    local dist=${wp_build_dir}
     mkdir -p ${dist}
 
     # WordPress HTML data
-    #tar $TOYBOX_HOME/wp.tar.gz -C ${app_path}/data/wordpres
-    mkdir -p ${app_path}/data/wordpress/original
-    tar -xzf ${components_path}/wp-sync/data/wp.tar.gz -C ${app_path}/data/wordpress/original --strip-components 1
-    rm ${components_path}/wp-sync/data/wp.tar.gz
+    mkdir -p ${original_wp_data}
+    tar -xzf ${build_dir}/wp-sync/data/wp.tar.gz -C ${original_wp_data} --strip-components 1
+    rm ${build_dir}/wp-sync/data/wp.tar.gz
 
     # Search-Replace-DB
     git clone https://github.com/interconnectit/Search-Replace-DB.git ${dist}/Search-Replace-DB
@@ -79,7 +98,7 @@ function __get_wp_components() {
     local rr=${document_root}
     local replace_docroot_cmd="php ${script} -h='${h}' -u='${u}' -p='${p}' -n='${n}' -s='${ss}' -r='${rr}'"
 
-    cat <<-EOF > ${components_path}/wordpress/bin/Dockerfile
+    cat <<-EOF > ${dist}/Dockerfile
 FROM wordpress:${wordpress_version}
 MAINTAINER NutsProject,LLC
 
@@ -93,18 +112,14 @@ ENTRYPOINT ["/entrypoint-ex.sh"]
 EOF
 }
 
-function __get_mariadb_components() {
-    local dist=${components_path}/mariadb/bin
+function __prepare_mariadb_build() {
+    local dist=${mariadb_build_dir}
     mkdir -p ${dist}
-
-    ## DB dump data
-    #tar xvzf ${components_path}/wp-sync/data/dump.sql.tar.gz -C ${dist}
 
     # entrypoint-ex.sh
     cp ${src}/mariadb/docker-entrypoint-ex.sh ${dist}
 
     # Dockerfile
-    #cp ${src}/mariadb/Dockerfile ${dist}
     cat <<-EOF > ${dist}/Dockerfile
 FROM mariadb:${mariadb_version}
 MAINTAINER NutsProject,LLC
@@ -115,19 +130,17 @@ ENTRYPOINT ["/entrypoint-ex.sh"]
 EOF
 }
 
-function __after_start() {
-    cd ${app_path}/data/wordpress
-    sudo cp -r ./original/wp-content ./docroot
-    sudo cp -r ./original/.htaccess ./docroot
-    #sudo chown -R www-data:www-data ./docroot
-    sudo chown -R $(whoami) ./docroot
+function __post_run() {
+    rm -rf ${original_wp_data}/../docroot/wp-content/plugins/
+    cp -f -r ${original_wp_data}/wp-content ${original_wp_data}/../docroot
+    cp -f ${original_wp_data}/.htaccess ${original_wp_data}/../docroot
 }
 
 function __init() {
 
-    # general wordpress
     mkdir -p ${app_path}/bin
-    mkdir -p ${app_path}/data
+    mkdir -p ${app_path}/data/wordpress/docroot
+    mkdir -p ${app_path}/data/mariadb
 
     uid=$(cat /etc/passwd | grep ^$(whoami) | cut -d : -f3)
     gid=$(cat /etc/group | grep ^$(whoami) | cut -d: -f3)
@@ -155,13 +168,21 @@ function __init() {
     ##local mysql_gid=$(cat /etc/group | grep ^mysql | cut -d: -f3)
 
     # ---- wpclone only ----
-    if [ ${remote_clone} -eq 1 ]; then
-        __get_original_wp_data
-        __get_wp_components
-        __get_mariadb_components
+    if [ ${remote_clone} -eq 1 ] && [ ! -f ${build_dir}/wp-sync/data/dump.sql.gz ]; then
+        __prepare_wp_data
+
+        echo ">>> Prepare WordPress build..."
+        __prepare_wp_build && echo ""
+
+        echo ">>> Prepare MariaDB build..."
+        __prepare_mariadb_build && echo ""
+
+        echo ">>> build WordPress container..."
+        docker build -t toybox/wordpress:${wordpress_version} ${wp_build_dir} && echo ""
+
+        echo ">>> build MariaDB container..."
+        docker build -t toybox/mariadb:${mariadb_version} ${mariadb_build_dir} && echo ""
     fi
-    docker build -t toybox/wordpress:${wordpress_version} ${components_path}/wordpress/bin
-    docker build -t toybox/mariadb:${mariadb_version} ${components_path}/mariadb/bin
     # ---- wpclone only ----
 
     cat <<-EOF > ${compose_file}
@@ -189,7 +210,7 @@ ${containers[1]}:
     image: toybox/mariadb:${mariadb_version}
     volumes:
         - ${app_path}/data/mariadb:/var/lib/mysql
-        - ${components_path}/wp-sync/data:/docker-entrypoint-initdb.d
+        - ${build_dir}/wp-sync/data:/docker-entrypoint-initdb.d
 
     environment:
         - MYSQL_ROOT_PASSWORD=${db_root_password}

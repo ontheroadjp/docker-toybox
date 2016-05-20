@@ -103,7 +103,7 @@ function _new() {
             echo ${new} >> ${applist}
 
             if [ ${app_name} = 'wpclone' ]; then
-                __after_start
+                __post_run
             fi
         }
     }

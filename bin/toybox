@@ -187,12 +187,20 @@ function _rm() {
 }
 
 function _restart() {
-    _stop && {
-        _rm && {
-            _start
-        }
-    }
+    cd ${app_path}/bin
+    docker-compose -p ${project_name} restart
+    #_stop && {
+    #    _rm && {
+    #        _start
+    #    }
+    #}
 }
+
+function _down() {
+    cd ${app_path}/bin
+    docker-compose -p ${project_name} down
+}
+
 
 function _clear() {
     if __is_container_running ${fqdn}-${app_name}; then

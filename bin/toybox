@@ -223,6 +223,11 @@ function _logs() {
     docker-compose -p ${project_name} logs
 }
 
+function _config() {
+    cd ${app_path}/bin
+    docker-compose -p ${project_name} config
+}    
+
 function _ps() {
     cd ${app_path}/bin
     docker-compose -p ${project_name} ps

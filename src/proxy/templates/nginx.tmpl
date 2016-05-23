@@ -108,6 +108,7 @@ proxy_set_header        X-Forwarded-Proto   $proxy_x_forwarded_proto;
 
 proxy_temp_path         /var/cache/nginx/tmp;
 
+
 # ------------------------------------
 # Host settings
 # ------------------------------------
@@ -245,6 +246,8 @@ server {
 	{{ else if (exists "/etc/nginx/vhost.d/default") }}
 	include /etc/nginx/vhost.d/default;
 	{{ end }}
+
+    client_max_body_size 20M;
 
 	location / {
 		proxy_pass {{ trim $proto }}://{{ trim $host }};

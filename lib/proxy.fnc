@@ -24,9 +24,9 @@ ${containers[0]}:
     image: nginx:1.9
     #image: nutsp/nginx-proxy
     volumes:
-    #    - "/etc/localtime:/etc/localtime:ro"
+        - "/etc/localtime:/etc/localtime:ro"
         - "/tmp/nginx:/etc/nginx/conf.d"
-    #    - "${src}/certs:/etc/nginx/certs"
+        - "${src}/certs:/etc/nginx/certs"
     #environment:
     #    - DOCKER_HOST=tcp://$(ip r | grep 'docker0' | awk '{print $9}'):2376
     #    - DOCKER_TLS_VERIFY=1
@@ -41,8 +41,8 @@ ${containers[1]}:
     volumes_from:
         - ${containers[0]}
     volumes:
-    #    - "/etc/localtime:/etc/localtime:ro"
-        - /var/run/docker.sock:/tmp/docker.sock:ro
+        - "/etc/localtime:/etc/localtime:ro"
+        - "/var/run/docker.sock:/tmp/docker.sock:ro"
         - "${src}/docker-gen.conf:/docker-gen.conf"
         - "${src}/templates:/etc/docker-gen/templates"
     #    - "$HOME/.docker:/certs"

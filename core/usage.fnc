@@ -27,10 +27,12 @@ application:
 command:
     start           Start ${app_name} containers
     stop            Stop ${app_name} containers
+    restart         Restart ${app_name} containers
+    down            Stop and remove ${app_name} containers
     ps              Show ${app_name} containers status
-    restart         Show ${app_name} containers status
-    clear           Stop and Remove all of ${app_name} containers
-    # backup          Backup DB data
+    config          Show ${app_name} containers configuration
+    clear           Remove ${app_name} application
+    #backup          Backup DB data
     #source          get source code of containers
 
 EOF

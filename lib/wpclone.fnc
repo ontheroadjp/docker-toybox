@@ -229,6 +229,10 @@ ${containers[0]}:
     image: ${images[0]}:${wordpress_version}
     links:
         - ${containers[1]}:${db_alias}
+    log_driver: json-file
+    log_opt:
+        - max-size: 3m
+        - max-file: 7
     environment:
         - VIRTUAL_HOST=${fqdn}
         - PROXY_CACHE=true
@@ -251,7 +255,10 @@ ${containers[1]}:
     volumes:
         - ${app_path}/data/mariadb:/var/lib/mysql
         - ${build_dir}/wp-sync/data:/docker-entrypoint-initdb.d
-
+    log_driver: json-file
+    log_opt:
+        - max-size: 3m
+        - max-file: 7
     environment:
         - MYSQL_ROOT_PASSWORD=${db_root_password}
         - MYSQL_DATABASE=${db_name}

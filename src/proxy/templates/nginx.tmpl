@@ -40,6 +40,36 @@ client_body_buffer_size  64k;
 tcp_nopush        on;
 
 # ------------------------------------
+# HTTP header for proxy cache
+# ------------------------------------
+## HTTP 1.1 support
+#proxy_http_version 1.1;
+#proxy_buffering off;
+#proxy_set_header    Host                $http_host;
+#proxy_set_header    Upgrade             $http_upgrade;
+#proxy_set_header    Connection          $proxy_connection;
+#proxy_set_header    X-Real-IP           $remote_addr;
+#proxy_set_header    X-Forwarded-For     $proxy_add_x_forwarded_for;
+#proxy_set_header    X-Forwarded-Proto   $proxy_x_forwarded_proto;
+#{{ end }}
+
+proxy_http_version 1.1;
+#proxy_buffering off;
+proxy_connect_timeout   60;
+proxy_send_timeout      60;
+proxy_read_timeout      60;
+proxy_set_header        Host                $host;
+proxy_set_header        Upgrade             $http_upgrade;
+proxy_set_header        Connection          $proxy_connection;
+proxy_set_header        X-Real-IP           $remote_addr;
+proxy_set_header        X-Forwarded-Host    $host;
+proxy_set_header        X-Forwarded-Server  $host;
+proxy_set_header        X-Forwarded-For     $proxy_add_x_forwarded_for;
+proxy_set_header        X-Forwarded-Proto   $proxy_x_forwarded_proto;
+
+proxy_temp_path         /var/cache/nginx/tmp;
+
+# ------------------------------------
 # gzip compression
 # ------------------------------------
 gzip_static on;
@@ -81,35 +111,6 @@ log_format vhost '$host $remote_addr - $remote_user [$time_local] '
 #{{ if (exists "/etc/nginx/proxy.conf") }}
 #include /etc/nginx/proxy.conf;
 #{{ else }}
-## HTTP 1.1 support
-#proxy_http_version 1.1;
-#proxy_buffering off;
-#proxy_set_header    Host                $http_host;
-#proxy_set_header    Upgrade             $http_upgrade;
-#proxy_set_header    Connection          $proxy_connection;
-#proxy_set_header    X-Real-IP           $remote_addr;
-#proxy_set_header    X-Forwarded-For     $proxy_add_x_forwarded_for;
-#proxy_set_header    X-Forwarded-Proto   $proxy_x_forwarded_proto;
-#{{ end }}
-
-# ------------------------------------
-# HTTP header for proxy cache
-# ------------------------------------
-proxy_http_version 1.1;
-#proxy_buffering off;
-proxy_connect_timeout   60;
-proxy_send_timeout      60;
-proxy_read_timeout      60;
-proxy_set_header        Host                $host;
-proxy_set_header        Upgrade             $http_upgrade;
-proxy_set_header        Connection          $proxy_connection;
-proxy_set_header        X-Real-IP           $remote_addr;
-proxy_set_header        X-Forwarded-Host    $host;
-proxy_set_header        X-Forwarded-Server  $host;
-proxy_set_header        X-Forwarded-For     $proxy_add_x_forwarded_for;
-proxy_set_header        X-Forwarded-Proto   $proxy_x_forwarded_proto;
-
-proxy_temp_path         /var/cache/nginx/tmp;
 
 
 # ------------------------------------
@@ -256,11 +257,13 @@ server {
 
 	location / {
 		proxy_pass {{ trim $proto }}://{{ trim $host }};
+
         {{ if ($proxy_cache) }}
         proxy_cache {{ $host }};
         #proxy_cache_key $scheme$proxy_host$uri$is_args$args;
         proxy_cache_key $scheme://$proxy_host$request_uri;
         proxy_cache_valid  200 1d;
+
         {{ end }}
 
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}

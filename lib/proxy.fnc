@@ -26,10 +26,8 @@ ${containers[0]}:
     volumes:
     #    - "/etc/localtime:/etc/localtime:ro"
         - "/tmp/nginx:/etc/nginx/conf.d"
-        - "${src}/certs:/etc/nginx/certs"
-    #    - "${src}/proxy.conf:/etc/nginx/proxy.conf"
+    #    - "${src}/certs:/etc/nginx/certs"
     #environment:
-    #    #- DOCKER_HOST=tcp://160.16.229.167:2376
     #    - DOCKER_HOST=tcp://$(ip r | grep 'docker0' | awk '{print $9}'):2376
     #    - DOCKER_TLS_VERIFY=1
     ports:
@@ -44,15 +42,15 @@ ${containers[1]}:
         - ${containers[0]}
     volumes:
     #    - "/etc/localtime:/etc/localtime:ro"
-    #    - /var/run/docker.sock:/tmp/docker.sock:ro
+        - /var/run/docker.sock:/tmp/docker.sock:ro
         - "${src}/docker-gen.conf:/docker-gen.conf"
         - "${src}/templates:/etc/docker-gen/templates"
-        - "$HOME/.docker:/certs"
-    environment:
-        - DOCKER_HOST=tcp://$(ip r | grep 'docker0' | awk '{print $9}'):2376
-        - DOCKER_CERT_PATH=/certs
-        - DOCKER_TLS_VERIFY=1
-        - security-opt=label:type:docker_t
+    #    - "$HOME/.docker:/certs"
+    #environment:
+    #    - DOCKER_HOST=tcp://$(ip r | grep 'docker0' | awk '{print $9}'):2376
+    #    - DOCKER_CERT_PATH=/certs
+    #    - DOCKER_TLS_VERIFY=1
+    #    - security-opt=label:type:docker_t
     command: -config /docker-gen.conf
     #command: -notify-sighup ${project_name}_${containers[0]}_1 -watch -only-exposed /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
     #command: -tlscacert=$HOME/.docker/ca.pem -tlscert=$HOME/.docker/cert.pem -tlskey=$HOME/.docker/key.pem -notify-sighup ${project_name}_${containers[0]}_1 -watch -only-exposed /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf

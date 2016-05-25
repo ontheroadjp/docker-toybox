@@ -1,9 +1,14 @@
 #!/bin/sh
 #set -eu
 
-remote_clone=1
+clone=1
 
 containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-db )
+if [ ${clone} -eq 0 ]; then
+    images=( wordpress mariadb)
+else
+    images=( toybox/wordpress toybox/mariadb)
+fi
 wordpress_version="4.5.2-apache"
 mariadb_version="10.1.14"
 
@@ -107,7 +112,8 @@ FROM wordpress:${wordpress_version}
 MAINTAINER NutsProject,LLC
 
 RUN sed -i -e "$ i ${replace_fqdn_cmd}" /entrypoint.sh \
-    && sed -i -e "$ i ${replace_docroot_cmd}" /entrypoint.sh
+    && sed -i -e "$ i ${replace_docroot_cmd}" /entrypoint.sh \
+    && rm -rf /usr/src/wordpress/wp-content
 
 COPY Search-Replace-DB/ /usr/src/wordpress/Search-Replace-DB/
 COPY docker-entrypoint-ex.sh /entrypoint-ex.sh
@@ -135,24 +141,31 @@ EOF
 }
 
 function __post_run() {
-    if [ ${remote_clone} -eq 1 ]; then
+    if [ ${clone} -eq 1 ]; then
+
         echo ">>> Apply original WordPress data..."
         local host_docroot=${app_path}/data/wordpress/docroot
-        rm -rf ${host_docroot}/wp-content
-        cp -f -r ${original_wp_data}/wp-content ${host_docroot}
-        cp -f ${original_wp_data}/.htaccess ${host_docroot}
 
-        local out=${original_wp_data}/wp-config.php
+        echo -n "copy wp-content dir..."
+        cp -rf ${original_wp_data}/wp-content/ ${host_docroot} && echo "done."
+
+        echo -n "copy .htaccess file..."
+        cp -f ${original_wp_data}/.htaccess ${host_docroot} && echo "done."
 
         # for DB Connection
+        echo -n "modify wp-config.php file..."
+        local out=${original_wp_data}/wp-config.php
         sed -i -e "s:^define('DB_NAME', '.*');:define('DB_NAME', '${db_name}');:" ${out}
         sed -i -e "s:^define('DB_USER', '.*');:define('DB_USER', '${db_user}');:" ${out}
         sed -i -e "s:^define('DB_PASSWORD', '.*');:define('DB_PASSWORD', '${db_password}');:" ${out}
-        sed -i -e "s:^define('DB_HOST', '.*');:define('DB_HOST', '${db_host}');:" ${out}
+        sed -i -e "s:^define('DB_HOST', '.*');:define('DB_HOST', '${db_alias}');:" ${out}
+        echo "done."
 
         # for wp-supercache
         local wpcachehome=${document_root}/wp-content/plugins/wp-super-cache/
         sed -i -e "s:^define( 'WPCACHEHOME', '.*' );:define( 'WPCACHEHOME', '${wpcachehome}' );:" ${out}
+
+        # copy wp-config.php
         cp -f ${out} ${host_docroot}
     fi
 }
@@ -193,7 +206,7 @@ function __init() {
     ##local mysql_gid=$(cat /etc/group | grep ^mysql | cut -d: -f3)
 
     # ---- wpclone only ----
-    if [ ${remote_clone} -eq 1 ] && [ ! -f ${build_dir}/wp-sync/data/dump.sql.gz ]; then
+    if [ ${clone} -eq 1 ] && [ ! -d ${build_dir}/wp-sync/data ]; then
         __prepare_wp_data
 
         echo ">>> Prepare WordPress build..."
@@ -212,9 +225,14 @@ function __init() {
 
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    image: toybox/wordpress:${wordpress_version}
+    #image: toybox/wordpress:${wordpress_version}
+    image: ${images[0]}:${wordpress_version}
     links:
         - ${containers[1]}:${db_alias}
+    log_driver: json-file
+    log_opt:
+        - max-size: 3m
+        - max-file: 7
     environment:
         - VIRTUAL_HOST=${fqdn}
         - PROXY_CACHE=true
@@ -232,11 +250,15 @@ ${containers[0]}:
         - "80"
 
 ${containers[1]}:
-    image: toybox/mariadb:${mariadb_version}
+    #image: toybox/mariadb:${mariadb_version}
+    image: ${images[1]}:${mariadb_version}
     volumes:
         - ${app_path}/data/mariadb:/var/lib/mysql
         - ${build_dir}/wp-sync/data:/docker-entrypoint-initdb.d
-
+    log_driver: json-file
+    log_opt:
+        - max-size: 3m
+        - max-file: 7
     environment:
         - MYSQL_ROOT_PASSWORD=${db_root_password}
         - MYSQL_DATABASE=${db_name}

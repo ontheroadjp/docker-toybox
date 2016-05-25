@@ -27,6 +27,10 @@ ${containers[0]}:
         - "/etc/localtime:/etc/localtime:ro"
         - "/tmp/nginx:/etc/nginx/conf.d"
         - "${src}/certs:/etc/nginx/certs"
+    log_driver: json-file
+    log_opt:
+        - max-size: 3m
+        - max-file: 7
     #environment:
     #    - DOCKER_HOST=tcp://$(ip r | grep 'docker0' | awk '{print $9}'):2376
     #    - DOCKER_TLS_VERIFY=1
@@ -46,6 +50,10 @@ ${containers[1]}:
         - "${src}/docker-gen.conf:/docker-gen.conf"
         - "${src}/templates:/etc/docker-gen/templates"
     #    - "$HOME/.docker:/certs"
+    log_driver: json-file
+    log_opt:
+        - max-size: 3m
+        - max-file: 7
     #environment:
     #    - DOCKER_HOST=tcp://$(ip r | grep 'docker0' | awk '{print $9}'):2376
     #    - DOCKER_CERT_PATH=/certs

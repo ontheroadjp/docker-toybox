@@ -247,6 +247,18 @@ function _ip() {
     done
 }
 
+function _applications() {
+    dir=$TOYBOX_HOME/lib/*
+    files=()
+    for file in ${dir}; do
+        if [ -f ${file} ]; then
+            files+=("${file}")
+            echo ${file} | sed -e "s:^$TOYBOX_HOME/lib/::" -e "s:.fnc$::"
+        fi
+    done
+}
+
+
 # ----------------------------------------
 # Main Function
 # ----------------------------------------

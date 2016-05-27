@@ -26,7 +26,7 @@ ${containers[0]}:
     volumes:
         - "/etc/localtime:/etc/localtime:ro"
         - "/tmp/nginx:/etc/nginx/conf.d"
-        - "${src}/certs:/etc/nginx/certs"
+        - "${src}/nginx/certs:/etc/nginx/certs"
     log_driver: "json-file"
     log_opt:
         max-size: "3m"
@@ -47,8 +47,8 @@ ${containers[1]}:
     volumes:
         - "/etc/localtime:/etc/localtime:ro"
         - "/var/run/docker.sock:/tmp/docker.sock:ro"
-        - "${src}/docker-gen.conf:/docker-gen.conf"
-        - "${src}/templates:/etc/docker-gen/templates"
+        - "${src}/docker-gen/docker-gen.conf:/docker-gen.conf"
+        - "${src}/docker-gen/templates:/etc/docker-gen/templates"
     #    - "$HOME/.docker:/certs"
     log_driver: "json-file"
     log_opt:

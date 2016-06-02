@@ -50,6 +50,7 @@ ${containers[0]}:
     image: toybox/wordpress:${wordpress_version}
     links:
         - ${containers[1]}:mysql
+    log_driver: fluentd
     environment:
         - VIRTUAL_HOST=${fqdn}
         - PROXY_CACHE=true
@@ -69,6 +70,7 @@ ${containers[1]}:
     volumes:
         - ${app_path}/data/mysql:/var/lib/mysql
         #- ${TOYBOX_HOME}/src/wordpress/mysql/conf.d:/etc/mysql/conf.d
+    log_driver: fluentd
     environment:
         - MYSQL_ROOT_PASSWORD=${db_root_password}
         - MYSQL_DATABASE=${db_name}

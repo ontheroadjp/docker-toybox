@@ -1,0 +1,58 @@
+toybox-fluentd:
+    build: ./fluentd/build
+    ports: 
+        - "24224:24224"
+    links:
+        - toybox-mongodb:mongodb
+        - toybox-elasticsearch:elasticsearch
+
+toybox-mongodb:
+    #image: tutum/mongodb
+    build: ./mongodb/build
+    ports:
+        - "27017:27017"
+        - "28017:28017"
+    environment:
+        - MONGODB_DATABASE=fluentd
+        - MONGODB_USER=toybox
+        - MONGODB_PASS=toybox
+
+toybox-mongodb-ui:
+    image: mongo-express
+    links:
+        - toybox-mongodb:mongo
+    ports:
+        #- "8081:8081"
+        - "8081"
+    environment:
+        - VIRTUAL_HOST=mongoex.docker-toybox.com
+        - ME_CONFIG_MONGODB_ENABLE_ADMIN=true
+        - ME_CONFIG_MONGODB_ADMINUSERNAME=toybox
+        - ME_CONFIG_MONGODB_ADMINPASSWORD=toybox
+        - ME_CONFIG_MONGODB_AUTH_DATABASE=fluentd
+        - ME_CONFIG_MONGODB_AUTH_USERNAME=toybox
+        - ME_CONFIG_MONGODB_AUTH_PASSWORD=toybox
+        - ME_CONFIG_BASICAUTH_USERNAME=toybox
+        - ME_CONFIG_BASICAUTH_PASSWORD=toybox
+
+toybox-elasticsearch:
+    build: ./elasticsearch/build
+    ports:
+        #- "9200:9200"
+        - "9300:9300"
+        - "9200"
+        #- "9300"
+    environment:
+        - VIRTUAL_HOST=es.docker-toybox.com
+        - VIRTUAL_PORT=9200
+
+toybox-kibana:
+    image: kibana
+    links:
+        - toybox-elasticsearch:elasticsearch
+    ports:
+        #- "5601:5601"
+        - "5601"
+    environment:
+        - VIRTUAL_HOST=kibana.docker-toybox.com
+        - ELASTICSEARCH_URL=http://elasticsearch:9200

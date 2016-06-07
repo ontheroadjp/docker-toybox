@@ -83,6 +83,10 @@ function __prepare_wp_build() {
     mkdir -p ${dist}
 
     # WordPress HTML data
+    if [ ! -f ${build_dir}/wp-sync/data/wp.tar.gz ]; then
+        echo "error: there is no ${build_dir}/wp-sync/data/wp.tar.gz"
+        exit 1;
+    fi
     mkdir -p ${original_wp_data}
     tar -xzf ${build_dir}/wp-sync/data/wp.tar.gz -C ${original_wp_data} --strip-components 1
     rm ${build_dir}/wp-sync/data/wp.tar.gz
@@ -175,6 +179,13 @@ function __post_run() {
 # --------------------------------------------------------
 
 function __init() {
+
+    # ---- wpclone only (TEMPORARY)----
+    if [ ${clone} -eq 1 ] && [ ! -f $TOYBOX_HOME/wp.tar.gz ]; then
+        echo "error: there is no wp.tar.gz"
+        exit 1;
+    fi
+    # ---- wpclone only (TEMPORARY)----
 
     mkdir -p ${app_path}/bin
     mkdir -p ${app_path}/data/wordpress/docroot

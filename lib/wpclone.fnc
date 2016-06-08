@@ -1,7 +1,7 @@
 #!/bin/sh
 #set -eu
 
-clone=1
+clone=0
 
 containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-db )
 if [ ${clone} -eq 0 ]; then
@@ -172,6 +172,15 @@ function __post_run() {
         # copy wp-config.php
         cp -f ${out} ${host_docroot}
     fi
+}
+
+# --------------------------------------------------------
+# Clone command
+# --------------------------------------------------------
+
+function _clone() {
+    clone=1
+    _new $@
 }
 
 # --------------------------------------------------------

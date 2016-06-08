@@ -27,7 +27,7 @@ __toyboxcomplete() {
 	        local list="start stop rm restart down clear ps logs config info"
 		    COMPREPLY=( $(compgen -W '${list}' -- $cur) );
         elif echo ${applist} | grep ${prev} > /dev/null 2>&1; then
-		    local list="new logs"
+		    local list="new logs clone"
 		    COMPREPLY=( $(compgen -W '${list}' -- $cur) );
 		fi
 	fi

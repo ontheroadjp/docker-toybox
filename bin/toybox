@@ -395,7 +395,7 @@ elif [ $# -eq 2 ]; then
         app_version=$(echo ${arg} | cut -d":" -f2)
 
         if [ ! -f $TOYBOX_HOME/lib/${app_name}.fnc ]; then
-            echo "${project_name}: Invalid argument(s)."
+            echo "${project_name}: No application available."
             exit 1;
         fi
     
@@ -418,11 +418,11 @@ elif [ $# -eq 2 ]; then
         compose_file="${app_path}/bin/docker-compose.yml"
         src="$TOYBOX_HOME/src/${app_name}"
        
-        if [ $1 != "new" ]; then
-            echo ${project_name}": Invalid argument(s)."
-            echo "See '${project_name} -h'." 
-            exit 1
-        fi
+        #if [ $1 != "new" ]; then
+        #    echo ${project_name}": Invalid argument(s)."
+        #    echo "See '${project_name} -h'." 
+        #    exit 1
+        #fi
     fi
 
     # ----------------------------------------

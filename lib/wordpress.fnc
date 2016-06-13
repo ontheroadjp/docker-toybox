@@ -19,13 +19,6 @@ document_root="/var/www/html"
 uid=""
 gid=""
 
-#function __source() {
-#    if [ ! -e ${src} ]; then
-#        git clone https://github.com/interconnectit/Search-Replace-DB.git ${src}
-#        git clone https://github.com/docker-library/wordpress.git ${src}
-#    fi
-#}
-
 build_dir=${app_path}/build
 wp_path=""
 original_fqdn=""
@@ -115,9 +108,12 @@ function __prepare_wp_build() {
 FROM wordpress:${wordpress_version}
 MAINTAINER NutsProject,LLC
 
+#RUN sed -i -e "$ i ${replace_fqdn_cmd}" /entrypoint.sh \
+#    && sed -i -e "$ i ${replace_docroot_cmd}" /entrypoint.sh \
+#    && rm -rf /usr/src/wordpress/wp-content
+
 RUN sed -i -e "$ i ${replace_fqdn_cmd}" /entrypoint.sh \
-    && sed -i -e "$ i ${replace_docroot_cmd}" /entrypoint.sh \
-    && rm -rf /usr/src/wordpress/wp-content
+    && sed -i -e "$ i ${replace_docroot_cmd}" /entrypoint.sh
 
 COPY Search-Replace-DB/ /usr/src/wordpress/Search-Replace-DB/
 COPY docker-entrypoint-ex.sh /entrypoint-ex.sh
@@ -204,50 +200,26 @@ function __init() {
     uid=$(cat /etc/passwd | grep ^$(whoami) | cut -d : -f3)
     gid=$(cat /etc/group | grep ^$(whoami) | cut -d: -f3)
     
-    ##id www-data > /dev/null 2>&1
-    ##if [ $? -ne 0 ]; then
-    ##    sudo groupadd www-data
-    ##    echo "www-data group created."
-    ##    sudo useradd -g www-data www-data
-    ##    echo "www-data user created."
-    ##fi
-    ##
-    ##local wordpress_uid=$(cat /etc/passwd | grep ^www-data | cut -d : -f3)
-    ##local wordpress_gid=$(cat /etc/group | grep ^www-data | cut -d: -f3)
-
-    ##id mysql > /dev/null 2>&1
-    ##if [ $? -ne 0 ]; then
-    ##    sudo groupadd mysql
-    ##    echo "mysql group created."
-    ##    sudo useradd -g mysql mysql
-    ##    echo "mysql user created."
-    ##fi
-    ##
-    ##local mysql_uid=$(cat /etc/passwd | grep ^mysql | cut -d : -f3)
-    ##local mysql_gid=$(cat /etc/group | grep ^mysql | cut -d: -f3)
-
     # ---- wpclone only ----
     if [ ${clone} -eq 1 ] && [ ! -d ${build_dir}/wp-sync/data ]; then
         __prepare_wp_data
 
         echo ">>> Prepare WordPress build..."
-        __prepare_wp_build && echo ""
+        __prepare_wp_build && echo
 
         echo ">>> Prepare MariaDB build..."
-        __prepare_mariadb_build && echo ""
+        __prepare_mariadb_build && echo
 
         echo ">>> build WordPress container..."
-        docker build -t toybox/wordpress:${wordpress_version} ${wp_build_dir} && echo ""
+        docker build -t toybox/wordpress:${wordpress_version} ${wp_build_dir} && echo
 
         echo ">>> build MariaDB container..."
-        docker build -t toybox/mariadb:${mariadb_version} ${mariadb_build_dir} && echo ""
+        docker build -t toybox/mariadb:${mariadb_version} ${mariadb_build_dir} && echo
     fi
     # ---- wpclone only ----
 
-
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    #image: toybox/wordpress:${wordpress_version}
     image: ${images[0]}:${wordpress_version}
     links:
         - ${containers[1]}:${db_alias}
@@ -258,8 +230,6 @@ ${containers[0]}:
     environment:
         - VIRTUAL_HOST=${fqdn}
         - PROXY_CACHE=true
-        #- TOYBOX_WWW_DATA_UID=${wordpress_uid}
-        #- TOYBOX_WWW_DATA_GID=${wordpress_gid}
         - TOYBOX_WWW_DATA_UID=${uid}
         - TOYBOX_WWW_DATA_GID=${gid}
         - WORDPRESS_DB_NAME=${db_name}
@@ -287,8 +257,6 @@ ${containers[1]}:
         - MYSQL_USER=${db_user}
         - MYSQL_PASSWORD=${db_password}
         - TERM=xterm
-        #- TOYBOX_MYSQL_UID=${mysql_uid}
-        #- TOYBOX_MYSQL_GID=${mysql_gid}
         - TOYBOX_MYSQL_UID=${uid}
         - TOYBOX_MYSQL_GID=${gid}
 
@@ -300,40 +268,4 @@ ${containers[1]}:
 EOF
 }
 
-#function __new() {
-#    __init && {
-#        cd ${app_path}/bin
-#        docker-compose -p ${project_name} up -d && {
-#            echo '---------------------------------' | tee -a ${app_path}/info.txt
-#            echo 'URL: http://'${fqdn} | tee -a ${app_path}/info.txt
-#            echo '---------------------------------' | tee -a ${app_path}/info.txt
-#            echo -n 'Database Host: ' | tee -a ${app_path}/info.txt
-#            docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
-#                $(docker ps | grep ${containers[1]}_1 | awk '{print $1}' | tee -a ${app_path}/info.txt)
-#            echo 'Database Username: '${db_user} | tee -a ${app_path}/info.txt
-#            echo 'Database Password: '${db_user_pass} | tee -a ${app_path}/info.txt
-#        }
-#    }
-#}
-
-#function __backup() {
-#    prefix=$(date '+%Y%m%d_%H%M%S')
-#    history_file=${app_path}/backup/history.txt
-#    mkdir -p ${app_path}/backup
-#    if [ ! -e $history_file ]; then
-#        echo "" >> ${history_file}    
-#    fi
-#    sed -i -e "1s/^/${prefix}\n/" ${history_file}
-#    docker run --rm --volumes-from $(docker ps -a | grep ${project_name}_${data_container}_1 | awk '{print $1}') -v ${app_path}/backup:/backup busybox tar cvzf /backup/${prefix}_db.tar.gz /var/lib/mysql
-#    docker run --rm --volumes-from $(docker ps -a | grep ${project_name}_${main_container}_1 | awk '{print $1}') -v ${app_path}/backup:/backup busybox tar cvzf /backup/${prefix}.tar.gz /var/www/html
-#}
-
-#function __restore() {
-#    prefix=$(cat ${app_path}/backup/history.txt | peco)
-#    docker run --rm --volumes-from $(docker ps -a | grep ${project_name}_${data_container}_1 | awk '{print $1}') -v ${app_path}/backup:/backup busybox tar xvzf /backup/${prefix}_db.tar.gz
-#    docker run --rm --volumes-from $(docker ps -a | grep ${project_name}_${main_container}_1 | awk '{print $1}') -v ${app_path}/backup:/backup busybox tar xvzf /backup/${prefix}.tar.gz
-#    _stop && {
-#        _start
-#    }
-#}
 

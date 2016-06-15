@@ -4,6 +4,9 @@ db_name=${app_name}
 db_user=${app_name}
 db_user_pass=${app_name}
 
+uid=""
+gid=""
+
 function __source() {
     if [ ! -e ${src} ]; then
         #git clone https://github.com/docker-library/owncloud.git ${src}
@@ -31,6 +34,12 @@ function __init() {
     __build
 
     mkdir -p ${app_path}/bin
+    mkdir -p ${app_path}/data/owncloud/config
+    mkdir -p ${app_path}/data/owncloud/data
+
+    uid=$(cat /etc/passwd | grep ^$(whoami) | cut -d : -f3)
+    gid=$(cat /etc/group | grep ^$(whoami) | cut -d: -f3)
+    
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
     #image: owncloud:9.0.0-apache
@@ -42,13 +51,15 @@ ${containers[0]}:
     environment:
     #    - security-opt=label:type:docker_t
         - VIRTUAL_HOST=${fqdn}
+        - TOYBOX_UID=${uid}
+        - TOYBOX_GID=${gid}
         - TIMEZONE=${timezone}
     #volumes_from:
     #    - ${data_container}
     volumes:
     #    - "/etc/localtime:/etc/localtime:ro"
-        - ${app_path}/data/config:/var/www/html/config
-        - ${app_path}/data/data:/var/www/html/data
+        - ${app_path}/data/owncloud/config:/var/www/html/config
+        - ${app_path}/data/owncloud/data:/var/www/html/data
     ports:
         - "40110"
 

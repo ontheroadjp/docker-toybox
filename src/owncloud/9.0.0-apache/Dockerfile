@@ -1,11 +1,9 @@
-FROM owncloud:9.0.1-apache
+FROM owncloud:9.0.2-apache
 
 RUN apt-get update && apt-get install -y sudo
-#RUN apt-get install -y redis-server php5-redis
 
-RUN a2enmod ssl && a2ensite default-ssl
+#RUN a2enmod ssl && a2ensite default-ssl
 
-COPY docker-entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
+COPY docker-entrypoint.sh /ex-entrypoint.sh
+ENTRYPOINT ["/ex-entrypoint.sh"]
 CMD ["apache2-foreground"]

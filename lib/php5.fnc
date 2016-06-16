@@ -10,23 +10,11 @@ gid=""
 php_version="5.6.22-apache"
 mariadb_version="10.1.14"
 
-containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-db ${fqdn}-${app_name}-data )
-
-#if [ -z ${app_version} ]; then
-#    app_version="5.6-apache"
-#elif [ ${app_version} != "5.6" ] && [ ${app_version} != "7.0" ]; then
-#    app_version="5.6-apache"
-#else
-#    app_version=${app_version}-apache
-#fi
-app_version=${php_version}
-
-echo "app_name: ${app_name}"
-echo "app_version: ${app_version}"
+containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-db )
 
 function __build() {
-    #docker build -t nutsp/${app_name}:${app_version} $TOYBOX_HOME/src/${app_name}/${app_version}
-    docker build -t toybox/${app_name}:${app_version} $TOYBOX_HOME/src/php/${app_version}
+    #docker build -t nutsp/${app_name}:${php_version} $TOYBOX_HOME/src/${app_name}/${php_version}
+    docker build -t toybox/${app_name}:${php_version} $TOYBOX_HOME/src/php/${php_version}
 }
 
 function __init() {
@@ -42,7 +30,7 @@ function __init() {
 
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    image: toybox/${app_name}:${app_version}
+    image: toybox/${app_name}:${php_version}
     #volumes:
         #- ${app_path}/data/apache2/docroot:/var/www/html
         #- ${app_path}/data/apache2/conf:/etc/apache2

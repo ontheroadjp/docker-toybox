@@ -4,6 +4,6 @@ RUN apt-get update && apt-get install -y sudo
 
 #RUN a2enmod ssl && a2ensite default-ssl
 
-COPY docker-entrypoint.sh /ex-entrypoint.sh
-ENTRYPOINT ["/ex-entrypoint.sh"]
+COPY docker-entrypoint.sh /entrypoint-ex.sh
+ENTRYPOINT ["/entrypoint-ex.sh"]
 CMD ["apache2-foreground"]

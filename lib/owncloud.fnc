@@ -4,6 +4,9 @@ db_name=${app_name}
 db_user=${app_name}
 db_user_pass=${app_name}
 
+owncloud_version="9.0.2-apache"
+mariadb_version="10.1.14"
+
 uid=""
 gid=""
 
@@ -15,7 +18,8 @@ function __source() {
 }
 
 function __build() {
-    docker build -t nutsp/owncloud:9.0.0-apache $TOYBOX_HOME/src/owncloud/9.0.0-apache
+    #docker build -t nutsp/owncloud:9.0.2-apache $TOYBOX_HOME/src/owncloud/9.0.2-apache
+    docker build -t nutsp/owncloud:${owncloud_version} $TOYBOX_HOME/src/owncloud/${owncloud_version}
 }
 
 
@@ -42,20 +46,16 @@ function __init() {
     
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    #image: owncloud:9.0.0-apache
-    image: nutsp/owncloud:9.0.0-apache
+    image: nutsp/owncloud:${owncloud_version}
     links:
         - ${containers[1]}:mysql
         - ${containers[2]}:redis
-    #    - memcached:memcached
     environment:
     #    - security-opt=label:type:docker_t
         - VIRTUAL_HOST=${fqdn}
         - TOYBOX_UID=${uid}
         - TOYBOX_GID=${gid}
         - TIMEZONE=${timezone}
-    #volumes_from:
-    #    - ${data_container}
     volumes:
     #    - "/etc/localtime:/etc/localtime:ro"
         - ${app_path}/data/owncloud/config:/var/www/html/config
@@ -64,9 +64,8 @@ ${containers[0]}:
         - "40110"
 
 ${containers[1]}:
-    image: mariadb
-    #volumes_from:
-    #    - ${data_container}
+    #image: mariadb
+    image: toybox/mariadb:${mariadb_version}
     volumes:
         - ${app_path}/data/mysql:/var/lib/mysql
     environment:
@@ -76,6 +75,8 @@ ${containers[1]}:
         MYSQL_DATABASE: ${db_name}
         MYSQL_USER: ${db_user}
         MYSQL_PASSWORD: ${db_user_pass}
+        TOYBOX_UID: ${uid}
+        TOYBOX_GID: ${gid}
         TERM: xterm
         TIMEZONE: ${timezone}
 
@@ -85,10 +86,6 @@ ${containers[2]}:
         - TIMEZONE=${timezone}
     #volumes:
     #    - "/etc/localtime:/etc/localtime:ro"
-
-
-#memcached:
-#    image: memcached
 
 #${data_container}:
 #    image: busybox

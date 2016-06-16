@@ -230,8 +230,8 @@ ${containers[0]}:
     environment:
         - VIRTUAL_HOST=${fqdn}
         - PROXY_CACHE=true
-        - TOYBOX_WWW_DATA_UID=${uid}
-        - TOYBOX_WWW_DATA_GID=${gid}
+        - TOYBOX_UID=${uid}
+        - TOYBOX_GID=${gid}
         - WORDPRESS_DB_NAME=${db_name}
         - WORDPRESS_DB_USER=${db_user}
         - WORDPRESS_DB_PASSWORD=${db_password}
@@ -257,8 +257,8 @@ ${containers[1]}:
         - MYSQL_USER=${db_user}
         - MYSQL_PASSWORD=${db_password}
         - TERM=xterm
-        - TOYBOX_MYSQL_UID=${uid}
-        - TOYBOX_MYSQL_GID=${gid}
+        - TOYBOX_UID=${uid}
+        - TOYBOX_GID=${gid}
 
 #${containers[2]}:
 #    image: busybox

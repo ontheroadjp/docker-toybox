@@ -1,26 +1,47 @@
 FROM php:7.0.7-apache
+#FROM php:5.6.22-apache
 MAINTAINER NutsProject, LLC <dev@nutsproject.co.jp>
 
 ## ------------------------------------------------------------------------------
 ## Install base
-#RUN apt-get update && install -yq supervisor wget git unzip nginx fontconfig-config fonts-dejavu-core \
-#    php5-fpm php5-common php5-json php5-cli php5-common php5-mysql\
-#    php5-gd php5-json php5-mcrypt php5-readline psmisc ssl-cert \
-#    ufw php-pear libgd-tools libmcrypt-dev mcrypt
+#RUN install -yq fontconfig-config fonts-dejavu-core \
+#    psmisc ssl-cert ufw php-pear
+
+# ------------------------------------------------------------------------------
+# Install base
+RUN apt-get update \
+    && apt-get install -y git unzip wget \
+    libmcrypt-dev mcrypt libpng12-dev libjpeg-dev libgd-tools \
+    && rm -rf /var/lib/apt/lists/* \
+	&& docker-php-ext-configure gd --with-png-dir=/usr --with-jpeg-dir=/usr \
+    && docker-php-ext-install exif gd json mbstring mysqli zip mcrypt opcache
+
+#COPY conf/php.ini /usr/local/etc/php/
+RUN { \
+        echo 'max_execution_time = 200'; \
+        echo 'post_max_size = 100M'; \
+        echo 'upload_max_size = 100M'; \
+        echo 'upload_max_filesize = 20M'; \
+        echo 'memory_limit = 256M'; \
+	} > /usr/local/etc/php/php.ini
+
+# set recommended PHP.ini settings
+# see https://secure.php.net/Ref man ual/en/opcache.installation.php
+RUN { \
+		echo 'opcache.memory_consumption=128'; \
+		echo 'opcache.interned_strings_buffer=8'; \
+		echo 'opcache.max_accelerated_files=4000'; \
+		echo 'opcache.revalidate_freq=60'; \
+		echo 'opcache.fast_shutdown=1'; \
+		echo 'opcache.enable_cli=1'; \
+	} > /usr/local/etc/php/conf.d/opcache-recommended.ini
 
 # ------------------------------------------------------------------------------
 # Install Lychee
-RUN apt-get update && apt-get install -y git libmcrypt-dev libpng12-dev unzip wget \
-    && docker-php-ext-install exif gd json mbstring mysqli zip
-
 WORKDIR /var/www
 RUN git clone https://github.com/electerious/Lychee.git html \
-    && chown -R www-data:www-data /var/www/html
-#RUN chmod -R 770 /var/www/html
-#RUN chmod -R 777 /var/www/html/uploads/ 
-#RUN chmod -R 777 /var/www/html/data/
-RUN chmod -R 777 html/data/ html/uploads/
-COPY conf/lychee.ini /usr/local/etc/php/conf.d/
+    && chown -R www-data:www-data /var/www/html \
+    && chmod -R 777 html/data/ html/uploads/
 
 # ------------------------------------------------------------------------------
 EXPOSE 80

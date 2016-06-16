@@ -1,16 +1,28 @@
 #!/bin/sh
 set -e
 
-root_dir=/var/www/lychee
-chown -R www-data:www-data ${root_dir}
+usermod -u ${TOYBOX_UID} www-data
+groupmod -g ${TOYBOX_GID} www-data
 
-if [ -f $root_dir/data/config.php ]; then
-    #ip=$(docker inspect -f '{{ .NetworkSettings.IPAddress }}' $(docker ps | grep toybox_lychee.docker-toybox.com-lychee_1 | awk '{print $1}'))
-    ip=''
-    sed -i -e "s/^\$dbHost = '.*\..*\..*\..*'/\$dbHost = '${LYCHEE_MYSQL_PORT_3306_TCP_ADDR}'/g" ${root_dir}/data/config.php
+docroot=/var/www/html
+
+config="${docroot}/data/config.php"
+
+if [ -f ${config} ]; then
+    rm -rf ${config}
 fi
 
-supervisord -c /etc/supervisor/supervisord.conf
+echo "<?php" >> ${config}
+echo "" >> ${config}
+echo "// Database configuration" >> ${config}
+echo '$dbHost = '"'${MARIADB_PORT_3306_TCP_ADDR}'; // Host of the database" >> ${config}
+echo '$dbUser = '"'${MARIADB_ENV_MYSQL_USER}'; // Username of the database" >> ${config}
+echo '$dbPassword = '"'${MARIADB_ENV_MYSQL_PASSWORD}'; // Password of the database" >> ${config}
+echo '$dbName = '"'${MARIADB_ENV_MYSQL_DATABASE}'; // Database name" >> ${config}
+echo '$dbTablePrefix = '"''; // Table prefix" >> ${config}
+echo "" >> ${config}
+echo "?>" >> ${config}
+
+chown -R www-data:www-data ${docroot}
 
 exec "$@"
-

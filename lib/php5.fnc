@@ -21,9 +21,6 @@ containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-db ${fqdn}-${app_name}-data
 #fi
 app_version=${php_version}
 
-echo "app_name: ${app_name}"
-echo "app_version: ${app_version}"
-
 function __build() {
     #docker build -t nutsp/${app_name}:${app_version} $TOYBOX_HOME/src/${app_name}/${app_version}
     docker build -t toybox/${app_name}:${app_version} $TOYBOX_HOME/src/php/${app_version}

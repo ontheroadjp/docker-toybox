@@ -4,7 +4,7 @@ set -e
 usermod -u ${TOYBOX_UID} www-data
 groupmod -g ${TOYBOX_GID} www-data
 
-docroot=/var/www/html
+docroot="/var/www/html"
 
 config="${docroot}/data/config.php"
 

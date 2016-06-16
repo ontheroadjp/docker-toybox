@@ -1,24 +1,19 @@
 #!/bin/sh
 
-src=$TOYBOX_HOME/src/${app_name}
 
 db_name=lychee
 db_user=lychee
 db_user_pass=lychee
 containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-db )
 
+mariadb_version="10.1.14"
+
 uid=""
 gid=""
 
-function __source() {
-    #if [ ! -e $src ]; then
-    #    git clone https://github.com/docker-library/wordpress.git $src
-    #fi
-    :
-}
-
 function __build() {
-    docker build -t toybox/lychee ${src}
+    docker build -t toybox/lychee $TOYBOX_HOME/src/lychee
+    docker build -t toybox/mariadb:${mariadb_version} $TOYBOX_HOME/src/mariadb/${mariadb_version}
 }
 
 
@@ -54,7 +49,8 @@ ${containers[0]}:
     ports:
         - "80"
 ${containers[1]}:
-    image: mariadb
+    #image: mariadb
+    image: toybox/mariadb:${mariadb_version}
     volumes:
         - ${app_path}/data/mysql:/var/lib/mysql
     #volumes_from:

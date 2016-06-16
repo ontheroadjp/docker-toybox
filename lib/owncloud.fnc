@@ -6,6 +6,7 @@ db_user_pass=${app_name}
 
 owncloud_version="9.0.2-apache"
 mariadb_version="10.1.14"
+redis_version="3.2.0-alpine"
 
 uid=""
 gid=""
@@ -82,7 +83,7 @@ ${containers[1]}:
         TIMEZONE: ${timezone}
 
 ${containers[2]}:
-    image: redis:3.0
+    image: redis:${redis_version}
     environment:
         - TIMEZONE=${timezone}
     #volumes:

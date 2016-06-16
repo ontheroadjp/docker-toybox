@@ -18,8 +18,9 @@ function __source() {
 }
 
 function __build() {
-    #docker build -t nutsp/owncloud:9.0.2-apache $TOYBOX_HOME/src/owncloud/9.0.2-apache
-    docker build -t nutsp/owncloud:${owncloud_version} $TOYBOX_HOME/src/owncloud/${owncloud_version}
+    #docker build -t toybox/owncloud:9.0.2-apache $TOYBOX_HOME/src/owncloud/9.0.2-apache
+    docker build -t toybox/owncloud:${owncloud_version} $TOYBOX_HOME/src/owncloud/${owncloud_version}
+    docker build -t toybox/mariadb:${mariadb_version} $TOYBOX_HOME/src/mariadb
 }
 
 
@@ -46,7 +47,7 @@ function __init() {
     
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    image: nutsp/owncloud:${owncloud_version}
+    image: toybox/owncloud:${owncloud_version}
     links:
         - ${containers[1]}:mysql
         - ${containers[2]}:redis
@@ -67,7 +68,7 @@ ${containers[1]}:
     #image: mariadb
     image: toybox/mariadb:${mariadb_version}
     volumes:
-        - ${app_path}/data/mysql:/var/lib/mysql
+        - ${app_path}/data/mariadb:/var/lib/mysql
     environment:
     #    - "/etc/localtime:/etc/localtime:ro"
     #    security-opt: label:type:docker_t

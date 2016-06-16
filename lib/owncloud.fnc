@@ -20,7 +20,7 @@ function __source() {
 function __build() {
     #docker build -t toybox/owncloud:9.0.2-apache $TOYBOX_HOME/src/owncloud/9.0.2-apache
     docker build -t toybox/owncloud:${owncloud_version} $TOYBOX_HOME/src/owncloud/${owncloud_version}
-    docker build -t toybox/mariadb:${mariadb_version} $TOYBOX_HOME/src/mariadb
+    docker build -t toybox/mariadb:${mariadb_version} $TOYBOX_HOME/src/mariadb/${mariadb_version}
 }
 
 

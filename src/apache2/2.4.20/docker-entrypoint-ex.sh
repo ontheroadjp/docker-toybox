@@ -1,9 +1,6 @@
 #!/bin/bash
 set -e
 
-TOYBOX_UID=1000
-TOYBOX_GID=1000
-
 user="www-data"
 group="www-data"
 

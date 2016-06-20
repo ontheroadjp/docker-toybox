@@ -1,0 +1,17 @@
+vnc:
+    image: vnc
+    ports:
+        - "5900:5900"
+        - "5901:5901"
+        - "3389:3389"
+    volumes:
+        - "/etc/localtime:/etc/localtime:ro"
+        - "/home:/toybox"
+    environment:
+        - ROOT_PASSWD=root
+        - USER_PASSWD=user
+        - LANG=ja_JP.UTF-8
+          #- XMODIFIERS="@im=ibus"
+          #- GTK_IM_MODULE="ibus"
+          #- QT_IM_MODULE="xim"
+          #- QT_IM_MODULE="ibus"

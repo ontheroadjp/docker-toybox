@@ -9,7 +9,6 @@ function __build() {
     docker build -t toybox/${app_name}:${nginx_version} $TOYBOX_HOME/src/${app_name}/${nginx_version}
 }
 
-
 containers=( \
    ${app_name}-${nginx_version} 
 )
@@ -19,7 +18,7 @@ function __init() {
     __build
 
     mkdir -p ${app_path}/bin
-    mkdir -p ${app_path}/data/nginx/docroot
+    mkdir -p ${app_path}/data/nginx
 
     uid=$(cat /etc/passwd | grep ^$(whoami) | cut -d : -f3)
     gid=$(cat /etc/group | grep ^$(whoami) | cut -d: -f3)
@@ -28,7 +27,7 @@ function __init() {
 ${containers[0]}:
     image: toybox/${app_name}:${nginx_version}
     volumes:
-        - "${app_path}/data/${app_name}/docroot:/usr/share/nginx/html/"
+        - "${app_path}/data/nginx/docroot:/usr/share/nginx/html"
     environment:
         - VIRTUAL_HOST=${fqdn}
         - TOYBOX_UID=${uid}

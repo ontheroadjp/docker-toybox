@@ -1,17 +1,17 @@
 #!/bin/sh
 
-app_version=1.0.0
+vnc_version=centos6-gnome
 
 uid=""
 gid=""
 
 function __build() {
-    docker build -t toybox/${app_name}:1.0.0 $TOYBOX_HOME/src/${app_name}/${app_version}
+    docker build -t toybox/${app_name}:${vnc_version} $TOYBOX_HOME/src/${app_name}/${vnc_version}
 }
 
 
 containers=( \
-    toybox-vnc
+   ${app_name}-${vnc_version} 
 )
 
 function __init() {
@@ -25,7 +25,7 @@ function __init() {
     
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    image: toybox/${app_name}:${app_version}
+    image: toybox/${app_name}:${vnc_version}
     volumes:
         - "/etc/localtime:/etc/localtime:ro"
     environment:

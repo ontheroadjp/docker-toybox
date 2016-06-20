@@ -22,6 +22,7 @@ function __init() {
     mkdir -p ${app_path}/bin
     mkdir -p ${app_path}/data/apache2/docroot
     mkdir -p ${app_path}/data/apache2/conf
+    mkdir -p ${app_path}/data/php
 
     uid=$(cat /etc/passwd | grep ^$(whoami) | cut -d : -f3)
     gid=$(cat /etc/group | grep ^$(whoami) | cut -d: -f3)
@@ -31,9 +32,10 @@ function __init() {
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
     image: toybox/${app_name}:${php_version}
-    #volumes:
-        #- ${app_path}/data/apache2/docroot:/var/www/html
-        #- ${app_path}/data/apache2/conf:/etc/apache2
+    volumes:
+        - ${app_path}/data/apache2/docroot:/var/www/html
+        - ${app_path}/data/apache2/conf:/etc/apache2
+        - ${app_path}/data/php:/usr/local/etc/php
     links:
         - ${containers[1]}:mariadb
     environment:
@@ -44,7 +46,7 @@ ${containers[0]}:
         - "80"
 
 ${containers[1]}:
-    image: mariadb:${mariadb_version}
+    image: toybox/mariadb:${mariadb_version}
     #image: mariadb
     volumes:
         - ${app_path}/data/mysql:/var/lib/mysql

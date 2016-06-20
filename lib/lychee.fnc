@@ -1,50 +1,56 @@
 #!/bin/sh
 
-src=$TOYBOX_HOME/src/${app_name}
 
 db_name=lychee
 db_user=lychee
 db_user_pass=lychee
 containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-db )
 
-function __source() {
-    #if [ ! -e $src ]; then
-    #    git clone https://github.com/docker-library/wordpress.git $src
-    #fi
-    :
-}
+mariadb_version="10.1.14"
+
+uid=""
+gid=""
 
 function __build() {
-    docker build -t nutsp/lychee ${src}
+    docker build -t toybox/lychee $TOYBOX_HOME/src/lychee
+    docker build -t toybox/mariadb:${mariadb_version} $TOYBOX_HOME/src/mariadb/${mariadb_version}
 }
 
 
 function __init() {
     
     mkdir -p ${app_path}/bin
+    mkdir -p ${app_path}/data/lychee/data
+    mkdir -p ${app_path}/data/lychee/uploads
+    
+    uid=$(cat /etc/passwd | grep ^$(whoami) | cut -d : -f3)
+    gid=$(cat /etc/group | grep ^$(whoami) | cut -d: -f3)
     
     __build && {
     
         cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    image: nutsp/lychee
+    image: toybox/lychee
     environment:
         - VIRTUAL_HOST=${fqdn}
         - PROXY_CACHE=true
+        - TOYBOX_UID=${uid}
+        - TOYBOX_GID=${gid}
     links:
-        - ${containers[1]}:lychee-mysql
+        - ${containers[1]}:mariadb
     volumes:
-        - ${app_path}/data/data:/data
-        - ${app_path}/data/uploads/big:/uploads/big
-        - ${app_path}/data/uploads/medium:/uploads/medium
-        - ${app_path}/data/uploads/thumb:/uploads/thumb
-        - ${app_path}/data/uploads/import:/uploads/import
+        - ${app_path}/data/lychee/data:/data
+        - ${app_path}/data/lychee/uploads/big:/uploads/big
+        - ${app_path}/data/lychee/uploads/medium:/uploads/medium
+        - ${app_path}/data/lychee/uploads/thumb:/uploads/thumb
+        - ${app_path}/data/lychee/uploads/import:/uploads/import
     #volumes_from:
     #    - ${containers[2]}
     ports:
         - "80"
 ${containers[1]}:
-    image: mariadb
+    #image: mariadb
+    image: toybox/mariadb:${mariadb_version}
     volumes:
         - ${app_path}/data/mysql:/var/lib/mysql
     #volumes_from:
@@ -54,7 +60,11 @@ ${containers[1]}:
         MYSQL_DATABASE: ${db_name}
         MYSQL_USER: ${db_user}
         MYSQL_PASSWORD: ${db_user_pass}
+        TOYBOX_UID: ${uid}
+        TOYBOX_GID: ${gid}
         TERM: xterm
+    ports:
+        - "3306"
 #${containers[2]}:
 #    image: busybox
 #    volumes:

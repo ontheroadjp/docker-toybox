@@ -1,99 +1,48 @@
 #!/bin/sh
 
-db_name=${app_name}
-db_user=${app_name}
-db_user_pass=${app_name}
-
-owncloud_version="9.0.2-apache"
-mariadb_version="10.1.14"
-redis_version="3.2.0-alpine"
+vnc_version=centos6-gnome
 
 uid=""
 gid=""
 
-function __source() {
-    if [ ! -e ${src} ]; then
-        #git clone https://github.com/docker-library/owncloud.git ${src}
-       : 
-    fi
-}
-
 function __build() {
-    #docker build -t toybox/owncloud:9.0.2-apache $TOYBOX_HOME/src/owncloud/9.0.2-apache
-    docker build -t toybox/owncloud:${owncloud_version} $TOYBOX_HOME/src/owncloud/${owncloud_version}
-    docker build -t toybox/mariadb:${mariadb_version} $TOYBOX_HOME/src/mariadb/${mariadb_version}
+    docker build -t toybox/${app_name}:${vnc_version} $TOYBOX_HOME/src/${app_name}/${vnc_version}
 }
 
 
 containers=( \
-    ${fqdn}-${app_name} \
-    ${fqdn}-${app_name}-mariadb \
-    ${fqdn}-${app_name}-redis \
+   ${app_name}-${vnc_version} 
 )
-
-#main_container=${fqdn}-${app_name}
-#db_container=${fqdn}-${app_name}-db
-#data_container=${fqdn}-${app_name}-data
 
 function __init() {
 
     __build
 
     mkdir -p ${app_path}/bin
-    mkdir -p ${app_path}/data/owncloud/config
-    mkdir -p ${app_path}/data/owncloud/data
 
     uid=$(cat /etc/passwd | grep ^$(whoami) | cut -d : -f3)
     gid=$(cat /etc/group | grep ^$(whoami) | cut -d: -f3)
     
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    image: toybox/owncloud:${owncloud_version}
-    links:
-        - ${containers[1]}:mysql
-        - ${containers[2]}:redis
+    image: toybox/${app_name}:${vnc_version}
+    volumes:
+        - "/etc/localtime:/etc/localtime:ro"
     environment:
-    #    - security-opt=label:type:docker_t
-        - VIRTUAL_HOST=${fqdn}
         - TOYBOX_UID=${uid}
         - TOYBOX_GID=${gid}
         - TIMEZONE=${timezone}
-    volumes:
-    #    - "/etc/localtime:/etc/localtime:ro"
-        - ${app_path}/data/owncloud/config:/var/www/html/config
-        - ${app_path}/data/owncloud/data:/var/www/html/data
+        - ROOT_PASSWD=root
+        - USER_PASSWD=user
+        - LANG=ja_JP.UTF-8
+          #- XMODIFIERS="@im=ibus"
+          #- GTK_IM_MODULE="ibus"
+          #- QT_IM_MODULE="xim"
+          #- QT_IM_MODULE="ibus"
     ports:
-        - "40110"
-
-${containers[1]}:
-    #image: mariadb
-    image: toybox/mariadb:${mariadb_version}
-    volumes:
-        - ${app_path}/data/mariadb:/var/lib/mysql
-    environment:
-    #    - "/etc/localtime:/etc/localtime:ro"
-    #    security-opt: label:type:docker_t
-        MYSQL_ROOT_PASSWORD: root
-        MYSQL_DATABASE: ${db_name}
-        MYSQL_USER: ${db_user}
-        MYSQL_PASSWORD: ${db_user_pass}
-        TOYBOX_UID: ${uid}
-        TOYBOX_GID: ${gid}
-        TERM: xterm
-        TIMEZONE: ${timezone}
-
-${containers[2]}:
-    image: redis:${redis_version}
-    environment:
-        - TIMEZONE=${timezone}
-    #volumes:
-    #    - "/etc/localtime:/etc/localtime:ro"
-
-#${data_container}:
-#    image: busybox
-#    volumes:
-#        - /var/www/html
-#        - /var/lib/mysql
+        - "5900:5900"
+        - "5901:5901"
+        - "3389:3389"
 EOF
 }
 

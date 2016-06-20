@@ -4,7 +4,7 @@
 clone=0
 
 containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-db )
-images=( wordpress mariadb)
+images=(wordpress toybox/mariadb)
 wordpress_version="4.5.2-apache"
 mariadb_version="10.1.14"
 
@@ -24,7 +24,7 @@ wp_path=""
 original_fqdn=""
 
 wp_build_dir=${build_dir}/wordpress
-mariadb_build_dir=${build_dir}/mariadb
+#mariadb_build_dir=${build_dir}/mariadb
 original_wp_data=${app_path}/data/wordpress/original_wp_data
 
 # --------------------------------------------------------
@@ -58,7 +58,7 @@ function __prepare_wp_data(){
         echo ">>> Get wp-sync..."
         git clone https://github.com/ontheroadjp/wp-sync.git ${dist}
         cp ${build_dir}/wp-sync/.env.sample ${dist}/.env
-        sed -i -e "s:^wp_host=\"\":wp_host=\"${ssh_remotehost}\":" ${dist}/.env
+        sed -i -e "s:^wp_host=\"example\":wp_host=\"${ssh_remotehost}\":" ${dist}/.env
         sed -i -e "s:^wp_root=\"/var/www/wordpress\":wp_root=\"${wp_path}\":" ${dist}/.env
 
         sh ${dist}/remote-admin.sh mysqldump        # only sqldump
@@ -122,23 +122,23 @@ ENTRYPOINT ["/entrypoint-ex.sh"]
 EOF
 }
 
-function __prepare_mariadb_build() {
-    local dist=${mariadb_build_dir}
-    mkdir -p ${dist}
-
-    # entrypoint-ex.sh
-    cp ${src}/mariadb/docker-entrypoint-ex.sh ${dist}
-
-    # Dockerfile
-    cat <<-EOF > ${dist}/Dockerfile
-FROM mariadb:${mariadb_version}
-MAINTAINER NutsProject,LLC
-
-COPY docker-entrypoint-ex.sh /entrypoint-ex.sh
-
-ENTRYPOINT ["/entrypoint-ex.sh"]
-EOF
-}
+#function __prepare_mariadb_build() {
+#    local dist=${mariadb_build_dir}
+#    mkdir -p ${dist}
+#
+#    # entrypoint-ex.sh
+#    cp ${src}/mariadb/docker-entrypoint-ex.sh ${dist}
+#
+#    # Dockerfile
+#    cat <<-EOF > ${dist}/Dockerfile
+#FROM mariadb:${mariadb_version}
+#MAINTAINER NutsProject,LLC
+#
+#COPY docker-entrypoint-ex.sh /entrypoint-ex.sh
+#
+#ENTRYPOINT ["/entrypoint-ex.sh"]
+#EOF
+#}
 
 function __post_run() {
     if [ ${clone} -eq 1 ]; then
@@ -207,16 +207,17 @@ function __init() {
         echo ">>> Prepare WordPress build..."
         __prepare_wp_build && echo
 
-        echo ">>> Prepare MariaDB build..."
-        __prepare_mariadb_build && echo
+        #echo ">>> Prepare MariaDB build..."
+        #__prepare_mariadb_build && echo
 
         echo ">>> build WordPress container..."
         docker build -t toybox/wordpress:${wordpress_version} ${wp_build_dir} && echo
-
-        echo ">>> build MariaDB container..."
-        docker build -t toybox/mariadb:${mariadb_version} ${mariadb_build_dir} && echo
     fi
     # ---- wpclone only ----
+
+        echo ">>> build MariaDB container..."
+        #docker build -t toybox/mariadb:${mariadb_version} ${mariadb_build_dir} && echo
+        docker build -t toybox/mariadb:${mariadb_version} $TOYBOX_HOME/src/mariadb/${mariadb_version} && echo
 
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
@@ -230,8 +231,8 @@ ${containers[0]}:
     environment:
         - VIRTUAL_HOST=${fqdn}
         - PROXY_CACHE=true
-        - TOYBOX_WWW_DATA_UID=${uid}
-        - TOYBOX_WWW_DATA_GID=${gid}
+        - TOYBOX_UID=${uid}
+        - TOYBOX_GID=${gid}
         - WORDPRESS_DB_NAME=${db_name}
         - WORDPRESS_DB_USER=${db_user}
         - WORDPRESS_DB_PASSWORD=${db_password}
@@ -257,8 +258,10 @@ ${containers[1]}:
         - MYSQL_USER=${db_user}
         - MYSQL_PASSWORD=${db_password}
         - TERM=xterm
-        - TOYBOX_MYSQL_UID=${uid}
-        - TOYBOX_MYSQL_GID=${gid}
+        #- TOYBOX_MYSQL_UID=${uid}
+        #- TOYBOX_MYSQL_GID=${gid}
+        - TOYBOX_UID=${uid}
+        - TOYBOX_GID=${gid}
 
 #${containers[2]}:
 #    image: busybox

@@ -1,10 +1,10 @@
 #!/bin/sh
 
-src=$TOYBOX_HOME/src/${app_name}
+#src=$TOYBOX_HOME/src/${app_name}
 
-db_name=${app_name}
-db_user=${app_name}
-db_user_pass=${app_name}
+#db_name=${app_name}
+#db_user=${app_name}
+#db_user_pass=${app_name}
 
 function __source() {
     #if [ ! -e ${src} ]; then
@@ -13,11 +13,11 @@ function __source() {
     :
 }
 
-function __build() {
-    docker build -t nutsp/toybox-grafana ${src}
-}
+#function __build() {
+#    docker build -t nutsp/toybox-grafana ${src}
+#}
 
-containers=( ${app_name}-influxdb ${app_name}-graphite ${app_name}-grafana )
+containers=( ${app_name}-influxdb ${app_name}-cadvisor ${app_name}-graphite ${app_name}-grafana )
 
 #main_container=${fqdn}-${app_name}
 #db_container=${fqdn}-${app_name}-db
@@ -29,14 +29,15 @@ containers=( ${app_name}-influxdb ${app_name}-graphite ${app_name}-grafana )
 
 function __init() {
 
-    __build
+    #__build
 
     mkdir -p ${app_path}/bin
     cat <<-EOF > ${compose_file}
 #${influxdb_container}:
 ${containers[0]}:
-    #image: "tutum/influxdb:0.8.8"
-    image: "tutum/influxdb:0.9"
+    image: "tutum/influxdb:0.8.8"
+    #image: "tutum/influxdb:0.9"
+    #image: "influxdb:0.13.0-alpine"
     ports:
         - "8083:8083" # for WEB UI
         - "8086:8086" # for HTTP API
@@ -45,50 +46,19 @@ ${containers[0]}:
     volumes:
         - ${app_path}/data/influxdb:/data
         - ${app_path}/data/influxdb/log:/var/log/influxdb
-    expose:
-        - "8090"
-        - "8099"
+    #expose:
+    #    - "8090"
+    #    - "8099"
     environment:
-        - PRE_CREATE_DB=cadvisor;test;test2
+        - PRE_CREATE_DB=cadvisor;grafana
         #- VIRTUAL_HOST=influxdb.docker-toybox.com
         #- VIRTUAL_PORT=8083
 
 ${containers[1]}:
-    image: sitespeedio/graphite
-    ports:
-        - "8080:80"
-        - "2003:2003"
-    volumes:
-        - ${app_path}/data/graphite:/opt/graphite/storage/whisper
-        - ${app_path}/data/graphite/log:/var/log/carbon
-    
-${containers[2]}:
-    #image: "grafana/grafana:2.1.3"
-    #image: "grafana/grafana:2.6.0"
-    image: "nutsp/toybox-grafana"
-    links:
-        - ${containers[0]}:influxdb
-        - ${containers[1]}:graphite
-    environment:
-        - INFLUXDB_HOST=localhost
-        - INFLUXDB_PORT=8086
-        - INFLUXDB_NAME=cadvisor
-        - INFLUXDB_USER=root
-        - INFLUXDB_PASS=root
-        - GF_SECURITY_ADMIN_USER=toybox
-        - GF_SECURITY_ADMIN_PASSWORD=toybox
-        - GF_DASHBOARDS_JSON_ENABLED=true
-        - VIRTUAL_HOST=grafana.docker-toybox.com
-    volumes:
-        - ${app_path}/data/grafana:/var/lib/grafana
-        - ${app_path}/data/grafana/log:/var/log/grafana
-    ports:
-        - "3000"
-
-cadvisor:
     image: "google/cadvisor:0.16.0"
+    #privileged: true
     volumes:
-        - "/:/rootfs:ro"
+        #- "/:/rootfs:ro"
         - "/var/run:/var/run:rw"
         - "/sys:/sys:ro"
         - "/var/lib/docker/:/var/lib/docker:ro"
@@ -99,6 +69,63 @@ cadvisor:
     command: "-storage_driver=influxdb -storage_driver_db=cadvisor -storage_driver_host=influxdb:8086 -storage_driver_user=root -storage_driver_password=root -storage_driver_secure=False"
     ports:
         - "8080"
+
+${containers[2]}:
+    image: sitespeedio/graphite
+    ports:
+        #- "8080:80"
+        #- "2003:2003"
+        - "80"
+        - "2003"
+    environment:
+        - VIRTUAL_HOST=graphite.docker-toybox.com
+        - VIRTUAL_PORT=80
+    volumes:
+        - ${app_path}/data/graphite:/opt/graphite/storage/whisper
+        - ${app_path}/data/graphite/log:/var/log/carbon
+    
+${containers[3]}:
+    image: "grafana/grafana:3.0.4"
+    links:
+        - ${containers[0]}:influxdb
+        - ${containers[1]}:graphite
+    environment:
+        #- VIRTUAL_HOST=grafana.docker-toybox.com
+        - GF_INSTALL_PLUGINS=grafana-influxdb-08-datasource
+        - GF_SECURITY_ADMIN_USER=toybox
+        - GF_SECURITY_ADMIN_PASSWORD=toybox
+        - GF_DASHBOARDS_JSON_ENABLED=true
+    #volumes:
+    #    #- ${app_path}/data/grafana:/var/lib/grafana
+    #    #- ${app_path}/data/grafana/:/usr/share/grafana
+    #    - $TOYBOX_HOME/src/grafana/conf/dashboards.json:/var/lib/grafana/dashboards/dashboards.json
+    #    - ${app_path}/data/grafana/log:/var/log/grafana
+    ports:
+        - "3000:3000"
+
+#${containers[3]}:
+#    image: "tutum/grafana"
+#    links:
+#        - ${containers[0]}:influxdb
+#        - ${containers[1]}:graphite
+#    environment:
+#        #- INFLUXDB_HOST=localhost
+#        #- INFLUXDB_PORT=8086
+#        #- INFLUXDB_NAME=cadvisor
+#        #- INFLUXDB_USER=root
+#        #- INFLUXDB_PASS=root
+#        - VIRTUAL_HOST=grafana.docker-toybox.com
+#        - GF_INSTALL_PLUGINS=grafana-influxdb-08-datasource
+#        - GF_SECURITY_ADMIN_USER=toybox
+#        - GF_SECURITY_ADMIN_PASSWORD=toybox
+#        - GF_DASHBOARDS_JSON_ENABLED=true
+#    volumes:
+#        #- ${app_path}/data/grafana:/var/lib/grafana
+#        #- ${app_path}/data/grafana/:/usr/share/grafana
+#        - $TOYBOX_HOME/src/grafana/conf/dashboards.json:/var/lib/grafana/dashboards/dashboards.json
+#        - ${app_path}/data/grafana/log:/var/log/grafana
+#    ports:
+#        - "3000"
 
 #sitespeedio:
 #    image: sitespeedio/sitespeed.io

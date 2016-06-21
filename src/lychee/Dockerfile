@@ -1,64 +1,59 @@
-#FROM nutsp/supervisord
-FROM ubuntu
+FROM php:7.0.7-apache
+#FROM php:5.6.22-apache
 MAINTAINER NutsProject, LLC <dev@nutsproject.co.jp>
+
+## ------------------------------------------------------------------------------
+## Install base
+#RUN install -yq fontconfig-config fonts-dejavu-core \
+#    psmisc ssl-cert ufw php-pear
 
 # ------------------------------------------------------------------------------
 # Install base
-RUN apt-get update
-RUN apt-get install -yq supervisor wget git unzip nginx fontconfig-config fonts-dejavu-core \
-    php5-fpm php5-common php5-json php5-cli php5-common php5-mysql\
-    php5-gd php5-json php5-mcrypt php5-readline psmisc ssl-cert \
-    ufw php-pear libgd-tools libmcrypt-dev mcrypt
+RUN apt-get update \
+    && apt-get install -y git unzip wget \
+    libmcrypt-dev mcrypt libpng12-dev libjpeg-dev libgd-tools \
+    && rm -rf /var/lib/apt/lists/* \
+	&& docker-php-ext-configure gd --with-png-dir=/usr --with-jpeg-dir=/usr \
+    && docker-php-ext-install exif gd json mbstring mysqli zip mcrypt opcache
 
-# ------------------------------------------------------------------------------
-# Configure php-fpm
-RUN sed -i -e "s/output_buffering\s*=\s*4096/output_buffering = Off/g" /etc/php5/fpm/php.ini
-RUN sed -i -e "s/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=0/g" /etc/php5/fpm/php.ini
-RUN sed -i -e "s/upload_max_filesize\s*=\s*2M/upload_max_filesize = 1G/g" /etc/php5/fpm/php.ini
-RUN sed -i -e "s/post_max_size\s*=\s*8M/post_max_size = 1G/g" /etc/php5/fpm/php.ini
-RUN sed -i -e "s:;\s*session.save_path\s*=\s*\"N;/path\":session.save_path = /tmp:g" /etc/php5/fpm/php.ini
-RUN chown -R www-data:www-data /tmp
-RUN php5enmod mcrypt
+#COPY conf/php.ini /usr/local/etc/php/
+RUN { \
+        echo 'max_execution_time = 200'; \
+        echo 'post_max_size = 100M'; \
+        echo 'upload_max_size = 100M'; \
+        echo 'upload_max_filesize = 20M'; \
+        echo 'memory_limit = 256M'; \
+	} > /usr/local/etc/php/php.ini
 
-# ------------------------------------------------------------------------------
-# Configure nginx
-RUN mkdir /var/www
-RUN chown www-data:www-data /var/www
-RUN rm /etc/nginx/sites-enabled/*
-RUN rm /etc/nginx/sites-available/*
-RUN sed -i -e"s/keepalive_timeout\s*65/keepalive_timeout 2/" /etc/nginx/nginx.conf
-RUN sed -i -e"s/keepalive_timeout 2/keepalive_timeout 2;\n\tclient_max_body_size 100m/" /etc/nginx/nginx.conf
-RUN echo "daemon off;" >> /etc/nginx/nginx.conf
-ADD conf/php.conf /etc/nginx/
-ADD conf/lychee /etc/nginx/sites-enabled/
+# set recommended PHP.ini settings
+# see https://secure.php.net/Ref man ual/en/opcache.installation.php
+RUN { \
+		echo 'opcache.memory_consumption=128'; \
+		echo 'opcache.interned_strings_buffer=8'; \
+		echo 'opcache.max_accelerated_files=4000'; \
+		echo 'opcache.revalidate_freq=60'; \
+		echo 'opcache.fast_shutdown=1'; \
+		echo 'opcache.enable_cli=1'; \
+	} > /usr/local/etc/php/conf.d/opcache-recommended.ini
 
 # ------------------------------------------------------------------------------
 # Install Lychee
 WORKDIR /var/www
-RUN git clone https://github.com/electerious/Lychee.git lychee
-RUN chown -R www-data:www-data /var/www/lychee
-RUN chmod -R 770 /var/www/lychee
-RUN chmod -R 777 /var/www/lychee/uploads/ 
-RUN chmod -R 777 /var/www/lychee/data/
-
+RUN git clone https://github.com/electerious/Lychee.git html \
+    && chown -R www-data:www-data /var/www/html \
+    && chmod -R 777 html/data/ html/uploads/
 
 # ------------------------------------------------------------------------------
 EXPOSE 80
 
 WORKDIR /
-RUN ln -s /var/www/lychee/uploads uploads 
-RUN ln -s /var/www/lychee/data data
+RUN ln -s /var/www/html/uploads uploads 
+RUN ln -s /var/www/html/data data
 
-#VOLUME /uploads
-#VOLUME /data
+VOLUME /uploads
+VOLUME /data
 
-# Configure supervisor
-RUN sed -i 's/^\(\[supervisord\]\)$/\1\nnodaemon=true/' /etc/supervisor/supervisord.conf
-ADD conf/startup.conf /etc/supervisor/conf.d/
-VOLUME ["/etc/supervisor/conf.d"]
+COPY docker-entrypoint.sh /entrypoint-ex.sh
 
-COPY docker-entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-ENTRYPOINT ["/entrypoint.sh"]
-CMD ["supervisord", "-c", "/etc/supervisor/supervisord.conf"]
+ENTRYPOINT ["/entrypoint-ex.sh"]
+CMD ["apache2-foreground"]

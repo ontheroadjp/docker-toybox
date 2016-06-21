@@ -44,6 +44,12 @@ function __list() {
             if [ ${domain} != "proxy" ]; then
                 echo
                 echo "[${domain}]"
+                printf "%-10s" "ID"
+                printf "%-42s" "URL"
+                printf "%-15s" "Application"
+                echo "Status"
+                echo "-----------------------------------------------------------------------------"
+
             fi
             subs="${dom}/*"
             for sub in ${subs}; do

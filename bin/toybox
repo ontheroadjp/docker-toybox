@@ -194,11 +194,14 @@ function _clear() {
     fi
     if __is_container_exist ${fqdn}-${app_name}; then
         echo ${project_name}: "'http://${fqdn}' is existing now."
-        echo "Please remove t first.( toybox http://${fqdn} rm )"
+        echo "Please remove container(s) first.( ex. toybox http://${fqdn} down )"
         exit 1
     fi
 
-    sudo rm -rf ${app_path}
+    rm -rf ${app_path}
+    if [ $(ls -la $TOYBOX_HOME/stack/${domain} | wc -l) -eq 3 ]; then
+        rm -rf $TOYBOX_HOME/stack/${domain}
+    fi
 }
 
 function _logs() {

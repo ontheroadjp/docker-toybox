@@ -62,6 +62,7 @@ function __list() {
                     if [ ${app_name} = 'proxy' ]; then
                         continue
                     else
+                        printf "%-10s" $(__get_app_env TOYBOX_APP_ID)
                         printf "http://%-35s" ${fqdn}
                     fi
 

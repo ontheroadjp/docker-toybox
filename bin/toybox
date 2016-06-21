@@ -55,8 +55,9 @@ function __is_executable() {
     type "${command}" > /dev/null 2>&1
 }
 
-function __is_exist_in_applist() {
-    cat ${applist} | grep ${applist_grep_key} > /dev/null 2>&1
+function __is_application_exsist() {
+    #cat ${applist} | grep ${applist_grep_key} > /dev/null 2>&1
+    test -d $TOYBOX_HOME/stack/${domain}/${sub_domain}
 }
 
 function __is_container_exist() {
@@ -74,19 +75,19 @@ function __is_container_running() {
 # ----------------------------------------
 
 function _new() {
-    local exist=''
-    if [ -f ${applist} ]; then
-        if __is_exist_in_applist && [ ${app_name} = "proxy" ]; then
+    #local exist=''
+    #if [ -f ${applist} ]; then
+        if __is_application_exsist && [ ${app_name} = "proxy" ]; then
             echo "${project_name}: 'proxy #${port}' is already used."
             exit 1
-        elif __is_exist_in_applist; then
+        elif __is_application_exsist; then
             echo "${project_name}: 'http://${fqdn}' is already used."
             echo "Please try to 'new' command again with -d or -s option."
             exit 1
         fi
-    else
-        touch ${applist}
-    fi
+    #else
+    #    touch ${applist}
+    #fi
 
     __init && {
         cd ${app_path}/bin
@@ -95,12 +96,12 @@ function _new() {
             echo "URL: http://${fqdn}"
             echo "---------------------------------"
 
-            if [ ${app_name} = 'proxy' ]; then
-                new="${port} ${app_name} running #${port}"
-            else
-                new="${fqdn} ${app_name} running ${app_path}"
-            fi
-            echo ${new} >> ${applist}
+            #if [ ${app_name} = 'proxy' ]; then
+            #    new="${port} ${app_name} running #${port}"
+            #else
+            #    new="${fqdn} ${app_name} running ${app_path}"
+            #fi
+            #echo ${new} >> ${applist}
 
             if __is_executable __post_run; then
                 __post_run
@@ -113,12 +114,12 @@ function _start() {
     if [ ${app_name} = "proxy" ]; then
         __new
 
-    elif [ ! -f ${applist} ]; then
-        echo "${project_name}: 'http://${fqdn}' does not exist."
-        echo "Please try to 'new' command to create '${fqdn}'"
-        exit 1
+    #elif [ ! -f ${applist} ]; then
+    #    echo "${project_name}: 'http://${fqdn}' does not exist."
+    #    echo "Please try to 'new' command to create '${fqdn}'"
+    #    exit 1
 
-    elif ! __is_exist_in_applist; then
+    elif ! __is_application_exsist; then
         echo "${project_name}: 'http://${fqdn}' does not exist."
         echo "Please try to 'new' command to create '${fqdn}'"
         exit 1
@@ -128,11 +129,12 @@ function _start() {
         # when container removed
         if ! __is_container_exist ${fqdn}-${app_name}; then
             __init && {
-                docker-compose -p ${project_name} up -d && {
-                    local old=$(cat ${applist} | grep ${fqdn})
-                    local new=$(cat ${applist} | grep ${fqdn} | sed -e "s:removed:running:")
-                    sed -i -e "s:${old}:${new}:" ${applist}
-                }
+                docker-compose -p ${project_name} up -d
+                #docker-compose -p ${project_name} up -d && {
+                #    local old=$(cat ${applist} | grep ${fqdn})
+                #    local new=$(cat ${applist} | grep ${fqdn} | sed -e "s:removed:running:")
+                #    sed -i -e "s:${old}:${new}:" ${applist}
+                #}
             }
 
         # when container running
@@ -143,11 +145,12 @@ function _start() {
         # when container stopped
         else
             __init && {
-                docker-compose -p ${project_name} start && {
-                    local old=$(cat ${applist} | grep ${fqdn})
-                    local new=$(cat ${applist} | grep ${fqdn} | sed -e "s:stopped:running:")
-                    sed -i -e "s:${old}:${new}:" ${applist}
-                }
+                docker-compose -p ${project_name} start
+                #docker-compose -p ${project_name} start && {
+                #    local old=$(cat ${applist} | grep ${fqdn})
+                #    local new=$(cat ${applist} | grep ${fqdn} | sed -e "s:stopped:running:")
+                #    sed -i -e "s:${old}:${new}:" ${applist}
+                #}
             }
         fi
     fi
@@ -155,15 +158,16 @@ function _start() {
 
 function _stop() {
    cd ${app_path}/bin
-   docker-compose -p ${project_name} stop && {
-       if [ -f ${applist} ]; then
-           local old=$(cat ${applist} | grep ${applist_grep_key})
-           local new=$(cat ${applist} | grep ${applist_grep_key} | sed -e "s:running:stopped:")
-           sed -i -e "s:${old}:${new}:" ${applist}
-       else
-           echo "error@_stop() in toybox"
-       fi
-   }
+   docker-compose -p ${project_name} stop
+   #docker-compose -p ${project_name} stop && {
+   #    if [ -f ${applist} ]; then
+   #        local old=$(cat ${applist} | grep ${applist_grep_key})
+   #        local new=$(cat ${applist} | grep ${applist_grep_key} | sed -e "s:running:stopped:")
+   #        sed -i -e "s:${old}:${new}:" ${applist}
+   #    else
+   #        echo "error@_stop() in toybox"
+   #    fi
+   #}
 }
 
 function _rm() {
@@ -174,16 +178,17 @@ function _rm() {
     fi
 
     cd ${app_path}/bin
-    echo y | docker-compose -p ${project_name} rm && {
-        if [ -f ${applist} ]; then
-            old=$(cat ${applist} | grep ${fqdn})
-            new=$(cat ${applist} | grep ${fqdn} | sed -e "s:stopped:removed:")
-            sed -i -e "s:${old}:${new}:" ${applist}
-            #sed -i -e "/${fqdn}/d" ${applist}
-        else
-            echo "error@_rm() in toybox"
-        fi
-    }
+    echo y | docker-compose -p ${project_name} rm
+    #echo y | docker-compose -p ${project_name} rm && {
+    #    if [ -f ${applist} ]; then
+    #        old=$(cat ${applist} | grep ${fqdn})
+    #        new=$(cat ${applist} | grep ${fqdn} | sed -e "s:stopped:removed:")
+    #        sed -i -e "s:${old}:${new}:" ${applist}
+    #        #sed -i -e "/${fqdn}/d" ${applist}
+    #    else
+    #        echo "error@_rm() in toybox"
+    #    fi
+    #}
 }
 
 function _restart() {
@@ -214,7 +219,7 @@ function _clear() {
         exit 1
     fi
 
-    sed -i -e "/${fqdn}/d" ${applist}
+    #sed -i -e "/${fqdn}/d" ${applist}
     sudo rm -rf ${app_path}
 }
 
@@ -268,6 +273,7 @@ function __docker_toybox() {
     if [ -e $TOYBOX_HOME/lib/${app_name}.fnc ]; then
         . $TOYBOX_HOME/lib/${app_name}.fnc
         mkdir -p ${app_path}
+        echo ${app_name} > ${app_path}/bin/info.txt
     else
         echo "${project_name}: No such application as '${app_name}'"
         exit 1
@@ -361,23 +367,36 @@ elif [ $# -eq 2 ]; then
     if [[ ${arg} =~ ^http://.* ]]; then
         
         fqdn=$(echo ${arg} | sed "s?http://??")
-        applist_grep_key=${fqdn}
-    
-        if [ ! -f ${applist} ]; then
-            echo "${project_name}: No application available."
-            echo "Please create application first."
-            exit 1
-        fi
-    
-        app_name="$(cat ${applist} | grep ${fqdn} | awk '{print $2}')"
-        app_path="$(cat ${applist} | grep ${fqdn} | awk '{print $4}')"
-        compose_file="${app_path}/bin/docker-compose.yml"
-        src="$TOYBOX_HOME/src/${app_name}"
-        
-        if [ ! -n "${app_name}" ] && [ ! -n "${app_path}" ]; then
+        sub_domain=$(echo ${fqdn} | cut -d "." -f1)
+        domain=$(echo ${fqdn} | sed "s:${sub_domain}\.::")
+
+        if [ ! __is_application_exist ]; then
             echo "${project_name}: 'http://${fqdn}' may be invalid URL."
             exit 1
         fi
+
+        #applist_grep_key=${fqdn}
+    
+        #if [ ! -f ${applist} ]; then
+        #    echo "${project_name}: No application available."
+        #    echo "Please create application first."
+        #    exit 1
+        #fi
+    
+        #app_name="$(cat ${applist} | grep ${fqdn} | awk '{print $2}')"
+        #app_path="$(cat ${applist} | grep ${fqdn} | awk '{print $4}')"
+
+        app_path="$TOYBOX_HOME/stack/${domain}/${sub_domain}"
+        app_name=$(cat ${app_path}/bin/info.txt)
+
+
+        compose_file="${app_path}/bin/docker-compose.yml"
+        src="$TOYBOX_HOME/src/${app_name}"
+        
+        #if [ ! -n "${app_name}" ] && [ ! -n "${app_path}" ]; then
+        #    echo "${project_name}: 'http://${fqdn}' may be invalid URL."
+        #    exit 1
+        #fi
     
     # ----------------------------------------
     # set variables: Generic Form
@@ -402,7 +421,7 @@ elif [ $# -eq 2 ]; then
         # set FQDN
         if [ "${domain}" = '' ]; then
             if [ -z "$TOYBOX_DOMAIN" ] ; then
-                domain=docker-toybox.com
+                domain="docker-toybox.com"
             else
                 domain=$TOYBOX_DOMAIN
             fi
@@ -412,9 +431,10 @@ elif [ $# -eq 2 ]; then
         fi
     
         fqdn="${sub_domain}.${domain}"
-        applist_grep_key=${fqdn}
 
+        #applist_grep_key=${fqdn}
         #app_path="$TOYBOX_HOME/stack/${app_name}/${sub_domain}.${domain}"
+
         app_path="$TOYBOX_HOME/stack/${domain}/${sub_domain}"
         compose_file="${app_path}/bin/docker-compose.yml"
         src="$TOYBOX_HOME/src/${app_name}"

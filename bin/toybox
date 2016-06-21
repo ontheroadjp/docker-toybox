@@ -76,16 +76,16 @@ function __is_container_running() {
 
 function _new() {
     #local exist=''
-    #if [ -f ${applist} ]; then
-        if __is_application_exsist && [ ${app_name} = "proxy" ]; then
-            echo "${project_name}: 'proxy #${port}' is already used."
-            exit 1
-        elif __is_application_exsist; then
-            echo "${project_name}: 'http://${fqdn}' is already used."
-            echo "Please try to 'new' command again with -d or -s option."
-            exit 1
-        fi
-    #else
+    ##if [ -f ${applist} ]; then
+    #    if __is_application_exsist && [ ${app_name} = "proxy" ]; then
+    #        echo "${project_name}: 'proxy #${port}' is already used."
+    #        exit 1
+    #    elif __is_application_exsist; then
+    #        echo "${project_name}: 'http://${fqdn}' is already used."
+    #        echo "Please try to 'new' command first."
+    #        exit 1
+    #    fi
+    ##else
     #    touch ${applist}
     #fi
 
@@ -269,10 +269,29 @@ function _applications() {
 # ----------------------------------------
 
 function __docker_toybox() {
-    # Load application module
+
+    local command=$1
+
+    if ! __is_executable "_${command}" ; then
+        echo "${project_name}: '${command}' is not a ${project_name} command." 
+        echo "See '${project_name} -h'." 
+        exit 1
+    elif [ ${command} = "new" ]; then
+        if __is_application_exsist && [ ${app_name} = "proxy" ]; then
+            echo "${project_name}: 'proxy #${port}' is already used."
+            exit 1
+        elif __is_application_exsist; then
+            echo "${project_name}: 'http://${fqdn}' is already used."
+            echo "Please try to 'new' command first."
+            exit 1
+        fi
+    fi
+
+    # initialize applications
+    # Load application module and make app dir
     if [ -e $TOYBOX_HOME/lib/${app_name}.fnc ]; then
         . $TOYBOX_HOME/lib/${app_name}.fnc
-        mkdir -p ${app_path}
+        mkdir -p ${app_path}/bin
         echo ${app_name} > ${app_path}/bin/info.txt
     else
         echo "${project_name}: No such application as '${app_name}'"
@@ -280,14 +299,13 @@ function __docker_toybox() {
     fi
     
     # Exec Command
-    local command=$1
-    if __is_executable "_${command}" ; then
+    #if __is_executable "_${command}" ; then
         _${command} $@
-    else
-        echo "${project_name}: '${command}' is not a ${project_name} command." 
-        echo "See '${project_name} -h'." 
-        exit 1
-    fi
+    #else
+    #    echo "${project_name}: '${command}' is not a ${project_name} command." 
+    #    echo "See '${project_name} -h'." 
+    #    exit 1
+    #fi
 }
 
 # ----------------------------------------

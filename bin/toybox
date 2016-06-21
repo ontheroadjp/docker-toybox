@@ -414,15 +414,44 @@ elif [ $# -eq 2 ]; then
         fqdn="${sub_domain}.${domain}"
         applist_grep_key=${fqdn}
 
-        app_path="$TOYBOX_HOME/stack/${app_name}/${sub_domain}.${domain}"
+        #app_path="$TOYBOX_HOME/stack/${app_name}/${sub_domain}.${domain}"
+        app_path="$TOYBOX_HOME/stack/${domain}/${sub_domain}"
         compose_file="${app_path}/bin/docker-compose.yml"
         src="$TOYBOX_HOME/src/${app_name}"
        
-        #if [ $1 != "new" ]; then
-        #    echo ${project_name}": Invalid argument(s)."
-        #    echo "See '${project_name} -h'." 
-        #    exit 1
-        #fi
+    #else
+    #    app_name=$(echo ${arg} | cut -d":" -f1)
+    #    app_version=$(echo ${arg} | cut -d":" -f2)
+
+    #    if [ ! -f $TOYBOX_HOME/lib/${app_name}.fnc ]; then
+    #        echo "${project_name}: No application available."
+    #        exit 1;
+    #    fi
+    #
+    #    # set FQDN
+    #    if [ "${domain}" = '' ]; then
+    #        if [ -z "$TOYBOX_DOMAIN" ] ; then
+    #            domain=docker-toybox.com
+    #        else
+    #            domain=$TOYBOX_DOMAIN
+    #        fi
+    #    fi
+    #    if [ "${sub_domain}" = '' ]; then
+    #        sub_domain=${app_name}
+    #    fi
+    #
+    #    fqdn="${sub_domain}.${domain}"
+    #    applist_grep_key=${fqdn}
+
+    #    app_path="$TOYBOX_HOME/stack/${app_name}/${sub_domain}.${domain}"
+    #    compose_file="${app_path}/bin/docker-compose.yml"
+    #    src="$TOYBOX_HOME/src/${app_name}"
+    #   
+    #    #if [ $1 != "new" ]; then
+    #    #    echo ${project_name}": Invalid argument(s)."
+    #    #    echo "See '${project_name} -h'." 
+    #    #    exit 1
+    #    #fi
     fi
 
     # ----------------------------------------

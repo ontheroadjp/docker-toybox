@@ -11,7 +11,7 @@
 project_name="toybox"
 version="0.2.0"
 
-applist="$TOYBOX_HOME/stack/applications.txt"
+#applist="$TOYBOX_HOME/stack/applications.txt"
 
 fqdn=""
 port=""
@@ -69,11 +69,51 @@ function __is_container_running() {
     docker ps -a | grep ${project_name}_${1}_ | grep Up > /dev/null 2>&1
 }
 
+#function __set_app_id() {
+#    echo "TOYBOX_APP_ID="$(echo $$) >> ${app_path}/bin/.env
+#}
+#
+#function __set_app_name() {
+#    echo "TOYBOX_APP_NAME="${app_name} >> ${app_path}/bin/.env
+#}
+
+function __set_app_env() {
+    local key=$1
+    local val=$2
+    local exist=0
+    while read line; do
+        if [[ "${line}" =~ "${key}=" ]]; then
+            sed -i -e "s:${key}=.*$:${key}=${val}:" ${app_path}/bin/.env
+            exist=1
+        fi
+    done < ${app_path}/bin/.env
+
+    if [ ${exist} -eq 0 ]; then
+        echo "${key}=${val}" >> ${app_path}/bin/.env
+    fi
+}
+
+function __get_app_env() {
+    local key=$1
+    while read line; do
+        if [[ "${line}" =~ "${key}=" ]]; then
+            echo $(echo ${line} | sed "s:${key}=::")
+        fi
+    done < ${app_path}/bin/.env
+}
+
 # ----------------------------------------
 # Command
 # ----------------------------------------
 
 function _new() {
+    mkdir -p ${app_path}/bin
+    #echo "TOYBOX_APP_ID="$($$) > ${app_path}/bin/.env
+    #echo "TOYBOX_APP_NAME="${app_name} > ${app_path}/bin/.env
+        #__set_app_id
+        #__set_app_name
+    __set_app_env TOYBOX_APP_ID $(echo $$)
+    __set_app_env TOYBOX_APP_NAME ${app_name}
     __init && {
         cd ${app_path}/bin
         docker-compose -p ${project_name} up -d && {
@@ -90,8 +130,8 @@ function _new() {
 
 function _start() {
     if [ ${app_name} = "proxy" ]; then
-        __new
-
+        #__new
+        :
     elif ! __is_application_exsist; then
         echo "${project_name}: 'http://${fqdn}' does not exist."
         echo "Please try to 'new' command to create '${fqdn}'"
@@ -228,8 +268,6 @@ function __docker_toybox() {
     # initialize applications
     if [ -e $TOYBOX_HOME/lib/${app_name}.fnc ]; then
         . $TOYBOX_HOME/lib/${app_name}.fnc
-        mkdir -p ${app_path}/bin
-        echo ${app_name} > ${app_path}/bin/info.txt
     else
         echo "${project_name}: No such application as '${app_name}'"
         exit 1
@@ -325,7 +363,8 @@ elif [ $# -eq 2 ]; then
         fi
 
         app_path="$TOYBOX_HOME/stack/${domain}/${sub_domain}"
-        app_name=$(cat ${app_path}/bin/info.txt)
+        #app_name=$(cat ${app_path}/bin/.env | sed "s:^TOYBOX_APP_NAME=::")
+        app_name=$(__get_app_env TOYBOX_APP_NAME)
 
         compose_file="${app_path}/bin/docker-compose.yml"
         src="$TOYBOX_HOME/src/${app_name}"

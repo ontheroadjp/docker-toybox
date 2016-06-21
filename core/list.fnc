@@ -48,21 +48,21 @@ function __list() {
             subs="${dom}/*"
             for sub in ${subs}; do
                 if [ -d ${sub} ]; then
-                    #domain=$(echo ${dom} | sed "s:${app_root}/::")
                     sub_domain=$(echo ${sub} | sed "s:${app_root}/${domain}/::")
-                    #echo -n "http://${sub_domain}.${domain}"
 
                     fqdn=${sub_domain}.${domain}
                     applist_grep_key=${fqdn}
                     app_path=$TOYBOX_HOME/stack/${domain}/${sub_domain}
-                    app_name=$(cat ${app_path}/bin/info.txt)
+                    app_name=$(__get_app_env TOYBOX_APP_NAME)
                     compose_file="${app_path}/bin/docker-compose.yml"
                     src="$TOYBOX_HOME/src/${app_name}"
+
                     . $TOYBOX_HOME/lib/${app_name}.fnc
 
                     if [ ${app_name} = 'proxy' ]; then
                         continue
                     else
+                        printf "%-10s" $(__get_app_env TOYBOX_APP_ID)
                         printf "http://%-35s" ${fqdn}
                     fi
 

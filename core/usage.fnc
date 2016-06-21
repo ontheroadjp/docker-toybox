@@ -4,16 +4,13 @@ function __usage() {
   cat <<-EOF
 Usage: 
     ${project_name} 
+    ${project_name} env|version|help
     ${project_name} [-s|-d] <application> new
-    ${project_name} [URL] <command>
-    ${project_name} [-e|-v|-h]
+    ${project_name} <URL> <command>
 
 option:
-    -d              Assigning specific sub domain name
+    -d              Assigning specific domain name
     -s              Assigning specific sub domain name
-    -e              Show the environment variables
-    -v              Show the version of ${project_name}
-    -h              Show this message
 
 application:
     proxy           Http dinamic proxy server based on nginx 

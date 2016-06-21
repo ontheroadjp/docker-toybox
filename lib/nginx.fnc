@@ -10,7 +10,8 @@ function __build() {
 }
 
 containers=( \
-   ${app_name}-${nginx_version} 
+   #${fqdn}-${app_name}-${nginx_version} 
+   ${fqdn}-${app_name}
 )
 
 function __init() {

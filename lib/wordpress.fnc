@@ -4,7 +4,8 @@
 clone=0
 
 containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-db )
-images=(wordpress toybox/mariadb)
+#images=(wordpress toybox/mariadb)
+images=(toybox/wordpress toybox/mariadb)
 wordpress_version="4.5.2-apache"
 mariadb_version="10.1.14"
 
@@ -90,30 +91,26 @@ function __prepare_wp_build() {
     # entrypoint-ex.sh
     cp ${src}/wordpress/docker-entrypoint-ex.sh ${dist}
 
-    # Dockerfile
-    local script="${document_root}/Search-Replace-DB/srdb.cli.php"
-    local h=${db_alias}
-    local u=${db_user}
-    local p=${db_password}
-    local n=${db_name}
-    local s=${original_fqdn}
-    local r=${fqdn}
-    local replace_fqdn_cmd="php ${script} -h='${h}' -u='${u}' -p='${p}' -n='${n}' -s='${s}' -r='${r}'"
+    ## Dockerfile
+    #local script="${document_root}/Search-Replace-DB/srdb.cli.php"
+    #local h=${db_alias}
+    #local u=${db_user}
+    #local p=${db_password}
+    #local n=${db_name}
+    #local s=${original_fqdn}
+    #local r=${fqdn}
+    #local replace_fqdn_cmd="php ${script} -h='${h}' -u='${u}' -p='${p}' -n='${n}' -s='${s}' -r='${r}'"
 
-    local ss=${wp_path}
-    local rr=${document_root}
-    local replace_docroot_cmd="php ${script} -h='${h}' -u='${u}' -p='${p}' -n='${n}' -s='${ss}' -r='${rr}'"
+    #local ss=${wp_path}
+    #local rr=${document_root}
+    #local replace_docroot_cmd="php ${script} -h='${h}' -u='${u}' -p='${p}' -n='${n}' -s='${ss}' -r='${rr}'"
 
     cat <<-EOF > ${dist}/Dockerfile
 FROM wordpress:${wordpress_version}
 MAINTAINER NutsProject,LLC
 
 #RUN sed -i -e "$ i ${replace_fqdn_cmd}" /entrypoint.sh \
-#    && sed -i -e "$ i ${replace_docroot_cmd}" /entrypoint.sh \
-#    && rm -rf /usr/src/wordpress/wp-content
-
-RUN sed -i -e "$ i ${replace_fqdn_cmd}" /entrypoint.sh \
-    && sed -i -e "$ i ${replace_docroot_cmd}" /entrypoint.sh
+#    && sed -i -e "$ i ${replace_docroot_cmd}" /entrypoint.sh
 
 COPY Search-Replace-DB/ /usr/src/wordpress/Search-Replace-DB/
 COPY docker-entrypoint-ex.sh /entrypoint-ex.sh
@@ -196,12 +193,14 @@ function __init() {
     mkdir -p ${app_path}/bin
     mkdir -p ${app_path}/data/wordpress/docroot
     mkdir -p ${app_path}/data/mariadb
+    mkdir -p ${app_path}/build/wp-sync/data
 
     uid=$(cat /etc/passwd | grep ^$(whoami) | cut -d : -f3)
     gid=$(cat /etc/group | grep ^$(whoami) | cut -d: -f3)
-    
+
     # ---- wpclone only ----
-    if [ ${clone} -eq 1 ] && [ ! -d ${build_dir}/wp-sync/data ]; then
+    #if [ ${clone} -eq 1 ] && [ ! -d ${build_dir}/wp-sync/data ]; then
+    if [ ${clone} -eq 1 ] && [ $(ls -la ${build_dir}/wp-sync/data | wc -l) -eq 3 ]; then
         __prepare_wp_data
 
         echo ">>> Prepare WordPress build..."
@@ -210,10 +209,12 @@ function __init() {
         #echo ">>> Prepare MariaDB build..."
         #__prepare_mariadb_build && echo
 
-        echo ">>> build WordPress container..."
-        docker build -t toybox/wordpress:${wordpress_version} ${wp_build_dir} && echo
     fi
     # ---- wpclone only ----
+
+        echo ">>> build WordPress container..."
+        #docker build -t toybox/wordpress:${wordpress_version} ${wp_build_dir} && echo
+        docker build -t toybox/wordpress:${wordpress_version} $TOYBOX_HOME/src/wordpress/${wordpress_version} && echo
 
         echo ">>> build MariaDB container..."
         #docker build -t toybox/mariadb:${mariadb_version} ${mariadb_build_dir} && echo
@@ -237,6 +238,9 @@ ${containers[0]}:
         - WORDPRESS_DB_USER=${db_user}
         - WORDPRESS_DB_PASSWORD=${db_password}
         - WORDPRESS_TABLE_PREFIX=${db_table_prefix}
+        - EXEC_REPLACE_DB=${clone}
+        - FQDN_REPLACED=${original_fqdn}
+        - REMOTE_WP_DIR=${wp_path}
     volumes:
         - ${app_path}/data/wordpress/docroot:${document_root}
     ports:
@@ -270,5 +274,3 @@ ${containers[1]}:
 #        - ${app_path}/data/mysql:/var/lib/mysql
 EOF
 }
-
-

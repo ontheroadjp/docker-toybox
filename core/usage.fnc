@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 function __usage() {
   cat <<-EOF

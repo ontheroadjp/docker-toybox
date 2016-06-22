@@ -70,12 +70,14 @@ function __set_app_env() {
     local key=$1
     local val=$2
     local exist=0
-    while read line; do
-        if [[ "${line}" =~ "${key}=" ]]; then
-            sed -i -e "s:${key}=.*$:${key}=${val}:" ${app_path}/bin/.env
-            exist=1
-        fi
-    done < ${app_path}/bin/.env
+    if [ -f ${app_path}/bin/.env ]; then
+        while read line; do
+            if [[ "${line}" =~ "${key}=" ]]; then
+                sed -i -e "s:${key}=.*$:${key}=${val}:" ${app_path}/bin/.env
+                exist=1
+            fi
+        done < ${app_path}/bin/.env
+    fi
 
     if [ ${exist} -eq 0 ]; then
         echo "${key}=${val}" >> ${app_path}/bin/.env

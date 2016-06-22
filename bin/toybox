@@ -11,11 +11,8 @@
 project_name="toybox"
 version="0.2.0"
 
-#applist="$TOYBOX_HOME/stack/applications.txt"
-
 fqdn=""
 port=""
-applist_grep_key=""
 app_name=""
 app_path=""
 compose_file=""
@@ -69,14 +66,6 @@ function __is_container_running() {
     docker ps -a | grep ${project_name}_${1}_ | grep Up > /dev/null 2>&1
 }
 
-#function __set_app_id() {
-#    echo "TOYBOX_APP_ID="$(echo $$) >> ${app_path}/bin/.env
-#}
-#
-#function __set_app_name() {
-#    echo "TOYBOX_APP_NAME="${app_name} >> ${app_path}/bin/.env
-#}
-
 function __set_app_env() {
     local key=$1
     local val=$2
@@ -108,10 +97,6 @@ function __get_app_env() {
 
 function _new() {
     mkdir -p ${app_path}/bin
-    #echo "TOYBOX_APP_ID="$($$) > ${app_path}/bin/.env
-    #echo "TOYBOX_APP_NAME="${app_name} > ${app_path}/bin/.env
-        #__set_app_id
-        #__set_app_name
     __set_app_env TOYBOX_APP_ID $(echo $$)
     __set_app_env TOYBOX_APP_NAME ${app_name}
     __init && {
@@ -194,11 +179,14 @@ function _clear() {
     fi
     if __is_container_exist ${fqdn}-${app_name}; then
         echo ${project_name}: "'http://${fqdn}' is existing now."
-        echo "Please remove t first.( toybox http://${fqdn} rm )"
+        echo "Please remove container(s) first.( ex. toybox http://${fqdn} down )"
         exit 1
     fi
 
-    sudo rm -rf ${app_path}
+    rm -rf ${app_path}
+    if [ $(ls -la $TOYBOX_HOME/stack/${domain} | wc -l) -eq 3 ]; then
+        rm -rf $TOYBOX_HOME/stack/${domain}
+    fi
 }
 
 function _logs() {
@@ -249,6 +237,14 @@ function __docker_toybox() {
 
     local command=$1
 
+    # Load application
+    if [ -e $TOYBOX_HOME/lib/${app_name}.fnc ]; then
+        . $TOYBOX_HOME/lib/${app_name}.fnc
+    else
+        echo "${project_name}: No such application as '${app_name}'"
+        exit 1
+    fi
+    
     # error check
     if ! __is_executable "_${command}" ; then
         echo "${project_name}: '${command}' is not a ${project_name} command." 
@@ -265,14 +261,6 @@ function __docker_toybox() {
         fi
     fi
 
-    # initialize applications
-    if [ -e $TOYBOX_HOME/lib/${app_name}.fnc ]; then
-        . $TOYBOX_HOME/lib/${app_name}.fnc
-    else
-        echo "${project_name}: No such application as '${app_name}'"
-        exit 1
-    fi
-    
     # Exec Command
     _${command} $@
 }
@@ -363,7 +351,6 @@ elif [ $# -eq 2 ]; then
         fi
 
         app_path="$TOYBOX_HOME/stack/${domain}/${sub_domain}"
-        #app_name=$(cat ${app_path}/bin/.env | sed "s:^TOYBOX_APP_NAME=::")
         app_name=$(__get_app_env TOYBOX_APP_NAME)
 
         compose_file="${app_path}/bin/docker-compose.yml"
@@ -374,7 +361,6 @@ elif [ $# -eq 2 ]; then
     # ----------------------------------------
     elif [ ${arg} = "proxy" ]; then
         port=80
-        applist_grep_key=${port}
 
         app_name=${arg}
         app_path="$TOYBOX_HOME/stack/${app_name}/${port}"

@@ -1,11 +1,9 @@
 #!/bin/sh
 #set -eu
 
-
 containers=( ${fqdn}-${app_name} )
-images=( jenkins )
-jenkins_version="latest"
-build_dir=${app_path}/build
+images=( toybox/jenkins )
+jenkins_version="1.651.3"
 
 uid=""
 gid=""
@@ -14,7 +12,13 @@ gid=""
 # Initialize
 # --------------------------------------------------------
 
+function __build() {
+    docker build -t toybox/jenkins:${jenkins_version} ${src}/${jenkins_version}
+}
+
 function __init() {
+
+    __build
 
     mkdir -p ${app_path}/bin
     mkdir -p ${app_path}/data/jenkins
@@ -26,6 +30,7 @@ function __init() {
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
     image: ${images[0]}:${jenkins_version}
+    user: jenkins
     log_driver: "json-file"
     log_opt:
         max-size: "3m"
@@ -41,7 +46,6 @@ ${containers[0]}:
     ports:
         - "8080"
         - "50000"
-
 
 #${containers[1]}:
 #    image: busybox

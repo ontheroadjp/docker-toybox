@@ -86,10 +86,15 @@ function __prepare_wp_build() {
     rm ${build_dir}/wp-sync/data/wp.tar.gz
 
     # Search-Replace-DB
-    git clone https://github.com/interconnectit/Search-Replace-DB.git ${dist}/Search-Replace-DB
+    #git clone https://github.com/interconnectit/Search-Replace-DB.git ${dist}/Search-Replace-DB
+    cp -r ${src}/${wordpress_version}/Search-Replace-DB ${dist}
 
     # entrypoint-ex.sh
-    cp ${src}/wordpress/docker-entrypoint-ex.sh ${dist}
+    #cp ${src}/wordpress/docker-entrypoint-ex.sh ${dist}
+    cp ${src}/${wordpress_version}/docker-entrypoint-ex.sh ${dist}
+
+    # Dockerfile
+    cp ${src}/${wordpress_version}/Dockerfile ${dist}
 
     ## Dockerfile
     #local script="${document_root}/Search-Replace-DB/srdb.cli.php"
@@ -105,18 +110,18 @@ function __prepare_wp_build() {
     #local rr=${document_root}
     #local replace_docroot_cmd="php ${script} -h='${h}' -u='${u}' -p='${p}' -n='${n}' -s='${ss}' -r='${rr}'"
 
-    cat <<-EOF > ${dist}/Dockerfile
-FROM wordpress:${wordpress_version}
-MAINTAINER NutsProject,LLC
-
-#RUN sed -i -e "$ i ${replace_fqdn_cmd}" /entrypoint.sh \
-#    && sed -i -e "$ i ${replace_docroot_cmd}" /entrypoint.sh
-
-COPY Search-Replace-DB/ /usr/src/wordpress/Search-Replace-DB/
-COPY docker-entrypoint-ex.sh /entrypoint-ex.sh
-
-ENTRYPOINT ["/entrypoint-ex.sh"]
-EOF
+#    cat <<-EOF > ${dist}/Dockerfile
+#FROM wordpress:${wordpress_version}
+#MAINTAINER NutsProject,LLC
+#
+##RUN sed -i -e "$ i ${replace_fqdn_cmd}" /entrypoint.sh \
+##    && sed -i -e "$ i ${replace_docroot_cmd}" /entrypoint.sh
+#
+#COPY Search-Replace-DB/ /usr/src/wordpress/Search-Replace-DB/
+#COPY docker-entrypoint-ex.sh /entrypoint-ex.sh
+#
+#ENTRYPOINT ["/entrypoint-ex.sh"]
+#EOF
 }
 
 #function __prepare_mariadb_build() {
@@ -193,14 +198,14 @@ function __init() {
     mkdir -p ${app_path}/bin
     mkdir -p ${app_path}/data/wordpress/docroot
     mkdir -p ${app_path}/data/mariadb
-    mkdir -p ${app_path}/build/wp-sync/data
+    mkdir -p ${app_path}/build/wp-sync
 
     uid=$(cat /etc/passwd | grep ^$(whoami) | cut -d : -f3)
     gid=$(cat /etc/group | grep ^$(whoami) | cut -d: -f3)
 
     # ---- wpclone only ----
     #if [ ${clone} -eq 1 ] && [ ! -d ${build_dir}/wp-sync/data ]; then
-    if [ ${clone} -eq 1 ] && [ $(ls -la ${build_dir}/wp-sync/data | wc -l) -eq 3 ]; then
+    if [ ${clone} -eq 1 ] && [ $(ls -la ${build_dir}/wp-sync | wc -l) -eq 3 ]; then
         __prepare_wp_data
 
         echo ">>> Prepare WordPress build..."

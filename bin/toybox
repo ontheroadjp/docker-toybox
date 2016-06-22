@@ -252,6 +252,14 @@ function __docker_toybox() {
 
     local command=$1
 
+    # Load application
+    if [ -e $TOYBOX_HOME/lib/${app_name}.fnc ]; then
+        . $TOYBOX_HOME/lib/${app_name}.fnc
+    else
+        echo "${project_name}: No such application as '${app_name}'"
+        exit 1
+    fi
+    
     # error check
     if ! __is_executable "_${command}" ; then
         echo "${project_name}: '${command}' is not a ${project_name} command." 
@@ -268,14 +276,6 @@ function __docker_toybox() {
         fi
     fi
 
-    # initialize applications
-    if [ -e $TOYBOX_HOME/lib/${app_name}.fnc ]; then
-        . $TOYBOX_HOME/lib/${app_name}.fnc
-    else
-        echo "${project_name}: No such application as '${app_name}'"
-        exit 1
-    fi
-    
     # Exec Command
     _${command} $@
 }

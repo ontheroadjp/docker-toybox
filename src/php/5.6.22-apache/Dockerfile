@@ -41,9 +41,15 @@ RUN { \
 		echo 'opcache.enable_cli=1'; \
 	} > /usr/local/etc/php/conf.d/opcache-recommended.ini
 
-RUN echo '<?php phpinfo(); ?>' > /var/www/html/info.php
+RUN echo '<?php phpinfo(); ?>' > /var/www/html/index.php
+
+RUN tar cvzf /usr/src/apache2-default-doc.tar.gz -C /var/www/html ./
+RUN tar cvzf /usr/src/apache2-conf.tar.gz -C /etc/apache2 ./
+RUN tar cvzf /usr/src/php-conf.tar.gz -C /usr/local/etc/php ./
 
 VOLUME /var/www/html
+
 COPY docker-entrypoint.sh /entrypoint-ex.sh
 ENTRYPOINT ["/entrypoint-ex.sh"]
+
 CMD ["apache2-foreground"]

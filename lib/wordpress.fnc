@@ -4,8 +4,8 @@
 clone=0
 
 containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-db )
-#images=(wordpress toybox/mariadb)
 images=(toybox/wordpress toybox/mariadb)
+
 wordpress_version="4.5.2-apache"
 mariadb_version="10.1.14"
 
@@ -15,18 +15,15 @@ db_user="toybox"
 db_password="toybox"
 db_table_prefix="wp_dev_"
 db_alias="mysql"
-document_root="/var/www/html"
+docroot="/var/www/html"
 
 uid=""
 gid=""
 
 build_dir=${app_path}/build
-wp_path=""
-original_fqdn=""
-
-wp_build_dir=${build_dir}/wordpress
-#mariadb_build_dir=${build_dir}/mariadb
-original_wp_data=${app_path}/data/wordpress/original_wp_data
+remote_wp_data=${app_path}/data/wordpress/remote_wp_data
+remote_wp_dir=""
+remote_fqdn=""
 
 # --------------------------------------------------------
 # Build function
@@ -40,13 +37,13 @@ function __prepare_wp_data(){
         echo -n "Enter remote host: "
         read ssh_remotehost
         echo -n "Enter remote wordpress dir: "
-        read wp_path
-        echo -n "Enter original FQDN: "
-        read original_fqdn
+        read remote_wp_dir
+        echo -n "Enter remote FQDN: "
+        read remote_fqdn
         echo "------------------------------------------------------------"
         echo "Remote Host: ${ssh_remotehost}"
-        echo "Remote WordPress dir: ${wp_path}"
-        echo "Remote WordPress  FQDN: ${original_fqdn}"
+        echo "Remote WordPress dir: ${remote_wp_dir}"
+        echo "Remote WordPress  FQDN: ${remote_fqdn}"
         echo "------------------------------------------------------------"
         echo -n "Are you sure? (y/n): " 
         read confirm
@@ -56,24 +53,26 @@ function __prepare_wp_data(){
         echo ""
 
         # wp-sync 
-        echo ">>> Get wp-sync..."
+        echo ">>> Prepare wp-sync"
         git clone https://github.com/ontheroadjp/wp-sync.git ${dist}
         cp ${build_dir}/wp-sync/.env.sample ${dist}/.env
         sed -i -e "s:^wp_host=\"example\":wp_host=\"${ssh_remotehost}\":" ${dist}/.env
-        sed -i -e "s:^wp_root=\"/var/www/wordpress\":wp_root=\"${wp_path}\":" ${dist}/.env
+        sed -i -e "s:^wp_root=\"/var/www/wordpress\":wp_root=\"${remote_wp_dir}\":" ${dist}/.env
+        echo
 
+        echo ">>> Fetch remote wordpress data"
         sh ${dist}/remote-admin.sh mysqldump        # only sqldump
 
         # --- temporary ---
         cp ${TOYBOX_HOME}/wp.tar.gz ${dist}/data 
         # --- temporary ---
-        echo ""
+        echo "complete!" && echo
         set +eu
     fi
 }
 
 function __prepare_wp_build() {
-    local dist=${wp_build_dir}
+    local dist=${build_dir}/wordpress
     mkdir -p ${dist}
 
     # WordPress HTML data
@@ -81,8 +80,8 @@ function __prepare_wp_build() {
         echo "error: there is no ${build_dir}/wp-sync/data/wp.tar.gz"
         exit 1;
     fi
-    mkdir -p ${original_wp_data}
-    tar -xzf ${build_dir}/wp-sync/data/wp.tar.gz -C ${original_wp_data} --strip-components 1
+    mkdir -p ${remote_wp_data}
+    tar -xzf ${build_dir}/wp-sync/data/wp.tar.gz -C ${remote_wp_data} --strip-components 1
     rm ${build_dir}/wp-sync/data/wp.tar.gz
 
     # Search-Replace-DB
@@ -97,17 +96,17 @@ function __prepare_wp_build() {
     cp ${src}/${wordpress_version}/Dockerfile ${dist}
 
     ## Dockerfile
-    #local script="${document_root}/Search-Replace-DB/srdb.cli.php"
+    #local script="${docroot}/Search-Replace-DB/srdb.cli.php"
     #local h=${db_alias}
     #local u=${db_user}
     #local p=${db_password}
     #local n=${db_name}
-    #local s=${original_fqdn}
+    #local s=${remote_fqdn}
     #local r=${fqdn}
     #local replace_fqdn_cmd="php ${script} -h='${h}' -u='${u}' -p='${p}' -n='${n}' -s='${s}' -r='${r}'"
 
-    #local ss=${wp_path}
-    #local rr=${document_root}
+    #local ss=${remote_wp_dir}
+    #local rr=${docroot}
     #local replace_docroot_cmd="php ${script} -h='${h}' -u='${u}' -p='${p}' -n='${n}' -s='${ss}' -r='${rr}'"
 
 #    cat <<-EOF > ${dist}/Dockerfile
@@ -145,18 +144,18 @@ function __prepare_wp_build() {
 function __post_run() {
     if [ ${clone} -eq 1 ]; then
 
-        echo ">>> Apply original WordPress data..."
+        echo ">>> Applying remote WordPress data"
         local host_docroot=${app_path}/data/wordpress/docroot
 
-        echo -n "copy wp-content dir..."
-        cp -rf ${original_wp_data}/wp-content/ ${host_docroot} && echo "done."
+        echo -n "copying wp-content dir..."
+        cp -rf ${remote_wp_data}/wp-content/ ${host_docroot} && echo "done."
 
-        echo -n "copy .htaccess file..."
-        cp -f ${original_wp_data}/.htaccess ${host_docroot} && echo "done."
+        echo -n "copying .htaccess file..."
+        cp -f ${remote_wp_data}/.htaccess ${host_docroot} && echo "done."
 
         # for DB Connection
-        echo -n "modify wp-config.php file..."
-        local out=${original_wp_data}/wp-config.php
+        echo -n "modifying wp-config.php file..."
+        local out=${remote_wp_data}/wp-config.php
         sed -i -e "s:^define('DB_NAME', '.*');:define('DB_NAME', '${db_name}');:" ${out}
         sed -i -e "s:^define('DB_USER', '.*');:define('DB_USER', '${db_user}');:" ${out}
         sed -i -e "s:^define('DB_PASSWORD', '.*');:define('DB_PASSWORD', '${db_password}');:" ${out}
@@ -164,7 +163,7 @@ function __post_run() {
         echo "done."
 
         # for wp-supercache
-        local wpcachehome=${document_root}/wp-content/plugins/wp-super-cache/
+        local wpcachehome=${docroot}/wp-content/plugins/wp-super-cache/
         sed -i -e "s:^define( 'WPCACHEHOME', '.*' );:define( 'WPCACHEHOME', '${wpcachehome}' );:" ${out}
 
         # copy wp-config.php
@@ -178,7 +177,7 @@ function __post_run() {
 
 function _clone() {
     clone=1
-    images=(toybox/wordpress toybox/mariadb)
+    #images=(toybox/wordpress toybox/mariadb)
     _new $@
 }
 
@@ -209,7 +208,7 @@ function __init() {
         __prepare_wp_data
 
         echo ">>> Prepare WordPress build..."
-        __prepare_wp_build && echo
+        __prepare_wp_build
 
         #echo ">>> Prepare MariaDB build..."
         #__prepare_mariadb_build && echo
@@ -217,11 +216,11 @@ function __init() {
     fi
     # ---- wpclone only ----
 
-        echo ">>> build WordPress container..."
-        #docker build -t toybox/wordpress:${wordpress_version} ${wp_build_dir} && echo
+        echo ">>> build image: ${images[0]}:${wordpress_version} ..."
+        #docker build -t toybox/wordpress:${wordpress_version} ${build_dir}/wordpress && echo
         docker build -t toybox/wordpress:${wordpress_version} $TOYBOX_HOME/src/wordpress/${wordpress_version} && echo
 
-        echo ">>> build MariaDB container..."
+        echo ">>> build image: ${images[1]}:${mariadb_version} ..."
         #docker build -t toybox/mariadb:${mariadb_version} ${mariadb_build_dir} && echo
         docker build -t toybox/mariadb:${mariadb_version} $TOYBOX_HOME/src/mariadb/${mariadb_version} && echo
 
@@ -244,10 +243,11 @@ ${containers[0]}:
         - WORDPRESS_DB_PASSWORD=${db_password}
         - WORDPRESS_TABLE_PREFIX=${db_table_prefix}
         - EXEC_REPLACE_DB=${clone}
-        - FQDN_REPLACED=${original_fqdn}
-        - REMOTE_WP_DIR=${wp_path}
+        - DOCROOT=${docroot}
+        - FQDN_REPLACED=${remote_fqdn}
+        - REMOTE_WP_DIR=${remote_wp_dir}
     volumes:
-        - ${app_path}/data/wordpress/docroot:${document_root}
+        - ${app_path}/data/wordpress/docroot:${docroot}
     ports:
         - "80"
 
@@ -267,15 +267,13 @@ ${containers[1]}:
         - MYSQL_USER=${db_user}
         - MYSQL_PASSWORD=${db_password}
         - TERM=xterm
-        #- TOYBOX_MYSQL_UID=${uid}
-        #- TOYBOX_MYSQL_GID=${gid}
         - TOYBOX_UID=${uid}
         - TOYBOX_GID=${gid}
 
 #${containers[2]}:
 #    image: busybox
 #    volumes:
-#        - ${app_path}/data/docroot:${document_root}
+#        - ${app_path}/data/docroot:${docroot}
 #        - ${app_path}/data/mysql:/var/lib/mysql
 EOF
 }

@@ -11,7 +11,7 @@ function __build() {
 }
 
 containers=( \
-   ${app_name}-${mariadb_version} 
+   ${app_name}-${mariadb_version}
 )
 
 function __init() {
@@ -19,7 +19,7 @@ function __init() {
     __build
 
     mkdir -p ${app_path}/bin
-    mkdir -p ${app_path}/data/mysql
+    mkdir -p ${app_path}/data/mariadb
 
     uid=$(cat /etc/passwd | grep ^$(whoami) | cut -d : -f3)
     gid=$(cat /etc/group | grep ^$(whoami) | cut -d: -f3)
@@ -28,13 +28,13 @@ function __init() {
 ${containers[0]}:
     image: toybox/${app_name}:${mariadb_version}
     volumes:
-        - ${app_path}/data/mysql:/var/lib/mysql
+        - ${app_path}/data/mariadb:/var/lib/mysql
+        - /etc/localtime:/etc/localtime:ro
     environment:
         - MYSQL_ROOT_PASSWORD=${db_root_password}
         - TERM=xterm
         - TOYBOX_UID=${uid}
         - TOYBOX_GID=${gid}
-        - TIMEZONE=${timezone}
     ports:
         - "3306"
 EOF

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 function _containers() {
     echo -e "\033[1;33m--------------------------------\033[0m"

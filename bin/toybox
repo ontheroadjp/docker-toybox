@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 . $TOYBOX_HOME/core/usage.fnc
 . $TOYBOX_HOME/core/list.fnc

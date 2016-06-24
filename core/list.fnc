@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 function __print_header() {
     echo ''

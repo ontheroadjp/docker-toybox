@@ -30,7 +30,6 @@ function __init() {
 ${containers[0]}:
     image: toybox/${app_name}:${mariadb_version}
     volumes:
-        - ${src}/${mariadb_version}/master.sql:/docker-entrypoint-initdb.d/master.sql
         - ${app_path}/data/master:/var/lib/mysql
         - /etc/localtime:/etc/localtime:ro
     environment:
@@ -44,7 +43,6 @@ ${containers[0]}:
 ${containers[1]}:
     image: toybox/${app_name}:${mariadb_version}
     volumes:
-        #- ${src}/${mariadb_version}/slave.sql:/docker-entrypoint-initdb.d/slave.sql
         - ${app_path}/data/slave:/var/lib/mysql
         - /etc/localtime:/etc/localtime:ro
     links:

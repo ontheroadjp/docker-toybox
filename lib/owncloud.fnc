@@ -1,8 +1,8 @@
 #!/bin/sh
 
-db_name=${app_name}
-db_user=${app_name}
-db_user_pass=${app_name}
+db_name=${application}
+db_user=${application}
+db_user_pass=${application}
 
 owncloud_version="9.0.2-apache"
 mariadb_version="10.1.14"
@@ -26,14 +26,14 @@ function __build() {
 
 
 containers=( \
-    ${fqdn}-${app_name} \
-    ${fqdn}-${app_name}-mariadb \
-    ${fqdn}-${app_name}-redis \
+    ${fqdn}-${application} \
+    ${fqdn}-${application}-mariadb \
+    ${fqdn}-${application}-redis \
 )
 
-#main_container=${fqdn}-${app_name}
-#db_container=${fqdn}-${app_name}-db
-#data_container=${fqdn}-${app_name}-data
+#main_container=${fqdn}-${application}
+#db_container=${fqdn}-${application}-db
+#data_container=${fqdn}-${application}-data
 
 function __init() {
 
@@ -100,7 +100,7 @@ EOF
 #function __new() {
 #    #__source; local status=$?
 #    #if [ ${status} -ne 0 ]; then
-#    #    echo ${project_name}": source code of ${app_name} does not download."
+#    #    echo ${project_name}": source code of ${application} does not download."
 #    #    exit 1
 #    #fi
 #

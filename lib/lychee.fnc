@@ -4,7 +4,7 @@
 db_name=lychee
 db_user=lychee
 db_user_pass=lychee
-containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-db )
+containers=( ${fqdn}-${application} ${fqdn}-${application}-db )
 
 mariadb_version="10.1.14"
 

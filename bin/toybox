@@ -55,10 +55,6 @@ function __is_executable() {
     type "${command}" > /dev/null 2>&1
 }
 
-function __is_application_exsist() {
-    test -f $TOYBOX_HOME/stack/${domain}/${sub_domain}/.env
-}
-
 function __is_container_exist() {
     #$1 = ${app_name}
     docker ps -a | grep ${project_name}_${1}_ > /dev/null 2>&1
@@ -256,10 +252,10 @@ function __docker_toybox() {
         echo "See '${project_name} -h'." 
         exit 1
     elif [ ${command} = "new" ]; then
-        if __is_application_exsist && [ ${app_name} = "proxy" ]; then
+        if [ -d ${app_path} ] && [ ${app_name} = "proxy" ]; then
             echo "${project_name}: 'proxy #${port}' is already in used."
             exit 1
-        elif __is_application_exsist; then
+        elif [ -d ${app_path} ]; then
             echo "URL \"http://${fqdn}\" is already in used."
             echo "Please try to 'new' command with -s or/and -d option."
             exit 1

@@ -1,10 +1,10 @@
 #!/bin/sh
 
 containers=( 
-    ${fqdn}-${app_name}-influxdb 
-    ${fqdn}-${app_name}-cadvisor 
-    ${fqdn}-${app_name}-graphite 
-    ${fqdn}-${app_name}-grafana 
+    ${fqdn}-${application}-influxdb 
+    ${fqdn}-${application}-cadvisor 
+    ${fqdn}-${application}-graphite 
+    ${fqdn}-${application}-grafana 
 )
 
 function __init() {

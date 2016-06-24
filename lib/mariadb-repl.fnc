@@ -11,7 +11,8 @@ function __build() {
 }
 
 containers=( \
-   ${app_name}-${mariadb_version}
+   ${app_name}-${mariadb_version}-master
+   ${app_name}-${mariadb_version}-slave
 )
 
 function __init() {
@@ -19,7 +20,8 @@ function __init() {
     __build
 
     mkdir -p ${app_path}/bin
-    mkdir -p ${app_path}/data/mariadb
+    mkdir -p ${app_path}/data/master
+    mkdir -p ${app_path}/data/slave
 
     uid=$(cat /etc/passwd | grep ^$(whoami) | cut -d : -f3)
     gid=$(cat /etc/group | grep ^$(whoami) | cut -d: -f3)
@@ -28,11 +30,27 @@ function __init() {
 ${containers[0]}:
     image: toybox/${app_name}:${mariadb_version}
     volumes:
-        - ${app_path}/data/mariadb:/var/lib/mysql
+        - ${app_path}/data/master:/var/lib/mysql
         - /etc/localtime:/etc/localtime:ro
     environment:
         - MYSQL_ROOT_PASSWORD=${db_root_password}
         - TERM=xterm
+        - SERVER_TYPE=master
+        - TOYBOX_UID=${uid}
+        - TOYBOX_GID=${gid}
+    ports:
+        - "3306"
+${containers[1]}:
+    image: toybox/${app_name}:${mariadb_version}
+    volumes:
+        - ${app_path}/data/slave:/var/lib/mysql
+        - /etc/localtime:/etc/localtime:ro
+    links:
+        - ${containers[0]}:master
+    environment:
+        - MYSQL_ROOT_PASSWORD=${db_root_password}
+        - TERM=xterm
+        - SERVER_TYPE=slave
         - TOYBOX_UID=${uid}
         - TOYBOX_GID=${gid}
     ports:

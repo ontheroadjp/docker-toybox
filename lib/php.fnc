@@ -1,8 +1,8 @@
 #!/bin/sh
 
-db_name=${app_name}
-db_user=${app_name}
-db_user_pass=${app_name}
+db_name=${application}
+db_user=${application}
+db_user_pass=${application}
 
 uid=""
 gid=""
@@ -10,10 +10,10 @@ gid=""
 php_version="5.6.22-apache"
 mariadb_version="10.1.14"
 
-containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-db )
+containers=( ${fqdn}-${application} ${fqdn}-${application}-db )
 
 function __build() {
-    docker build -t toybox/${app_name}:${php_version} $TOYBOX_HOME/src/${app_name}/${php_version}
+    docker build -t toybox/${application}:${php_version} $TOYBOX_HOME/src/${application}/${php_version}
 }
 
 function __init() {
@@ -30,7 +30,7 @@ function __init() {
 
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    image: toybox/${app_name}:${php_version}
+    image: toybox/${application}:${php_version}
     volumes:
         - ${app_path}/data/apache2/docroot:/var/www/html
         - ${app_path}/data/apache2/conf:/etc/apache2

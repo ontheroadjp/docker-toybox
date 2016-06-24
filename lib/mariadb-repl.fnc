@@ -7,12 +7,12 @@ uid=""
 gid=""
 
 function __build() {
-    docker build -t toybox/${app_name}:${mariadb_version} $TOYBOX_HOME/src/${app_name}/${mariadb_version}
+    docker build -t toybox/${application}:${mariadb_version} $TOYBOX_HOME/src/${application}/${mariadb_version}
 }
 
 containers=( \
-   ${app_name}-${mariadb_version}-master
-   ${app_name}-${mariadb_version}-slave
+   ${application}-${mariadb_version}-master
+   ${application}-${mariadb_version}-slave
 )
 
 function __init() {
@@ -28,7 +28,7 @@ function __init() {
     
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    image: toybox/${app_name}:${mariadb_version}
+    image: toybox/${application}:${mariadb_version}
     volumes:
         - ${app_path}/data/master:/var/lib/mysql
         - /etc/localtime:/etc/localtime:ro
@@ -41,7 +41,7 @@ ${containers[0]}:
     ports:
         - "3306"
 ${containers[1]}:
-    image: toybox/${app_name}:${mariadb_version}
+    image: toybox/${application}:${mariadb_version}
     volumes:
         - ${app_path}/data/slave:/var/lib/mysql
         - /etc/localtime:/etc/localtime:ro
@@ -61,7 +61,7 @@ EOF
 #function __new() {
 #    #__source; local status=$?
 #    #if [ ${status} -ne 0 ]; then
-#    #    echo ${project_name}": source code of ${app_name} does not download."
+#    #    echo ${project_name}": source code of ${application} does not download."
 #    #    exit 1
 #    #fi
 #

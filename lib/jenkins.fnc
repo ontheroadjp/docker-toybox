@@ -1,7 +1,7 @@
 #!/bin/sh
 #set -eu
 
-containers=( ${fqdn}-${app_name} )
+containers=( ${fqdn}-${application} )
 images=( toybox/jenkins )
 jenkins_version="1.651.3"
 

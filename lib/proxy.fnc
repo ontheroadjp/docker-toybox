@@ -10,11 +10,11 @@ function __build() {
     docker build -t nutsp/nginx-proxy ${src}
 }
 
-containers=(${app_name}-nginx ${app_name}-docker-gen)
-#main_container=${app_name}-nginx
-#docker_gen_container=${app_name}-docker-gen
+containers=(${application}-nginx ${application}-docker-gen)
+#main_container=${application}-nginx
+#docker_gen_container=${application}-docker-gen
 
-src=${TOYBOX_HOME}/src/${app_name}
+src=${TOYBOX_HOME}/src/${application}
 
 function __init() {
     mkdir -p ${app_path}/bin
@@ -93,10 +93,10 @@ EOF
 #}
 
 #function __backup() {
-#    echo 'backup command is not available for ${app_name} application'
+#    echo 'backup command is not available for ${application} application'
 #}
 #
 #function __restore() {
-#    echo 'restore command is not available for ${app_name} application'
+#    echo 'restore command is not available for ${application} application'
 #}
 

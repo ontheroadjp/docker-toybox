@@ -1,9 +1,9 @@
 #!/bin/sh
 
-db_name=${app_name}
-db_user=${app_name}
-db_user_pass=${app_name}
-containers=( ${fqdn}-${app_name} )
+db_name=${application}
+db_user=${application}
+db_user_pass=${application}
+containers=( ${fqdn}-${application} )
 
 function __source() {
     if [ ! -e ${src} ]; then

@@ -205,18 +205,105 @@ function _ps() {
     docker-compose -p ${project_name} ps
 }
 
-function _ip() {
-    for container in ${containers[@]}; do
-        __is_container_exist ${container}; local exist=$(( ${exist} + $? ))
-        __is_container_running ${container}; local running=$(( ${running} + $? ))
-        if [ ${exist} -eq 0 ] && [ ${running} -eq 0 ]; then
-            echo -n "${container}: "
-            docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
-                $(docker ps | grep ${container}_1 | awk '{print $1}')
-        else
-            echo -n "${container}(not running)"
-        fi
+function _info() {
+
+    echo "[Core]"
+    env_file=${app_path}/bin/.env
+    cat ${env_file} | while read line; do
+        #key=$( echo $(cat ${app_path}/bin/.env | cut -d "=" -f1) | sed -e "s:^TOYBOX_::" )
+        #val=$(cat ${app_path}/bin/.env | cut -d "=" -f2)
+        key=$(echo $(echo ${line} | cut -d "=" -f1) | sed -e "s:^TOYBOX_::" )
+        val=$(echo ${line} | cut -d "=" -f2)
+        printf "%-20s" "$key:"
+        printf "%-20s" "$val"
+        printf "\n"
+    done; echo
+
+
+    declare -A hash=(
+        ['docroot']="/var/www/html"
+        ['WORDPRESS_DB_NAME']=${db_name}
+        ['WORDPRESS_DB_USER']=${db_user}
+        ['WORDPRESS_DB_PASSWORD']=${db_password}
+        ['WORDPRESS_TABLE_PREFIX']=${db_table_prefix}
+        ['db_root_password']="root"
+        ['db_name']="toybox_wordpress"
+        ['db_user']="toybox"
+        ['db_password']="toybox"
+        ['db_table_prefix']="wp_dev_"
+        ['db_alias']="mysql"
+    )
+
+    components=(
+        "apache 2.4.16 ${fqdn}-${application} toybox/apache"
+        "php 5.4.6 ${fqdn}-${application} toybox/apache"
+        "mariadb 10.14.3 ${fqdn}-${application} toybox/mariadb"
+        "wordpress 4.3.7 ${fqdn}-${application} toybox/apache"
+    )
+
+    #echo "[Component(s)]"
+    #for ((i=0; i<${#components[@]}; i++ )); do
+    #    comp=$(echo ${components[$i]} | cut -d " " -f1)
+    #    version=$(echo ${components[$i]} | cut -d " " -f2)
+    #    printf "%-20s" "${comp}:"
+    #    echo ${version}
+    #done; echo
+
+    declare -A comps=(
+        ['toybox_proxy-nginx_1']="apache php wordpress"
+        ['toybox_proxy-docker-gen_1']="docker-gen"
+    )
+    declare -A versions=(
+        ['apache']="2.4.16"
+        ['php']="5.6.16"
+        ['wordpress']="4.6.7"
+        ['docker-gen']="0.78"
+    )
+
+    for ((i=0; i<${#containers[@]}; i++ )); do
+        echo "[Container - toybox_${containers[$i]}_1]"
+        printf "%-20s" "IP Address:"
+        echo $(__get_ip ${containers[$i]})
+        #printf "%-20s" "Component(s):"
+        ho=$(echo ${comps["toybox_${containers[$i]}_1"]})
+        #echo ${ho}
+
+        tmp=( ${ho} )
+        for ((n=0; n<${#tmp[@]}; n++ )); do
+            printf "%-20s" ${tmp[$n]}
+            echo "v${versions[${tmp[$n]}]}"
+        done
+        echo
     done
+
+    echo "[Paramater(s)]"
+    keys=${!hash[@]}; vals=${hash[@]}
+    for ((i=0; i<${#hash[@]}; i++ )); do
+        key=$(echo ${keys^^} | cut -d " " -f$((${i} + 1)))
+        val=$(echo ${vals} | cut -d " " -f$((${i} + 1)))
+        printf "%-20s" ${key}:
+        echo ${val}
+    done; echo
+
+
+}
+
+function _ip() {
+    for con in ${containers[@]}; do
+        echo "${con}: $(__get_ip ${con})"
+    done
+}
+
+function __get_ip() {
+    container=$1
+    __is_container_exist ${container}; local exist=$(( ${exist} + $? ))
+    __is_container_running ${container}; local running=$(( ${running} + $? ))
+    if [ ${exist} -eq 0 ] && [ ${running} -eq 0 ]; then
+        docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
+            $(docker ps | grep ${container}_1 | awk '{print $1}')
+    else
+        echo -n "not running"
+    fi
 }
 
 function _applications() {

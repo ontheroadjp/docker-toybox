@@ -4,7 +4,52 @@
 clone=0
 
 containers=( ${fqdn}-${application} ${fqdn}-${application}-db )
-images=(toybox/wordpress toybox/mariadb)
+images=( toybox/wordpress toybox/mariadb )
+
+declare -A components=(
+    ["${project_name}_${containers[0]}_1"]="apache php wordpress"
+    ["${project_name}_${containers[1]}_1"]="mariadb"
+)
+declare -A component_version=(
+    ['apache']="2.4.16"
+    ['php']="5.6.16"
+    ['wordpress']="4.5.2-apache"
+    ['mariadb']="10.1.14"
+)
+declare -A params=(
+    ['db_root_password']="root"
+    ['db_name']="toybox_wordpress"
+    ['db_user']="toybox"
+    ['db_password']="toybox"
+    ['db_table_prefix']="wp_dev_"
+    ['db_alias']="mysql"
+    ['docroot']="/var/www/html"
+    #    - VIRTUAL_HOST=${fqdn}
+    #    - PROXY_CACHE=true
+    #    - TOYBOX_UID=${uid}
+    #    - TOYBOX_GID=${gid}
+    #    - WORDPRESS_DB_NAME=${db_name}
+    #    - WORDPRESS_DB_USER=${db_user}
+    #    - WORDPRESS_DB_PASSWORD=${db_password}
+    #    - WORDPRESS_TABLE_PREFIX=${db_table_prefix}
+    #    - EXEC_REPLACE_DB=${clone}
+    #    - DOCROOT=${docroot}
+    #    - FQDN_REPLACED=${remote_fqdn}
+    #    - REMOTE_WP_DIR=${remote_wp_dir}
+
+    #    - MYSQL_ROOT_PASSWORD=${db_root_password}
+    #    - MYSQL_DATABASE=${db_name}
+    #    - MYSQL_USER=${db_user}
+    #    - MYSQL_PASSWORD=${db_password}
+    #    - TERM=xterm
+    #    - TOYBOX_UID=${uid}
+    #    - TOYBOX_GID=${gid}
+)
+
+echo '---'
+echo ${params['db_name']}
+echo '---'
+
 
 wordpress_version="4.5.2-apache"
 mariadb_version="10.1.14"

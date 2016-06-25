@@ -207,81 +207,79 @@ function _ps() {
 
 function _info() {
 
-    echo "[Core]"
+    local width_col1="30s"
+
+    echo "[General]"
     env_file=${app_path}/bin/.env
     cat ${env_file} | while read line; do
-        #key=$( echo $(cat ${app_path}/bin/.env | cut -d "=" -f1) | sed -e "s:^TOYBOX_::" )
-        #val=$(cat ${app_path}/bin/.env | cut -d "=" -f2)
         key=$(echo $(echo ${line} | cut -d "=" -f1) | sed -e "s:^TOYBOX_::" )
         val=$(echo ${line} | cut -d "=" -f2)
-        printf "%-20s" "$key:"
-        printf "%-20s" "$val"
+        printf "%-${width_col1}" "$key:"
+        printf "%-${width_col1}" "$val"
         printf "\n"
-    done; echo
+    done;
+    printf "%-${width_col1}" "URL:"
+    printf "%-${width_col1}" "http://${fqdn}"
+    printf "\n"
+    printf "%-${width_col1}" "Number of container:"
+    printf "%-${width_col1}" "${#containers[@]}"
+    printf "\n"; echo
 
 
-    declare -A hash=(
-        ['docroot']="/var/www/html"
-        ['WORDPRESS_DB_NAME']=${db_name}
-        ['WORDPRESS_DB_USER']=${db_user}
-        ['WORDPRESS_DB_PASSWORD']=${db_password}
-        ['WORDPRESS_TABLE_PREFIX']=${db_table_prefix}
-        ['db_root_password']="root"
-        ['db_name']="toybox_wordpress"
-        ['db_user']="toybox"
-        ['db_password']="toybox"
-        ['db_table_prefix']="wp_dev_"
-        ['db_alias']="mysql"
-    )
+    # DELETE
+    #components=(
+    #    "apache 2.4.16 ${fqdn}-${application} toybox/apache"
+    #    "php 5.4.6 ${fqdn}-${application} toybox/apache"
+    #    "mariadb 10.14.3 ${fqdn}-${application} toybox/mariadb"
+    #    "wordpress 4.3.7 ${fqdn}-${application} toybox/apache"
+    #)
 
-    components=(
-        "apache 2.4.16 ${fqdn}-${application} toybox/apache"
-        "php 5.4.6 ${fqdn}-${application} toybox/apache"
-        "mariadb 10.14.3 ${fqdn}-${application} toybox/mariadb"
-        "wordpress 4.3.7 ${fqdn}-${application} toybox/apache"
-    )
-
-    #echo "[Component(s)]"
-    #for ((i=0; i<${#components[@]}; i++ )); do
-    #    comp=$(echo ${components[$i]} | cut -d " " -f1)
-    #    version=$(echo ${components[$i]} | cut -d " " -f2)
-    #    printf "%-20s" "${comp}:"
-    #    echo ${version}
-    #done; echo
-
-    declare -A comps=(
-        ['toybox_proxy-nginx_1']="apache php wordpress"
-        ['toybox_proxy-docker-gen_1']="docker-gen"
-    )
-    declare -A versions=(
-        ['apache']="2.4.16"
-        ['php']="5.6.16"
-        ['wordpress']="4.6.7"
-        ['docker-gen']="0.78"
-    )
+    # ****.fnc へ
+    #declare -A components=(
+    #    ['toybox_proxy-nginx_1']="apache php wordpress"
+    #    ['toybox_proxy-docker-gen_1']="docker-gen"
+    #)
+    # ****.fnc へ
+    #declare -A component_version=(
+    #    ['apache']="2.4.16"
+    #    ['php']="5.6.16"
+    #    ['wordpress']="4.6.7"
+    #    ['docker-gen']="0.78"
+    #)
+    # ****.fnc へ
+    #declare -A params=(
+    #    ['docroot']="/var/www/html"
+    #    ['WORDPRESS_DB_NAME']=${db_name}
+    #    ['WORDPRESS_DB_USER']=${db_user}
+    #    ['WORDPRESS_DB_PASSWORD']=${db_password}
+    #    ['WORDPRESS_TABLE_PREFIX']=${db_table_prefix}
+    #    ['db_root_password']="root"
+    #    ['db_name']="toybox_wordpress"
+    #    ['db_user']="toybox"
+    #    ['db_password']="toybox"
+    #    ['db_table_prefix']="wp_dev_"
+    #    ['db_alias']="mysql"
+    #)
 
     for ((i=0; i<${#containers[@]}; i++ )); do
         echo "[Container - toybox_${containers[$i]}_1]"
-        printf "%-20s" "IP Address:"
-        echo $(__get_ip ${containers[$i]})
-        #printf "%-20s" "Component(s):"
-        ho=$(echo ${comps["toybox_${containers[$i]}_1"]})
-        #echo ${ho}
+        printf "%-${width_col1}" "IP Address:"; echo $(__get_ip ${containers[$i]})
 
-        tmp=( ${ho} )
-        for ((n=0; n<${#tmp[@]}; n++ )); do
-            printf "%-20s" ${tmp[$n]}
-            echo "v${versions[${tmp[$n]}]}"
+        tmp=$(echo ${components["toybox_${containers[$i]}_1"]})
+        comps=( ${tmp} )
+        for ((n=0; n<${#comps[@]}; n++ )); do
+            printf "%-${width_col1}" ${comps[$n]}
+            echo "v${component_version[${comps[$n]}]}"
         done
         echo
     done
 
     echo "[Paramater(s)]"
-    keys=${!hash[@]}; vals=${hash[@]}
-    for ((i=0; i<${#hash[@]}; i++ )); do
+    keys=${!params[@]}; vals=${params[@]}
+    for ((i=0; i<${#params[@]}; i++ )); do
         key=$(echo ${keys^^} | cut -d " " -f$((${i} + 1)))
         val=$(echo ${vals} | cut -d " " -f$((${i} + 1)))
-        printf "%-20s" ${key}:
+        printf "%-${width_col1}" ${key}:
         echo ${val}
     done; echo
 

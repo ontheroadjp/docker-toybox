@@ -202,7 +202,7 @@ function _config() {
 
 function _ps() {
     cd ${app_path}/bin
-    docker-compose -p ${project_name} ps
+    docker-compose -p ${project_name} ps | tee $TOYBOX_HOME/tmp/ps_${fqdn}.txt
 }
 
 function _info() {
@@ -225,70 +225,56 @@ function _info() {
     printf "%-${width_col1}" "${#containers[@]}"
     printf "\n"; echo
 
-
-    # DELETE
-    #components=(
-    #    "apache 2.4.16 ${fqdn}-${application} toybox/apache"
-    #    "php 5.4.6 ${fqdn}-${application} toybox/apache"
-    #    "mariadb 10.14.3 ${fqdn}-${application} toybox/mariadb"
-    #    "wordpress 4.3.7 ${fqdn}-${application} toybox/apache"
-    #)
-
-    # ****.fnc へ
-    #declare -A components=(
-    #    ['toybox_proxy-nginx_1']="apache php wordpress"
-    #    ['toybox_proxy-docker-gen_1']="docker-gen"
-    #)
-    # ****.fnc へ
-    #declare -A component_version=(
-    #    ['apache']="2.4.16"
-    #    ['php']="5.6.16"
-    #    ['wordpress']="4.6.7"
-    #    ['docker-gen']="0.78"
-    #)
-    # ****.fnc へ
-    #declare -A params=(
-    #    ['docroot']="/var/www/html"
-    #    ['WORDPRESS_DB_NAME']=${db_name}
-    #    ['WORDPRESS_DB_USER']=${db_user}
-    #    ['WORDPRESS_DB_PASSWORD']=${db_password}
-    #    ['WORDPRESS_TABLE_PREFIX']=${db_table_prefix}
-    #    ['db_root_password']="root"
-    #    ['db_name']="toybox_wordpress"
-    #    ['db_user']="toybox"
-    #    ['db_password']="toybox"
-    #    ['db_table_prefix']="wp_dev_"
-    #    ['db_alias']="mysql"
-    #)
-
+    toybox "http://"${fqdn} ps > /dev/null 2>&1
     for ((i=0; i<${#containers[@]}; i++ )); do
-        echo "[Container - toybox_${containers[$i]}_1]"
-        printf "%-${width_col1}" "IP Address:"; echo $(__get_ip ${containers[$i]})
+
+        while read line; do
+            if [[ ${line} =~ ^${project_name}_${containers[$i]}_ ]]; then
+                cmd=$(echo ${line} | cut -d " " -f2)
+                state=$(echo ${line} | cut -d " " -f3)
+                port=$(echo ${line} | cut -d " " -f4)
+                break
+            fi
+        done < "${TOYBOX_HOME}/tmp/ps_${fqdn}.txt"
+
+        #echo "[Container - toybox_${containers[$i]}_1]"
+        echo "[Container]"
+        printf "%-${width_col1}" "Name:"; echo "${project_name}_${containers[$i]}_1"
+        #printf "%-${width_col1}" "Base image:"; echo ${images[$i]}
+        #printf "%-${width_col1}" "Command:"; echo ${cmd}
+        #printf "%-${width_col1}" "IP Address:"; echo $(__get_ip ${containers[$i]})
+        #printf "%-${width_col1}" "Port:"; echo ${port}
+        #printf "%-${width_col1}" "State:"; echo ${state}
 
         tmp=$(echo ${components["toybox_${containers[$i]}_1"]})
         comps=( ${tmp} )
+        echo "Component(s):"
+        #printf "%-${width_col1}" "Component(s):"; echo ${tmp}
         for ((n=0; n<${#comps[@]}; n++ )); do
-            printf "%-${width_col1}" ${comps[$n]}
+            printf "%-${width_col1}" "  "${comps[$n]}
             echo "v${component_version[${comps[$n]}]}"
         done
-        echo
+
+        comps_grep=$(echo ${tmp} | sed "s: : -e :g")
+        comps_regix=$(echo ${tmp} | sed 's: :_\\|:g')"_"
+        echo "Variable(s):"
+        keys=${!params[@]}; vals=${params[@]}
+        for ((n=0; n<${#params[@]}; n++ )); do
+            key=$(echo ${keys} | cut -d " " -f$((${n} + 1)))
+            val=$(echo ${vals} | cut -d " " -f$((${n} + 1)))
+            if echo ${key} | grep -e ${comps_grep} > /dev/null 2>&1; then
+                key_print=$(echo ${key} | sed -e "s:${comps_regix}::")
+                printf "%-${width_col1}" "  "${key_print^^}:
+                echo ${val}
+            fi
+        done; echo
+
     done
-
-    echo "[Paramater(s)]"
-    keys=${!params[@]}; vals=${params[@]}
-    for ((i=0; i<${#params[@]}; i++ )); do
-        key=$(echo ${keys^^} | cut -d " " -f$((${i} + 1)))
-        val=$(echo ${vals} | cut -d " " -f$((${i} + 1)))
-        printf "%-${width_col1}" ${key}:
-        echo ${val}
-    done; echo
-
-
 }
 
 function _ip() {
     for con in ${containers[@]}; do
-        echo "${con}: $(__get_ip ${con})"
+        echo "${con}:$(__get_ip ${con})"
     done
 }
 

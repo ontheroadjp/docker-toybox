@@ -41,7 +41,6 @@ function __build() {
     docker build -t toybox/redis:${redis_version} $TOYBOX_HOME/src/redis/${redis_version}
 }
 
-
 function __init() {
 
     __build

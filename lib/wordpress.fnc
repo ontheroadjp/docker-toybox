@@ -4,7 +4,7 @@
 clone=0
 
 containers=( ${fqdn}-${application} ${fqdn}-${application}-db )
-images=( toybox/wordpress toybox/mariadb )
+images=(toybox/wordpress toybox/mariadb)
 
 declare -A components=(
     ["${project_name}_${containers[0]}_1"]="apache php wordpress"

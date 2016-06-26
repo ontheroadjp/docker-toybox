@@ -1,28 +1,36 @@
 #!/bin/sh
 
-function __source() {
-    if [ ! -e ${src} ]; then
-        git clone https://github.com/jwilder/nginx-proxy.git ${src}
-    fi
-}
+containers=(${application}-nginx ${application}-docker-gen)
+images=( toybox/nginx jwilder/docker-gen )
+
+declare -A components=(
+    ["${project_name}_${containers[0]}_1"]="nginx"
+    ["${project_name}_${containers[1]}_1"]="docker-gen"
+)
+declare -A component_version=(
+    ['nginx']="1.9.15"
+    ['docker-gen']="n/a"
+)
+
+nginx_version=1.9
 
 function __build() {
-    docker build -t nutsp/nginx-proxy ${src}
+    docker build -t toybox/${application}:${nginx_version} $TOYBOX_HOME/src/nginx/${nginx_version}
 }
 
-containers=(${application}-nginx ${application}-docker-gen)
-#main_container=${application}-nginx
-#docker_gen_container=${application}-docker-gen
-
-src=${TOYBOX_HOME}/src/${application}
-
 function __init() {
+
+    __build
+
     mkdir -p ${app_path}/bin
+
+    uid=$(cat /etc/passwd | grep ^$(whoami) | cut -d : -f3)
+    gid=$(cat /etc/group | grep ^$(whoami) | cut -d: -f3)
+    
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
     restart: always
-    image: nginx:1.9
-    #image: nutsp/nginx-proxy
+    image: ${images[0]}:${nginx_version}
     volumes:
         - "/etc/localtime:/etc/localtime:ro"
         - "/tmp/nginx:/etc/nginx/conf.d"
@@ -31,7 +39,9 @@ ${containers[0]}:
     log_opt:
         max-size: "3m"
         max-file: "7"
-    #environment:
+    environment:
+        - TOYBOX_UID=${uid}
+        - TOYBOX_GID=${gid}
     #    - DOCKER_HOST=tcp://$(ip r | grep 'docker0' | awk '{print $9}'):2376
     #    - DOCKER_TLS_VERIFY=1
     ports:
@@ -39,7 +49,7 @@ ${containers[0]}:
         - "443:443"
 ${containers[1]}:
     restart: always
-    image: jwilder/docker-gen
+    image: ${images[1]}
     links:
         - ${containers[0]}
     volumes_from:

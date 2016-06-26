@@ -103,7 +103,7 @@ function __get_app_env() {
 function _new() {
     mkdir -p ${app_path}/bin
     __set_app_env TOYBOX_APP_ID $(echo $$)
-    __set_app_env TOYBOX_APP_NAME ${application}
+    __set_app_env TOYBOX_APPLICATION ${application}
     __init && {
         cd ${app_path}/bin
         docker-compose -p ${project_name} up -d && {
@@ -202,21 +202,92 @@ function _config() {
 
 function _ps() {
     cd ${app_path}/bin
-    docker-compose -p ${project_name} ps
+    docker-compose -p ${project_name} ps | tee $TOYBOX_HOME/tmp/ps_${fqdn}.txt
+}
+
+function _info() {
+
+    local width_col1="30s"
+
+    echo "[General]"
+    env_file=${app_path}/bin/.env
+    cat ${env_file} | while read line; do
+        key=$(echo $(echo ${line} | cut -d "=" -f1) | sed -e "s:^TOYBOX_::" )
+        val=$(echo ${line} | cut -d "=" -f2)
+        printf "%-${width_col1}" "$key:"
+        printf "%-${width_col1}" "$val"
+        printf "\n"
+    done;
+    printf "%-${width_col1}" "URL:"
+    printf "%-${width_col1}" "http://${fqdn}"
+    printf "\n"
+    printf "%-${width_col1}" "Number of container:"
+    printf "%-${width_col1}" "${#containers[@]}"
+    printf "\n"; echo
+
+    toybox "http://"${fqdn} ps > /dev/null 2>&1
+    for ((i=0; i<${#containers[@]}; i++ )); do
+
+        while read line; do
+            if [[ ${line} =~ ^${project_name}_${containers[$i]}_ ]]; then
+                cmd=$(echo ${line} | cut -d " " -f2)
+                state=$(echo ${line} | cut -d " " -f3)
+                port=$(echo ${line} | cut -d " " -f4)
+                break
+            fi
+        done < "${TOYBOX_HOME}/tmp/ps_${fqdn}.txt"
+
+        #echo "[Container - toybox_${containers[$i]}_1]"
+        echo "[Container]"
+        printf "%-${width_col1}" "Name:"; echo "${project_name}_${containers[$i]}_1"
+        #printf "%-${width_col1}" "Base image:"; echo ${images[$i]}
+        #printf "%-${width_col1}" "Command:"; echo ${cmd}
+        #printf "%-${width_col1}" "IP Address:"; echo $(__get_ip ${containers[$i]})
+        #printf "%-${width_col1}" "Port:"; echo ${port}
+        #printf "%-${width_col1}" "State:"; echo ${state}
+
+        tmp=$(echo ${components["toybox_${containers[$i]}_1"]})
+        comps=( ${tmp} )
+        echo "Component(s):"
+        #printf "%-${width_col1}" "Component(s):"; echo ${tmp}
+        for ((n=0; n<${#comps[@]}; n++ )); do
+            printf "%-${width_col1}" "  "${comps[$n]}
+            echo "v${component_version[${comps[$n]}]}"
+        done
+
+        comps_grep=$(echo ${tmp} | sed "s: : -e :g")
+        comps_regix=$(echo ${tmp} | sed 's: :_\\|:g')"_"
+        echo "Variable(s):"
+        keys=${!params[@]}; vals=${params[@]}
+        for ((n=0; n<${#params[@]}; n++ )); do
+            key=$(echo ${keys} | cut -d " " -f$((${n} + 1)))
+            val=$(echo ${vals} | cut -d " " -f$((${n} + 1)))
+            if echo ${key} | grep -e ${comps_grep} > /dev/null 2>&1; then
+                key_print=$(echo ${key} | sed -e "s:${comps_regix}::")
+                printf "%-${width_col1}" "  "${key_print^^}:
+                echo ${val}
+            fi
+        done; echo
+
+    done
 }
 
 function _ip() {
-    for container in ${containers[@]}; do
-        __is_container_exist ${container}; local exist=$(( ${exist} + $? ))
-        __is_container_running ${container}; local running=$(( ${running} + $? ))
-        if [ ${exist} -eq 0 ] && [ ${running} -eq 0 ]; then
-            echo -n "${container}: "
-            docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
-                $(docker ps | grep ${container}_1 | awk '{print $1}')
-        else
-            echo -n "${container}(not running)"
-        fi
+    for con in ${containers[@]}; do
+        echo "${con}:$(__get_ip ${con})"
     done
+}
+
+function __get_ip() {
+    container=$1
+    __is_container_exist ${container}; local exist=$(( ${exist} + $? ))
+    __is_container_running ${container}; local running=$(( ${running} + $? ))
+    if [ ${exist} -eq 0 ] && [ ${running} -eq 0 ]; then
+        docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
+            $(docker ps | grep ${container}_1 | awk '{print $1}')
+    else
+        echo -n "not running"
+    fi
 }
 
 function _applications() {
@@ -352,7 +423,7 @@ elif [ $# -eq 2 ]; then
             exit 1
         fi
 
-        application=$(__get_app_env TOYBOX_APP_NAME)
+        application=$(__get_app_env TOYBOX_APPLICATION)
         compose_file="${app_path}/bin/docker-compose.yml"
         src="$TOYBOX_HOME/src/${application}"
         

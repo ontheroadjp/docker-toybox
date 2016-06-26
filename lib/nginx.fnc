@@ -1,5 +1,19 @@
 #!/bin/sh
 
+containers=(
+    ${fqdn}-${application}
+)
+images=(
+    toybox/nginx
+)
+
+declare -A components=(
+    ["${project_name}_${containers[0]}_1"]="nginx"
+)
+declare -A component_version=(
+    ['nginx']="1.9.15"
+)
+
 nginx_version=1.9
 
 uid=""
@@ -27,7 +41,8 @@ function __init() {
     
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    image: toybox/${application}:${nginx_version}
+    #image: toybox/${application}:${nginx_version}
+    image: ${images[0]}:${nginx_version}
     volumes:
         - "${app_path}/data/nginx/docroot:/usr/share/nginx/html"
         - "${app_path}/data/nginx/conf:/etc/nginx"

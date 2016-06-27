@@ -1,12 +1,29 @@
 #!/bin/sh
 
+containers=( 
+    ${fqdn}-${application} 
+    ${fqdn}-${application}-db
+)
+images=(
+   toybox/lychee
+   toybox/mariadb
+)
+declare -A components=(
+    ["${project_name}_${containers[0]}_1"]="apache php lychee"
+    ["${project_name}_${containers[1]}_1"]="mariadb"
+)
+declare -A component_version=(
+    ['apache']="2.4.10 (Debian)"
+    ['php']="7.0.7"
+    ['lychee']="latest"
+    ['mariadb']="10.1.14"
+)
+
+mariadb_version="10.1.14"
 
 db_name=lychee
 db_user=lychee
 db_user_pass=lychee
-containers=( ${fqdn}-${application} ${fqdn}-${application}-db )
-
-mariadb_version="10.1.14"
 
 uid=""
 gid=""

@@ -1,80 +1,78 @@
 #!/bin/sh
 
-db_name=${app_name}
-db_user=${app_name}
-db_user_pass=${app_name}
+containers=(
+    ${fqdn}-${application}
+)
+images=(
+    toybox/nginx
+)
+
+declare -A components=(
+    ["${project_name}_${containers[0]}_1"]="nginx"
+)
+declare -A component_version=(
+    ['nginx']="1.9.15"
+)
+
+nginx_version=1.9
 
 uid=""
 gid=""
 
-php_version="5.6.22-apache"
-mariadb_version="10.1.14"
-
-containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-db )
-
 function __build() {
-    #docker build -t nutsp/${app_name}:${php_version} $TOYBOX_HOME/src/${app_name}/${php_version}
-    docker build -t toybox/${app_name}:${php_version} $TOYBOX_HOME/src/php/${php_version}
+    docker build -t toybox/${application}:${nginx_version} $TOYBOX_HOME/src/${application}/${nginx_version}
 }
+
+containers=( \
+   #${fqdn}-${application}-${nginx_version} 
+   ${fqdn}-${application}
+)
 
 function __init() {
 
+    __build
+
     mkdir -p ${app_path}/bin
-    mkdir -p ${app_path}/data/apache2/docroot
-    mkdir -p ${app_path}/data/apache2/conf
+    mkdir -p ${app_path}/data/nginx/docroot
+    mkdir -p ${app_path}/data/nginx/conf
 
     uid=$(cat /etc/passwd | grep ^$(whoami) | cut -d : -f3)
     gid=$(cat /etc/group | grep ^$(whoami) | cut -d: -f3)
     
-    __build
-
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    image: toybox/${app_name}:${php_version}
-    #volumes:
-        #- ${app_path}/data/apache2/docroot:/var/www/html
-        #- ${app_path}/data/apache2/conf:/etc/apache2
-    links:
-        - ${containers[1]}:mariadb
+    #image: toybox/${application}:${nginx_version}
+    image: ${images[0]}:${nginx_version}
+    volumes:
+        - "${app_path}/data/nginx/docroot:/usr/share/nginx/html"
+        - "${app_path}/data/nginx/conf:/etc/nginx"
     environment:
         - VIRTUAL_HOST=${fqdn}
         - TOYBOX_UID=${uid}
         - TOYBOX_GID=${gid}
+        - TIMEZONE=${timezone}
     ports:
         - "80"
-
-${containers[1]}:
-    image: mariadb:${mariadb_version}
-    #image: mariadb
-    volumes:
-        - ${app_path}/data/mysql:/var/lib/mysql
-    #volumes_from:
-    #    - ${data_container}
-    environment:
-        MYSQL_ROOT_PASSWORD: root
-        TOYBOX_UID: ${uid}
-        TOYBOX_GID: ${gid}
-        TERM: xterm
-
-#${data_container}:
-#    image: busybox
-#    volumes:
-#        - ${app_path}/data/apache2/docroot:/var/www/html
-#        - ${app_path}/data/apache2/conf:/etc/apache2
-#        - ${app_path}/data/mysql:/var/lib/mysql
 EOF
 }
 
 #function __new() {
+#    #__source; local status=$?
+#    #if [ ${status} -ne 0 ]; then
+#    #    echo ${project_name}": source code of ${application} does not download."
+#    #    exit 1
+#    #fi
+#
 #    __init && {
 #        cd ${app_path}/bin
 #        docker-compose -p ${project_name} up -d && {
 #            echo '---------------------------------'
 #            echo 'URL: http://'${fqdn}
+#            echo 'WebDAV: http://'${fqdn}'/remote.php/webdav/'
 #            echo '---------------------------------'
-#            echo -n 'Database Host: '
-#            docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
-#                $(docker ps | grep ${db_container}_1 | awk '{print $1}')
+#            #echo -n 'Database Host: '
+#            #docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
+#            #    $(docker ps | grep ${project_name}_${db_container}_1 | awk '{print $1}')
 #            echo 'Database Username: '${db_user}
 #            echo 'Database Password: '${db_user_pass}
 #        }
@@ -92,7 +90,7 @@ EOF
 #    docker run --rm --volumes-from $(docker ps -a | grep ${project_name}_${data_container}_1 | awk '{print $1}') -v ${app_path}/backup:/backup busybox tar cvzf /backup/${prefix}_db.tar.gz /var/lib/mysql
 #    docker run --rm --volumes-from $(docker ps -a | grep ${project_name}_${main_container}_1 | awk '{print $1}') -v ${app_path}/backup:/backup busybox tar cvzf /backup/${prefix}.tar.gz /var/www/html
 #}
-
+#
 #function __restore() {
 #    prefix=$(cat ${app_path}/backup/history.txt | peco)
 #    docker run --rm --volumes-from $(docker ps -a | grep ${project_name}_${data_container}_1 | awk '{print $1}') -v ${app_path}/backup:/backup busybox tar xvzf /backup/${prefix}_db.tar.gz

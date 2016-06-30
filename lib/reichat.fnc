@@ -5,18 +5,9 @@ db_user=${application}
 db_user_pass=${application}
 containers=( ${fqdn}-${application} )
 
-function __source() {
-    if [ ! -e ${src} ]; then
-        #git clone https://github.com/docker-library/wordpress.git ${src}
-        :
-    fi
-}
-
 function __build(){
-   docker build -t nutsp/reichat ${src} 
+   docker build -t toybox/reichat ${src} 
 }
-
-
 
 function __init() {
 
@@ -40,17 +31,6 @@ ${containers[0]}:
 #        - ${app_path}/data/mysql:/var/lib/mysql
 EOF
 }
-
-#function __new() {
-#    __init && {
-#        cd ${app_path}/bin
-#        docker-compose -p ${project_name} up -d && {
-#            echo '---------------------------------'
-#            echo 'URL: http://'${fqdn}
-#            echo '---------------------------------'
-#        }
-#    }
-#}
 
 #function __backup() {
 #    prefix=$(date '+%Y%m%d_%H%M%S')

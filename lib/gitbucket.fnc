@@ -1,68 +1,63 @@
 #!/bin/sh
 
-db_name=${application}
-db_user=${application}
-db_user_pass=${application}
+containers=(
+    ${fqdn}-${application}
+)
+images=(
+   toybox/gitbucket
+   busybox
+)
+data_containers=(
+    ${fqdn}-${application}-data
+)
+
+declare -A components=(
+    ["${project_name}_${containers[0]}_1"]="openJDK"
+)
+declare -A component_version=(
+    ['openJDK']="1.8.0_92-internal"
+)
+
+gitbucket_version="4.1.0"
+busybox_version="buildroot-2014.02"
 
 uid=""
 gid=""
 
-php_version="5.6.22-apache"
-mariadb_version="10.1.14"
-
-containers=( ${fqdn}-${application} ${fqdn}-${application}-db )
-
 function __build() {
-    docker build -t toybox/${application}:${php_version} $TOYBOX_HOME/src/${application}/${php_version}
+    docker build -t toybox/gitbucket:${gitbucket_version} $TOYBOX_HOME/src/${application}/${gitbucket_version}
 }
 
 function __init() {
 
+    __build
+
     mkdir -p ${app_path}/bin
-    mkdir -p ${app_path}/data/apache2/docroot
-    mkdir -p ${app_path}/data/apache2/conf
-    mkdir -p ${app_path}/data/php
+    mkdir -p ${app_path}/data/gitbucket
 
     uid=$(cat /etc/passwd | grep ^$(whoami) | cut -d : -f3)
     gid=$(cat /etc/group | grep ^$(whoami) | cut -d: -f3)
     
-    __build
-
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    image: toybox/${application}:${php_version}
-    volumes:
-        - ${app_path}/data/apache2/docroot:/var/www/html
-        - ${app_path}/data/apache2/conf:/etc/apache2
-        - ${app_path}/data/php:/usr/local/etc/php
-    links:
-        - ${containers[1]}:mariadb
+    image: ${images[0]}:${gitbucket_version}
     environment:
         - VIRTUAL_HOST=${fqdn}
+        - VIRTUAL_PORT=8080
         - TOYBOX_UID=${uid}
         - TOYBOX_GID=${gid}
-    ports:
-        - "80"
-
-${containers[1]}:
-    image: toybox/mariadb:${mariadb_version}
-    #image: mariadb
+    volumes_from:
+        - ${containers[1]}
     volumes:
-        - ${app_path}/data/mysql:/var/lib/mysql
-    #volumes_from:
-    #    - ${data_container}
-    environment:
-        MYSQL_ROOT_PASSWORD: root
-        TOYBOX_UID: ${uid}
-        TOYBOX_GID: ${gid}
-        TERM: xterm
+        - "/etc/localtime:/etc/localtime:ro"
+    ports:
+        - "29418:29418"
+        - "8080"
 
-#${data_container}:
-#    image: busybox
-#    volumes:
-#        - ${app_path}/data/apache2/docroot:/var/www/html
-#        - ${app_path}/data/apache2/conf:/etc/apache2
-#        - ${app_path}/data/mysql:/var/lib/mysql
+${data_containers[0]}:
+    image: ${images[1]}:${busybox_version}
+    volumes:
+        - "${app_path}/data/gitbucket:/gitbucket"
 EOF
 }
 
@@ -77,7 +72,7 @@ EOF
 #    docker run --rm --volumes-from $(docker ps -a | grep ${project_name}_${data_container}_1 | awk '{print $1}') -v ${app_path}/backup:/backup busybox tar cvzf /backup/${prefix}_db.tar.gz /var/lib/mysql
 #    docker run --rm --volumes-from $(docker ps -a | grep ${project_name}_${main_container}_1 | awk '{print $1}') -v ${app_path}/backup:/backup busybox tar cvzf /backup/${prefix}.tar.gz /var/www/html
 #}
-
+#
 #function __restore() {
 #    prefix=$(cat ${app_path}/backup/history.txt | peco)
 #    docker run --rm --volumes-from $(docker ps -a | grep ${project_name}_${data_container}_1 | awk '{print $1}') -v ${app_path}/backup:/backup busybox tar xvzf /backup/${prefix}_db.tar.gz

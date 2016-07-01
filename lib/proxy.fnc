@@ -23,6 +23,8 @@ function __init() {
     __build
 
     mkdir -p ${app_path}/bin
+    mkdir -p ${app_path}/data/nginx/conf.d
+
 
     uid=$(cat /etc/passwd | grep ^$(whoami) | cut -d : -f3)
     gid=$(cat /etc/group | grep ^$(whoami) | cut -d: -f3)
@@ -33,7 +35,8 @@ ${containers[0]}:
     image: ${images[0]}:${nginx_version}
     volumes:
         - "/etc/localtime:/etc/localtime:ro"
-        - "/tmp/nginx:/etc/nginx/conf.d"
+        #- "/tmp/nginx:/etc/nginx/conf.d"
+        - "${app_path}/data/nginx/conf.d:/etc/nginx/conf.d"
         - "${src}/nginx/certs:/etc/nginx/certs"
     log_driver: "json-file"
     log_opt:

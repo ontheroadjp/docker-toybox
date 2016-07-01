@@ -12,7 +12,7 @@ uid=""
 gid=""
 
 function __build() {
-    docker build -t toybox/lychee $TOYBOX_HOME/src/lychee
+    docker build -t toybox/lychee $TOYBOX_HOME/src/php-apache/lychee
     docker build -t toybox/mariadb:${mariadb_version} $TOYBOX_HOME/src/mariadb/${mariadb_version}
 }
 

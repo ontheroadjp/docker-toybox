@@ -1,0 +1,80 @@
+#!/bin/sh
+
+set -e
+
+sub_domain="test"
+domain="test.com"
+application=""
+fqdn=${sub_domain}.${domain}
+url="http://${fqdn}"
+app_path=${TOYBOX_HOME}/stack/${domain}/${sub_domain}
+
+function __new() {
+    toybox -s ${sub_domain} -d ${domain} ${application} new
+}
+
+function __down() {
+    toybox ${url} down
+}
+
+function __clear() {
+    rm -rf ${TOYBOX_HOME}/stack/${domain}
+}
+
+cons=()
+ips=()
+
+function __test_images() {
+    echo ">>> TEST Images"
+    for i in "${images[@]}"; do
+        if docker images | cut -d " " -f1 | grep -w "${i}" > /dev/null 2>&1; then
+            echo "${i} OK"
+        else
+            echo "${i} NG"
+        fi
+    done
+}
+
+function __test_containers() {
+
+    echo ">>> TEST Containers"
+        
+    # get Container(s) and IP Address(s)
+    while [ ${#containers[@]} -ne ${#ips[@]} ]; do
+        sleep 3
+        tmp=($(toybox ${url} ip))
+        for i in "${tmp[@]}"; do
+            cons+=($(echo $i | cut -d ":" -f1))
+            ips+=($(echo $i | cut -d ":" -f2))
+        done
+    done
+
+    # ping test
+    local num=3
+    if [ ${#ips[@]} -ne 0 ]; then
+        for i in "${ips[@]}"; do
+            if ping -c ${num} $i | grep "${num} packets transmitted, ${num} received, 0% packet loss," > /dev/null 2>&1; then
+                echo "ping(${i}) OK"
+            else
+                echo "ping(${i}) NG"
+            fi
+        done
+    fi
+}
+
+function __main() {
+    __new $@ && {
+        __test_images && echo
+        __test_containers && echo
+    }
+
+    echo ">>> CLEAN UP"
+    __down && __clear && echo
+}
+
+application=$1
+. $TOYBOX_HOME/lib/${application}.fnc
+
+__main $@
+
+exit 0

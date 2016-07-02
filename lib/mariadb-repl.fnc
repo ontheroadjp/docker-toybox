@@ -1,31 +1,18 @@
 #!/bin/sh
 
-containers=(
-    ${fqdn}-${application}
-)
-images=(
-    toybox/nginx
-)
-
-declare -A components=(
-    ["${project_name}_${containers[0]}_1"]="nginx"
-)
-declare -A component_version=(
-    ['nginx']="1.9.15"
-)
-
-nginx_version=1.9
+mariadb_version=10.1.14
+db_root_password=root
 
 uid=""
 gid=""
 
 function __build() {
-    docker build -t toybox/${application}:${nginx_version} $TOYBOX_HOME/src/${application}/${nginx_version}
+    docker build -t toybox/${application}:${mariadb_version} $TOYBOX_HOME/src/${application}/${mariadb_version}
 }
 
 containers=( \
-   #${fqdn}-${application}-${nginx_version} 
-   ${fqdn}-${application}
+   ${application}-${mariadb_version}-master
+   ${application}-${mariadb_version}-slave
 )
 
 function __init() {
@@ -33,26 +20,41 @@ function __init() {
     __build
 
     mkdir -p ${app_path}/bin
-    mkdir -p ${app_path}/data/nginx/docroot
-    mkdir -p ${app_path}/data/nginx/conf
+    mkdir -p ${app_path}/data/master
+    mkdir -p ${app_path}/data/slave
 
     uid=$(cat /etc/passwd | grep ^$(whoami) | cut -d : -f3)
     gid=$(cat /etc/group | grep ^$(whoami) | cut -d: -f3)
     
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    #image: toybox/${application}:${nginx_version}
-    image: ${images[0]}:${nginx_version}
+    image: toybox/${application}:${mariadb_version}
     volumes:
-        - "${app_path}/data/nginx/docroot:/usr/share/nginx/html"
-        - "${app_path}/data/nginx/conf:/etc/nginx"
+        - ${app_path}/data/master:/var/lib/mysql
+        - /etc/localtime:/etc/localtime:ro
     environment:
-        - VIRTUAL_HOST=${fqdn}
+        - MYSQL_ROOT_PASSWORD=${db_root_password}
+        - TERM=xterm
+        - SERVER_TYPE=master
         - TOYBOX_UID=${uid}
         - TOYBOX_GID=${gid}
-        - TIMEZONE=${timezone}
     ports:
-        - "80"
+        - "3306"
+${containers[1]}:
+    image: toybox/${application}:${mariadb_version}
+    volumes:
+        - ${app_path}/data/slave:/var/lib/mysql
+        - /etc/localtime:/etc/localtime:ro
+    links:
+        - ${containers[0]}:master
+    environment:
+        - MYSQL_ROOT_PASSWORD=${db_root_password}
+        - TERM=xterm
+        - SERVER_TYPE=slave
+        - TOYBOX_UID=${uid}
+        - TOYBOX_GID=${gid}
+    ports:
+        - "3306"
 EOF
 }
 

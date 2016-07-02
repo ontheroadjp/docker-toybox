@@ -2,43 +2,47 @@
 
 containers=(
     ${fqdn}-${application}
-    ${fqdn}-${application}-mariadb
-    ${fqdn}-${application}-redis
+    ${fqdn}-${application}-db
 )
 images=(
-   toybox/owncloud
+   toybox/gitbucket
    toybox/mariadb
-   toybox/redis
+)
+data_containers=(
+    ${fqdn}-${application}-data
+)
+data_images=(
+    busybox
 )
 
 declare -A components=(
-    ["${project_name}_${containers[0]}_1"]="apache php owncloud"
+    ["${project_name}_${containers[0]}_1"]="gitbucket openJDK"
     ["${project_name}_${containers[1]}_1"]="mariadb"
-    ["${project_name}_${containers[1]}_1"]="redis"
 )
 declare -A component_version=(
-    ['apache']="2.4.10"
-    ['php']="5.6.22"
-    ['owncloud']="9.0.2"
+    ['gitbucket']="4.1.0"
+    ['openJDK']="1.8.0_92-internal"
     ['mariadb']="10.1.14"
-    ['redis']="3.2.0"
 )
 
-db_name=${application}
-db_user=${application}
-db_user_pass=${application}
+db_root_password="root"
+db_name="toybox_gitbucket"
+db_user="toybox"
+db_password="toybox"
+db_table_prefix="tb_gitbucket_"
+db_alias="mysql"
+docroot="/var/www/html"
 
-owncloud_version="9.0.2-apache"
+gitbucket_version="4.1.0"
 mariadb_version="10.1.14"
-redis_version="3.2.0-alpine"
+busybox_version="buildroot-2014.02"
 
 uid=""
 gid=""
 
 function __build() {
-    docker build -t toybox/owncloud:${owncloud_version} $TOYBOX_HOME/src/owncloud/${owncloud_version}
-    docker build -t toybox/mariadb:${mariadb_version} $TOYBOX_HOME/src/mariadb/${mariadb_version}
-    docker build -t toybox/redis:${redis_version} $TOYBOX_HOME/src/redis/${redis_version}
+    docker build -t ${images[0]}:${gitbucket_version} $TOYBOX_HOME/src/${application}/${gitbucket_version}
+    docker build -t ${images[1]}:${mariadb_version} $TOYBOX_HOME/src/mariadb/${mariadb_version}
 }
 
 function __init() {
@@ -46,60 +50,57 @@ function __init() {
     __build
 
     mkdir -p ${app_path}/bin
-    mkdir -p ${app_path}/data/owncloud/config
-    mkdir -p ${app_path}/data/owncloud/data
+    mkdir -p ${app_path}/data/gitbucket
 
     uid=$(cat /etc/passwd | grep ^$(whoami) | cut -d : -f3)
     gid=$(cat /etc/group | grep ^$(whoami) | cut -d: -f3)
     
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    image: ${images[0]}:${owncloud_version}
+    image: ${images[0]}:${gitbucket_version}
     links:
-        - ${containers[1]}:mysql
-        - ${containers[2]}:redis
+        - ${containers[1]}:${db_alias}
     environment:
-    #    - security-opt=label:type:docker_t
         - VIRTUAL_HOST=${fqdn}
+        - VIRTUAL_PORT=8080
         - TOYBOX_UID=${uid}
         - TOYBOX_GID=${gid}
-        - TIMEZONE=${timezone}
+    volumes_from:
+        - ${data_containers[0]}
     volumes:
-    #    - "/etc/localtime:/etc/localtime:ro"
-        - ${app_path}/data/owncloud/config:/var/www/html/config
-        - ${app_path}/data/owncloud/data:/var/www/html/data
+        - "/etc/localtime:/etc/localtime:ro"
+    log_driver: "json-file"
+    log_opt:
+        max-size: "3m"
+        max-file: "7"
     ports:
-        - "40110"
+        - "29418:29418"
+        - "8080"
 
 ${containers[1]}:
-    #image: mariadb
     image: ${images[1]}:${mariadb_version}
     volumes:
-        - ${app_path}/data/mariadb:/var/lib/mysql
+        - "/etc/localtime:/etc/localtime:ro"
+    volumes_from:
+        - ${data_containers[0]}
+    log_driver: "json-file"
+    log_opt:
+        max-size: "3m"
+        max-file: "7"
     environment:
-    #    - "/etc/localtime:/etc/localtime:ro"
-    #    security-opt: label:type:docker_t
-        MYSQL_ROOT_PASSWORD: root
-        MYSQL_DATABASE: ${db_name}
-        MYSQL_USER: ${db_user}
-        MYSQL_PASSWORD: ${db_user_pass}
-        TOYBOX_UID: ${uid}
-        TOYBOX_GID: ${gid}
-        TERM: xterm
-        TIMEZONE: ${timezone}
+        - MYSQL_ROOT_PASSWORD=${db_root_password}
+        - MYSQL_DATABASE=${db_name}
+        - MYSQL_USER=${db_user}
+        - MYSQL_PASSWORD=${db_password}
+        - TERM=xterm
+        - TOYBOX_UID=${uid}
+        - TOYBOX_GID=${gid}
 
-${containers[2]}:
-    image: ${images[2]}:${redis_version}
-    environment:
-        - TIMEZONE=${timezone}
-    #volumes:
-    #    - "/etc/localtime:/etc/localtime:ro"
-
-#${data_container}:
-#    image: busybox
-#    volumes:
-#        - /var/www/html
-#        - /var/lib/mysql
+${data_containers[0]}:
+    image: ${data_images[0]}:${busybox_version}
+    volumes:
+        - "${app_path}/data/gitbucket:/gitbucket"
+        - "${app_path}/data/mariadb:/var/lib/mysql"
 EOF
 }
 

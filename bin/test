@@ -1,6 +1,10 @@
 #!/bin/sh
-
 set -e
+
+. $TOYBOX_HOME/core/test_images.fnc
+. $TOYBOX_HOME/core/test_containers.fnc
+. $TOYBOX_HOME/core/test_process.fnc
+. $TOYBOX_HOME/core/test_volumes.fnc
 
 sub_domain="test"
 domain="test.com"
@@ -33,46 +37,6 @@ function __clear() {
 cons=()
 ips=()
 
-function __test_images() {
-    echo ">>> TEST Images"
-    for i in "${images[@]}"; do
-        printf "${i}..." && (( tests++ ))
-        if docker images | cut -d " " -f1 | grep -w "${i}" > /dev/null 2>&1; then
-            printf "\033[1;32m%-10s\033[0m" "OK" && printf "\n" && (( success++ ))
-        else
-            printf "\033[1;31m%-10s\033[0m" "NG" && pfintf "\n" && (( failed++ ))
-        fi
-    done
-}
-
-function __test_containers() {
-
-    echo ">>> TEST Containers"
-        
-    # get Container(s) and IP Address(s)
-    while [ ${#containers[@]} -ne ${#ips[@]} ]; do
-        sleep 3
-        tmp=($(toybox ${url} ip))
-        for i in "${tmp[@]}"; do
-            cons+=($(echo $i | cut -d ":" -f1))
-            ips+=($(echo $i | cut -d ":" -f2))
-        done
-    done
-
-    # ping test
-    local num=3
-    if [ ${#ips[@]} -ne 0 ]; then
-        for i in "${ips[@]}"; do
-            printf "ping(${i})..." && (( tests++ ))
-            if ping -c ${num} $i | grep "${num} packets transmitted, ${num} received, 0% packet loss," > /dev/null 2>&1; then
-                printf "\033[1;32m%-10s\033[0m" "OK" && printf "\n" && (( success++ ))
-            else
-                printf "\033[1;31m%-10s\033[0m" "NG" && "\n" && (( failed++ ))
-            fi
-        done
-    fi
-}
-
 function __main() {
     test_cases=(
         __test_images
@@ -100,12 +64,15 @@ function __main() {
 }
 
 application=$1
-. $TOYBOX_HOME/lib/${application}.fnc
+if [ ! -f $TOYBOX_HOME/lib/${application}.fnc ]; then
+    echo "bad argument(s)."
+    exit 1
+fi
 
 if [ -f $TOYBOX_HOME/lib/${application}_test.fnc ]; then
     . $TOYBOX_HOME/lib/${application}_test.fnc
 fi
- 
+. $TOYBOX_HOME/lib/${application}.fnc
 
 __main $@
 

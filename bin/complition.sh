@@ -6,9 +6,14 @@ __toyboxcomplete() {
 	cur=${COMP_WORDS[COMP_CWORD]}
 	prev=${COMP_WORDS[COMP_CWORD-1]}
 
-    local files="$TOYBOX_HOME/lib/*.fnc"
+
+    local files=()
+    for i in $TOYBOX_HOME/lib/*.fnc; do
+        files+=($(echo ${i} | grep -v _test.fnc))
+    done
+
     local applist=''
-    for path in ${files}; do
+    for path in "${files[@]}"; do
         applist="${applist} $(echo $path | sed "s:^${TOYBOX_HOME}/lib/::" | sed "s/\.fnc$//")"
     done
     

@@ -9,6 +9,15 @@ fqdn=${sub_domain}.${domain}
 url="http://${fqdn}"
 app_path=${TOYBOX_HOME}/stack/${domain}/${sub_domain}
 
+tests=0
+success=0
+failed=0
+
+function __is_executable() {
+    local command="$1"
+    type "${command}" > /dev/null 2>&1
+}
+
 function __new() {
     toybox -s ${sub_domain} -d ${domain} ${application} new
 }
@@ -27,10 +36,11 @@ ips=()
 function __test_images() {
     echo ">>> TEST Images"
     for i in "${images[@]}"; do
+        printf "${i}..." && (( tests++ ))
         if docker images | cut -d " " -f1 | grep -w "${i}" > /dev/null 2>&1; then
-            echo "${i} OK"
+            printf "\033[1;32m%-10s\033[0m" "OK" && printf "\n" && (( success++ ))
         else
-            echo "${i} NG"
+            printf "\033[1;31m%-10s\033[0m" "NG" && pfintf "\n" && (( failed++ ))
         fi
     done
 }
@@ -53,27 +63,49 @@ function __test_containers() {
     local num=3
     if [ ${#ips[@]} -ne 0 ]; then
         for i in "${ips[@]}"; do
+            printf "ping(${i})..." && (( tests++ ))
             if ping -c ${num} $i | grep "${num} packets transmitted, ${num} received, 0% packet loss," > /dev/null 2>&1; then
-                echo "ping(${i}) OK"
+                printf "\033[1;32m%-10s\033[0m" "OK" && printf "\n" && (( success++ ))
             else
-                echo "ping(${i}) NG"
+                printf "\033[1;31m%-10s\033[0m" "NG" && "\n" && (( failed++ ))
             fi
         done
     fi
 }
 
 function __main() {
+    test_cases=(
+        __test_images
+        __test_containers
+        __test_process
+        __test_links
+        __test_volumes
+    )
+
     __new $@ && {
-        __test_images && echo
-        __test_containers && echo
+        for i in ${test_cases[@]}; do
+            if __is_executable ${i}; then
+                ${i}
+            fi && echo
+        done
     }
+
 
     echo ">>> CLEAN UP"
     __down && __clear && echo
+
+    echo "tests: ${tests}"
+    echo "success: ${success}"
+    echo "failed: ${failed}"
 }
 
 application=$1
 . $TOYBOX_HOME/lib/${application}.fnc
+
+if [ -f $TOYBOX_HOME/lib/${application}_test.fnc ]; then
+    . $TOYBOX_HOME/lib/${application}_test.fnc
+fi
+ 
 
 __main $@
 

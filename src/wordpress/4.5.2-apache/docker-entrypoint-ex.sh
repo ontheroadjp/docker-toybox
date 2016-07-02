@@ -27,4 +27,7 @@ sed -i -e "$ i ${replace_fqdn_cmd}" /entrypoint.sh
 sed -i -e "$ i ${replace_docroot_cmd}" /entrypoint.sh
 sed -i -e "$ i ${fi}" /entrypoint.sh
 
+echo "post_max_size = 32M" >> /usr/local/etc/php/php.ini
+echo "upload_max_filesize = 32M" >> /usr/local/etc/php/php.ini
+
 exec /entrypoint.sh apache2-foreground

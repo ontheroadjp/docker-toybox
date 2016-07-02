@@ -1,8 +1,13 @@
 #!/bin/sh
 #set -eu
 
-containers=( ${fqdn}-${application} )
-images=( toybox/jenkins )
+containers=( 
+    ${fqdn}-${application} 
+)
+images=( 
+    toybox/jenkins 
+)
+
 jenkins_version="1.651.3"
 
 uid=""
@@ -30,7 +35,8 @@ function __init() {
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
     image: ${images[0]}:${jenkins_version}
-    user: jenkins
+    #user: jenkins
+    privileged: true
     log_driver: "json-file"
     log_opt:
         max-size: "3m"

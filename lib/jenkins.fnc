@@ -21,6 +21,11 @@ function __build() {
     docker build -t toybox/jenkins:${jenkins_version} ${src}/${jenkins_version}
 }
 
+function __post_run() {
+    id=$(docker ps | tail -n +2 | grep "${containers[0]}" | cut -d" " -f1)
+    docker exec -it ${id} sh /post-run.sh
+}
+
 function __init() {
 
     __build

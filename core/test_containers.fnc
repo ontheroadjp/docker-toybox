@@ -17,7 +17,7 @@ function __test_containers() {
             cons+=($(echo $i | cut -d ":" -f1))
             ips+=($(echo $i | cut -d ":" -f2))
         done
-        if [ ${timeout} mt 60 ]; then
+        if [ ${timeout} -gt 60 ]; then
             echo "timeout"
             exit 1
         fi

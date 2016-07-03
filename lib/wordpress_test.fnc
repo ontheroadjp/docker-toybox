@@ -79,47 +79,6 @@ dirs=(
 )
 
 
-function __test_process() {
-    count=0
-    for i in ${containers[@]}; do
-        if [ ${count} -gt 0 ]; then
-            echo
-        fi
-
-        local id=$(docker ps | grep "toybox_${i}_" | cut -d " " -f1)
-        echo ">>> TEST Process(${i}:${id})"
-
-        local timeout=0
-        while ! docker exec -it ${id} ps aux | grep "${process[${count}]}" > /dev/null 2>&1; do
-            echo ${process[${count}]}
-            sleep 3 && (( timeout+=3 ))
-            if [ ${timeout} -gt 60 ]; then
-                echo "Timeout!"
-                exit 0
-            fi
-        done
-            
-        docker exec -t ${id} ps aux | grep "${process[${count}]}" && {
-        printf "running..." && (( tests++ ))
-            if [ $? -eq 0 ]; then
-                printf "\033[1;32m%-10s\033[0m" "OK" && printf "\n" && (( success++ ))
-            else
-                printf "\033[1;31m%-10s\033[0m" "NG" && printf "\n" && (( failed++ ))
-            fi
-        }
-
-        printf "user(${process_user[${count}]})..." && (( tests++ ))
-        docker exec -t ${id} ps aux | grep "${process_user[${count}]}" > /dev/null 2>&1 && {
-            if [ $? -eq 0 ]; then
-                printf "\033[1;32m%-10s\033[0m" "OK" && printf "\n" && (( success++ ))
-            else
-                printf "\033[1;31m%-10s\033[0m" "NG" && printf "\n" && (( failed++ ))
-            fi
-        }
-        (( count++ ))
-    done 
-}
-
 function __test_links() {
     local id=$(docker ps | grep "toybox_${containers[0]}_" | cut -d " " -f1)
     echo ">>> TEST links"
@@ -131,29 +90,5 @@ function __test_links() {
             printf "\033[1;31m%-10s\033[0m" "NG" && printf "\n" && (( failed++ ))
         fi
     }
-}
-
-function __test_volumes() {
-    echo ">>> TEST Volumes(files)"
-    for i in ${files[@]}; do
-        printf $(echo ${i} | sed -e "s:$TOYBOX_HOME:\$TOYBOX_HOME:")"..." && (( tests++ ))
-        if [ -f ${i} ]; then
-            printf "\033[1;32m%-10s\033[0m" "OK" && printf "\n" && (( success++ ))
-        else
-            printf "\033[1;31m%-10s\033[0m" "NG" && printf "\n" && (( failed++ ))
-        fi
-    done
-
-    echo
-
-    echo ">>> TEST Volumes(directories)"
-    for i in ${dirs[@]}; do
-        printf $(echo ${i} | sed -e "s:$TOYBOX_HOME:\$TOYBOX_HOME:")"..." && (( tests++ ))
-        if [ -d ${i} ]; then
-            printf "\033[1;32m%-10s\033[0m" "OK" && printf "\n" && (( success++ ))
-        else
-            printf "\033[1;31m%-10s\033[0m" "NG" && printf "\n" && (( failed++ ))
-        fi
-    done
 }
 

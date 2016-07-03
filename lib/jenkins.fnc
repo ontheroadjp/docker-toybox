@@ -55,6 +55,7 @@ ${containers[0]}:
         - ${app_path}/data/jenkins:/var/jenkins_home
         - /var/run/docker.sock:/var/run/docker.sock
         - $(which docker):/bin/docker
+        - $(which docker-compose):/bin/docker-compose
         - /usr/lib64/libdevmapper.so.1.02:/usr/lib/x86_64-linux-gnu/libdevmapper.so.1.02
     ports:
         - "8080"

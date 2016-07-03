@@ -9,13 +9,18 @@ function __test_containers() {
     echo ">>> TEST Containers"
         
     # get Container(s) and IP Address(s)
+    timeout=0
     while [ ${#containers[@]} -ne ${#ips[@]} ]; do
-        sleep 3
+        sleep 3 && ((timeout+=3))
         tmp=($(toybox ${url} ip))
         for i in "${tmp[@]}"; do
             cons+=($(echo $i | cut -d ":" -f1))
             ips+=($(echo $i | cut -d ":" -f2))
         done
+        if [ ${timeout} mt 60 ]; then
+            echo "timeout"
+            exit 1
+        fi
     done
 
     # ping test

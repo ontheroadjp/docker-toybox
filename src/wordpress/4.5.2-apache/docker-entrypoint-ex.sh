@@ -1,10 +1,12 @@
 #!/bin/bash
 set -e
 
-usermod -u ${TOYBOX_UID} www-data
-groupmod -g ${TOYBOX_GID} www-data
-chown -R www-data:root /var/run/apache2/
-chown -R www-data:www-data /usr/src/wordpress
+if [ ${TOYBOX_UID} -ne 0 ] || [ ${TOYBOX_GID} -ne 0 ]; then
+    usermod -u ${TOYBOX_UID} www-data
+    groupmod -g ${TOYBOX_GID} www-data
+    chown -R www-data:root /var/run/apache2/
+    chown -R www-data:www-data /usr/src/wordpress
+fi
 
 script="${DOCROOT}/Search-Replace-DB/srdb.cli.php"
 h=${MYSQL_PORT_3306_TCP_ADDR}

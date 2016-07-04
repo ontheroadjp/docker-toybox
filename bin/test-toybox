@@ -51,9 +51,12 @@ function _test() {
         fi && echo
     done
 
+    echo "----------------------------------------------------"
     echo "tests: ${tests}"
     echo "success: ${success}"
     echo "failed: ${failed}"
+    echo "----------------------------------------------------"
+    echo
 }
 
 function main() {

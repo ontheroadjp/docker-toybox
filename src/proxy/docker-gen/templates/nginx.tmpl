@@ -127,6 +127,7 @@ server {
 {{ end }}
 
 {{ range $host, $containers := groupByMulti $ "Env.VIRTUAL_HOST" "," }}
+
 # ------------------------------------
 # Virtual host settings for {{ $host }}
 # ------------------------------------
@@ -187,7 +188,6 @@ server {
 }
 {{ end }}
 
-
 server {
 	server_name {{ $host }};
 	listen 443 ssl http2 {{ $default_server }};
@@ -216,6 +216,10 @@ server {
 	{{ end }}
 
     client_max_body_size 20M;
+    proxy_connect_timeout       600;
+    proxy_send_timeout          600;
+    proxy_read_timeout          600;
+    send_timeout                600;
 
 	location / {
 		proxy_pass {{ trim $proto }}://{{ trim $host }};
@@ -236,6 +240,17 @@ server {
         include /etc/nginx/vhost.d/default_location;
         {{ end }}
 	}
+
+
+    {{ $php_fpm := or (first (groupByKeys $containers "Env.PHP_FPM")) "" }}
+    {{ if ($php_fpm) }}
+    location ~ \.php$ {
+        fastcgi_pass php:9000;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME  $document_root$fastcgi_script_name;
+        include       fastcgi_params;
+    }
+    {{ end }}
 }
 
 {{ end }}
@@ -253,7 +268,11 @@ server {
 	include /etc/nginx/vhost.d/default;
 	{{ end }}
 
-    client_max_body_size 20M;
+    client_max_body_size        20M;
+    proxy_connect_timeout       600;
+    proxy_send_timeout          600;
+    proxy_read_timeout          600;
+    send_timeout                600;
 
 	location / {
 		proxy_pass {{ trim $proto }}://{{ trim $host }};
@@ -263,7 +282,6 @@ server {
         #proxy_cache_key $scheme$proxy_host$uri$is_args$args;
         proxy_cache_key $scheme://$proxy_host$request_uri;
         proxy_cache_valid  200 1d;
-
         {{ end }}
 
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
@@ -276,6 +294,16 @@ server {
                 include /etc/nginx/vhost.d/default_location;
                 {{ end }}
 	}
+
+    {{ $php_fpm := or (first (groupByKeys $containers "Env.PHP_FPM")) "" }}
+    {{ if ($php_fpm) }}
+    location ~ \.php$ {
+        fastcgi_pass php:9000;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME  $document_root$fastcgi_script_name;
+        include       fastcgi_params;
+    }
+    {{ end }}
 }
 
 {{ if (and (not $is_https) (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}

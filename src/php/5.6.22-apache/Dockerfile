@@ -8,15 +8,31 @@ RUN apt-get update && apt-get install -y git unzip wget \
 	&& docker-php-ext-configure gd --with-png-dir=/usr --with-jpeg-dir=/usr \
     && docker-php-ext-install exif gd json mbstring mcrypt mysqli opcache zip
 
-# install the PHP extensions we need
-RUN apt-get update && apt-get install -y libpng12-dev libjpeg-dev && rm -rf /var/lib/apt/lists/* \
+# PHP extensions
+RUN apt-get update && apt-get install -y \
+    bzip2 \
+    libcurl4-openssl-dev \
+    libfreetype6-dev \
+    libicu-dev \
+    libjpeg-dev \
+    libmcrypt-dev \
+    libmemcached-dev \
+    libpng12-dev \
+    libbpq-dev \
+    libxml2-dev \
+    && rm -rf /var/lib/apt/lists/* \
 	&& docker-php-ext-configure gd --with-png-dir=/usr --with-jpeg-dir=/usr \
-    && docker-php-ext-install calendar exif gd gettext json mbstring mcrypt mysqli opcache pdo_mysql sockets zip
+    && docker-php-ext-install calendar exif gd intl gettext json mbstring mcrypt mysqli opcache pdo_mysql pdo_pgsql pgsql sockets zip
 
-RUN pecl install -o -f redis xdebug \
+# PECL extensions
+RUN set -ex \
+    && pecl install APCu-4.0.10 \
+    && pecl install memcached-2.2.0 \
+    && pecl install redis-2.2.8 \
+    && pecl install xdebug \
+    && docker-php-ext-enable apcu redis memcached xdebug \ 
     && rm -rf /tmp/pear \
-    && echo "extension=redis.so" > /usr/local/etc/php/conf.d/redis.ini \
-    && echo "zend_extension=/usr/local/lib/php/extensions/no-debug-non-zts-20131226/xdebug.so" > /usr/local/etc/php/conf.d/xdebug.ini
+    #&& echo "zend_extension=/usr/local/lib/php/extensions/no-debug-non-zts-20131226/xdebug.so" > /usr/local/etc/php/conf.d/xdebug.ini
 
 # set php.ini
 RUN { \
@@ -41,9 +57,15 @@ RUN { \
 		echo 'opcache.enable_cli=1'; \
 	} > /usr/local/etc/php/conf.d/opcache-recommended.ini
 
-RUN echo '<?php phpinfo(); ?>' > /var/www/html/info.php
+RUN echo '<?php phpinfo(); ?>' > /var/www/html/index.php
+
+RUN tar cvzf /usr/src/apache2-default-doc.tar.gz -C /var/www/html ./
+RUN tar cvzf /usr/src/apache2-conf.tar.gz -C /etc/apache2 ./
+RUN tar cvzf /usr/src/php-conf.tar.gz -C /usr/local/etc/php ./
 
 VOLUME /var/www/html
+
 COPY docker-entrypoint.sh /entrypoint-ex.sh
 ENTRYPOINT ["/entrypoint-ex.sh"]
+
 CMD ["apache2-foreground"]

@@ -1,13 +1,22 @@
 #!/bin/bash
 set -e
 
-usermod -u ${TOYBOX_UID} www-data
-groupmod -g ${TOYBOX_GID} www-data
+user="www-data"
+group="www-data"
+
+usermod -u ${TOYBOX_UID} ${user}
+groupmod -g ${TOYBOX_GID} ${group}
 
 docroot="/var/www/html"
+tar xvzf /usr/src/apache2-default-doc.tar.gz -C ${docroot}
+chown -R ${user}:${group} ${docroot}
 
-echo "hohoo!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-#tar cf - --one-file-system -C /usr/src/default_docroot . | tar xf -
-chown -R www-data:www-data ${docroot}
+apache2_confdir="/etc/apache2"
+tar xvzf /usr/src/apache2-conf.tar.gz -C ${apache2_confdir}
+chown -R ${user}:${group} ${apache2_confdir}
+
+php_confdir="/usr/local/etc/php"
+tar xvzf /usr/src/php-conf.tar.gz -C ${php_confdir}
+chown -R ${user}:${group} ${php_confdir}
 
 exec "$@"

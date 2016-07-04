@@ -51,7 +51,7 @@ ${containers[0]}:
         - PROXY_CACHE=true
         - TOYBOX_UID=${uid}
         - TOYBOX_GID=${gid}
-        - JAVA_OPTS="-Djava.awt.headless=true -Dorg.apache.commons.jelly.tags.fmt.timeZone=Asia/Tokyo"
+        - JAVA_OPTS="-Duser.timezone=Asia/Tokyo -Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8"
     volumes:
         - ${app_path}/data/jenkins:/var/jenkins_home
         - /var/run/docker.sock:/var/run/docker.sock:ro

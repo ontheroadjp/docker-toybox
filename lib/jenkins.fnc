@@ -51,12 +51,14 @@ ${containers[0]}:
         - PROXY_CACHE=true
         - TOYBOX_UID=${uid}
         - TOYBOX_GID=${gid}
+        - TERM=xterm
     volumes:
         - ${app_path}/data/jenkins:/var/jenkins_home
-        - /var/run/docker.sock:/var/run/docker.sock
-        - $(which docker):/bin/docker
-        - $(which docker-compose):/bin/docker-compose
-        - /usr/lib64/libdevmapper.so.1.02:/usr/lib/x86_64-linux-gnu/libdevmapper.so.1.02
+        - /var/run/docker.sock:/var/run/docker.sock:ro
+        - $(which docker):/bin/docker:ro
+        - $(which docker-compose):/bin/docker-compose:ro
+        - /usr/lib64/libdevmapper.so.1.02:/usr/lib/x86_64-linux-gnu/libdevmapper.so.1.02:ro
+        - /etc/localtime:/etc/localtime:ro
     ports:
         - "8080"
         - "50000"

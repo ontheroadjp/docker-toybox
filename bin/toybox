@@ -296,7 +296,7 @@ function _applications() {
     for file in ${dir}; do
         if [ -f ${file} ]; then
             files+=("${file}")
-            echo ${file} | sed -e "s:^$TOYBOX_HOME/lib/::" -e "s:.fnc$::"
+            echo ${file} | grep -v ".*_test.fnc$" | sed -e "s:^$TOYBOX_HOME/lib/::" -e "s:.fnc$::"
         fi
     done
 }

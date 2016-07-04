@@ -2,30 +2,47 @@
 
 containers=(
     ${fqdn}-${application}
+    ${fqdn}-${application}-db
 )
 images=(
    toybox/gitbucket
-   busybox
+   toybox/mariadb
 )
 data_containers=(
     ${fqdn}-${application}-data
 )
+data_images=(
+    busybox
+)
 
 declare -A components=(
-    ["${project_name}_${containers[0]}_1"]="openJDK"
+    ["${project_name}_${containers[0]}_1"]="gitbucket openJDK"
+    ["${project_name}_${containers[1]}_1"]="mariadb"
 )
 declare -A component_version=(
+    ['gitbucket']="4.1.0"
     ['openJDK']="1.8.0_92-internal"
+    ['mariadb']="10.1.14"
 )
 
+db_root_password="root"
+db_name="toybox_gitbucket"
+db_user="toybox"
+db_password="toybox"
+db_table_prefix="tb_gitbucket_"
+db_alias="mysql"
+docroot="/var/www/html"
+
 gitbucket_version="4.1.0"
+mariadb_version="10.1.14"
 busybox_version="buildroot-2014.02"
 
 uid=""
 gid=""
 
 function __build() {
-    docker build -t toybox/gitbucket:${gitbucket_version} $TOYBOX_HOME/src/${application}/${gitbucket_version}
+    docker build -t ${images[0]}:${gitbucket_version} $TOYBOX_HOME/src/${application}/${gitbucket_version}
+    docker build -t ${images[1]}:${mariadb_version} $TOYBOX_HOME/src/mariadb/${mariadb_version}
 }
 
 function __init() {
@@ -41,23 +58,49 @@ function __init() {
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
     image: ${images[0]}:${gitbucket_version}
+    links:
+        - ${containers[1]}:${db_alias}
     environment:
         - VIRTUAL_HOST=${fqdn}
         - VIRTUAL_PORT=8080
         - TOYBOX_UID=${uid}
         - TOYBOX_GID=${gid}
     volumes_from:
-        - ${containers[1]}
+        - ${data_containers[0]}
     volumes:
         - "/etc/localtime:/etc/localtime:ro"
+    log_driver: "json-file"
+    log_opt:
+        max-size: "3m"
+        max-file: "7"
     ports:
         - "29418:29418"
         - "8080"
 
+${containers[1]}:
+    image: ${images[1]}:${mariadb_version}
+    volumes:
+        - "/etc/localtime:/etc/localtime:ro"
+    volumes_from:
+        - ${data_containers[0]}
+    log_driver: "json-file"
+    log_opt:
+        max-size: "3m"
+        max-file: "7"
+    environment:
+        - MYSQL_ROOT_PASSWORD=${db_root_password}
+        - MYSQL_DATABASE=${db_name}
+        - MYSQL_USER=${db_user}
+        - MYSQL_PASSWORD=${db_password}
+        - TERM=xterm
+        - TOYBOX_UID=${uid}
+        - TOYBOX_GID=${gid}
+
 ${data_containers[0]}:
-    image: ${images[1]}:${busybox_version}
+    image: ${data_images[0]}:${busybox_version}
     volumes:
         - "${app_path}/data/gitbucket:/gitbucket"
+        - "${app_path}/data/mariadb:/var/lib/mysql"
 EOF
 }
 

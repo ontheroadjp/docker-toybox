@@ -1,8 +1,13 @@
 #!/bin/sh
 #set -eu
 
-containers=( ${fqdn}-${application} )
-images=( toybox/jenkins )
+containers=( 
+    ${fqdn}-${application} 
+)
+images=( 
+    toybox/jenkins 
+)
+
 jenkins_version="1.651.3"
 
 uid=""
@@ -14,6 +19,11 @@ gid=""
 
 function __build() {
     docker build -t toybox/jenkins:${jenkins_version} ${src}/${jenkins_version}
+}
+
+function __post_run() {
+    id=$(docker ps | tail -n +2 | grep "${containers[0]}" | cut -d" " -f1)
+    docker exec -it ${id} sh /post-run.sh
 }
 
 function __init() {
@@ -30,7 +40,7 @@ function __init() {
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
     image: ${images[0]}:${jenkins_version}
-    user: jenkins
+    #user: jenkins
     log_driver: "json-file"
     log_opt:
         max-size: "3m"
@@ -43,6 +53,10 @@ ${containers[0]}:
         - TOYBOX_GID=${gid}
     volumes:
         - ${app_path}/data/jenkins:/var/jenkins_home
+        - /var/run/docker.sock:/var/run/docker.sock
+        - $(which docker):/bin/docker
+        - $(which docker-compose):/bin/docker-compose
+        - /usr/lib64/libdevmapper.so.1.02:/usr/lib/x86_64-linux-gnu/libdevmapper.so.1.02
     ports:
         - "8080"
         - "50000"

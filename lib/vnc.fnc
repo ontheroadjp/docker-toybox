@@ -6,12 +6,12 @@ uid=""
 gid=""
 
 function __build() {
-    docker build -t toybox/${app_name}:${vnc_version} $TOYBOX_HOME/src/${app_name}/${vnc_version}
+    docker build -t toybox/${application}:${vnc_version} $TOYBOX_HOME/src/${application}/${vnc_version}
 }
 
 
 containers=( \
-   ${app_name}-${vnc_version} 
+   ${application}-${vnc_version} 
 )
 
 function __init() {
@@ -25,7 +25,7 @@ function __init() {
     
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    image: toybox/${app_name}:${vnc_version}
+    image: toybox/${application}:${vnc_version}
     volumes:
         - "/etc/localtime:/etc/localtime:ro"
     environment:
@@ -49,7 +49,7 @@ EOF
 #function __new() {
 #    #__source; local status=$?
 #    #if [ ${status} -ne 0 ]; then
-#    #    echo ${project_name}": source code of ${app_name} does not download."
+#    #    echo ${project_name}": source code of ${application} does not download."
 #    #    exit 1
 #    #fi
 #

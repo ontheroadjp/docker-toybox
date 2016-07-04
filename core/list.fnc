@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 function __print_header() {
     echo ''
@@ -17,14 +17,14 @@ function __list() {
     # --------------------------------------------
     # print proxy
     # --------------------------------------------
-    app_name="proxy"
-    . $TOYBOX_HOME/lib/${app_name}.fnc
+    application="proxy"
+    . $TOYBOX_HOME/lib/${application}.fnc
     for container in ${containers[@]}; do
         __is_container_exist ${container}; local exist=$(( ${exist} + $? ))
         __is_container_running ${container}; local running=$(( ${running} + $? ))
     done
  
-    printf "${app_name} is "
+    printf "${application} is "
     if [ ${exist} -eq 0 ] && [ ${running} -eq 0 ]; then
         printf "\033[1;32m%-10s\033[0m" "running"
     else
@@ -44,6 +44,12 @@ function __list() {
             if [ ${domain} != "proxy" ]; then
                 echo
                 echo "[${domain}]"
+                printf "%-10s" "ID"
+                printf "%-42s" "URL"
+                printf "%-15s" "Application"
+                echo "Status"
+                echo "-----------------------------------------------------------------------------"
+
             fi
             subs="${dom}/*"
             for sub in ${subs}; do
@@ -53,20 +59,20 @@ function __list() {
                     fqdn=${sub_domain}.${domain}
                     applist_grep_key=${fqdn}
                     app_path=$TOYBOX_HOME/stack/${domain}/${sub_domain}
-                    app_name=$(__get_app_env TOYBOX_APP_NAME)
+                    application=$(__get_app_env TOYBOX_APPLICATION)
                     compose_file="${app_path}/bin/docker-compose.yml"
-                    src="$TOYBOX_HOME/src/${app_name}"
+                    src="$TOYBOX_HOME/src/${application}"
 
-                    . $TOYBOX_HOME/lib/${app_name}.fnc
+                    . $TOYBOX_HOME/lib/${application}.fnc
 
-                    if [ ${app_name} = 'proxy' ]; then
+                    if [ ${application} = 'proxy' ]; then
                         continue
                     else
                         printf "%-10s" $(__get_app_env TOYBOX_APP_ID)
                         printf "http://%-35s" ${fqdn}
                     fi
 
-                    printf "%-15s" ${app_name}:${app_version}
+                    printf "%-15s" ${application}:${app_version}
 
                     local exist=0
                     local running=0
@@ -124,7 +130,7 @@ function __list() {
 #        echo 'no application available.'
 #
 #    else
-#        app_name="proxy"
+#        application="proxy"
 #        . $TOYBOX_HOME/lib/proxy.fnc
 #        for container in ${containers[@]}; do
 #            __is_container_exist ${container}; local exist=$(( ${exist} + $? ))
@@ -143,20 +149,20 @@ function __list() {
 #
 #            fqdn=$(echo ${line} | awk '{print $1}')
 #            applist_grep_key=${fqdn}
-#            app_name=$(echo ${line} | awk '{print $2}')
+#            application=$(echo ${line} | awk '{print $2}')
 #            app_path=$(echo ${line} | awk '{print $4}')
 #            compose_file="${app_path}/bin/docker-compose.yml"
-#            src="$TOYBOX_HOME/src/${app_name}"
-#            . $TOYBOX_HOME/lib/${app_name}.fnc
+#            src="$TOYBOX_HOME/src/${application}"
+#            . $TOYBOX_HOME/lib/${application}.fnc
 #
 #
-#            if [ ${app_name} = 'proxy' ]; then
+#            if [ ${application} = 'proxy' ]; then
 #                continue
 #            else
 #                printf "http://%-35s" ${fqdn}
 #            fi
 #
-#            printf "%-15s" ${app_name}:${app_version}
+#            printf "%-15s" ${application}:${app_version}
 #
 #            local exist=0
 #            local running=0

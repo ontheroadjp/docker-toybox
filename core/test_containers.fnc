@@ -28,7 +28,7 @@ function __test_containers() {
     if [ ${#ips[@]} -ne 0 ]; then
         for i in "${ips[@]}"; do
             printf "ping(${i})..." && (( tests++ ))
-            ping -c ${num} $i > /dev/null 2>&1; then
+            ping -c ${num} $i > /dev/null 2>&1
             if [ $? -eq 0 ]; then
             #if ping -c ${num} $i | grep "${num} packets transmitted, ${num} received, 0% packet loss," > /dev/null 2>&1; then
                 printf "\033[1;32m%-10s\033[0m" "OK" && printf "\n" && (( success++ ))

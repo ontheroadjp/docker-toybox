@@ -65,7 +65,7 @@ ${containers[0]}:
         - TOYBOX_GID=${gid}
         - TIMEZONE=${timezone}
     volumes:
-    #    - "/etc/localtime:/etc/localtime:ro"
+        - "/etc/localtime:/etc/localtime:ro"
         - ${app_path}/data/owncloud/config:/var/www/html/config
         - ${app_path}/data/owncloud/data:/var/www/html/data
     ports:

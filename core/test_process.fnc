@@ -16,7 +16,7 @@ function __test_process() {
         echo ">>> TEST Process(${i}:${id})"
 
         local timeout=0
-        while ! docker exec -it ${id} ps aux | grep "${process[${count}]}" > /dev/null 2>&1; do
+        while ! docker exec -i ${id} ps aux | grep "${process[${count}]}" > /dev/null 2>&1; do
             echo ${process[${count}]}
             sleep 3 && (( timeout+=3 ))
             if [ ${timeout} -gt 60 ]; then
@@ -25,7 +25,7 @@ function __test_process() {
             fi
         done
             
-        docker exec -t ${id} ps aux | grep "${process[${count}]}" && {
+        docker exec -i ${id} ps aux | grep "${process[${count}]}" && {
         printf "running..." && (( tests++ ))
             if [ $? -eq 0 ]; then
                 printf "\033[1;32m%-10s\033[0m" "OK" && printf "\n" && (( success++ ))

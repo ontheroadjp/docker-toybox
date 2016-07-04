@@ -64,6 +64,8 @@ ${containers[0]}:
         - TOYBOX_UID=${uid}
         - TOYBOX_GID=${gid}
         - TIMEZONE=${timezone}
+        - LETSENCRYPT_HOST=www.starton.jp
+        - LETSENCRYPT_EMAIL=dev@ontheroad.jp
     volumes:
         - "/etc/localtime:/etc/localtime:ro"
         - ${app_path}/data/owncloud/config:/var/www/html/config

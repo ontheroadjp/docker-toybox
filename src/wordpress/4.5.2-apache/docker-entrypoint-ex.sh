@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-if [ ${TOYBOX_UID} -ne 0 ] || [ ${TOYBOX_GID} -ne 0 ]; then
+if [ ${TOYBOX_UID} -ne 0 ] && [ ${TOYBOX_GID} -ne 0 ]; then
     usermod -u ${TOYBOX_UID} www-data
     groupmod -g ${TOYBOX_GID} www-data
     chown -R www-data:root /var/run/apache2/

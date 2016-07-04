@@ -51,7 +51,7 @@ ${containers[0]}:
         - PROXY_CACHE=true
         - TOYBOX_UID=${uid}
         - TOYBOX_GID=${gid}
-        - TERM=xterm
+        - JAVA_OPTS="-Duser.timezone=Asia/Tokyo -Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8"
     volumes:
         - ${app_path}/data/jenkins:/var/jenkins_home
         - /var/run/docker.sock:/var/run/docker.sock:ro

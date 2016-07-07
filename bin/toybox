@@ -120,16 +120,16 @@ function _new() {
 
 function _start() {
     if [ ${application} = "proxy" ]; then
-        #__new
-        :
+        _new
     else
         cd ${app_path}/bin
 
         # when container removed
         if ! __is_container_exist ${fqdn}-${application}; then
-            __init && {
-                docker-compose -p ${project_name} up -d
-            }
+            #__init && {
+            #    docker-compose -p ${project_name} up -d
+            #}
+            _new
 
         # when container running
         elif __is_container_running ${fqdn}-${application}; then
@@ -138,9 +138,10 @@ function _start() {
 
         # when container stopped
         else
-            __init && {
-                docker-compose -p ${project_name} start
-            }
+            #__init && {
+            #    docker-compose -p ${project_name} start
+            #}
+            _new
         fi
     fi
 }
@@ -296,7 +297,7 @@ function _applications() {
     for file in ${dir}; do
         if [ -f ${file} ]; then
             files+=("${file}")
-            echo ${file} | sed -e "s:^$TOYBOX_HOME/lib/::" -e "s:.fnc$::"
+            echo ${file} | grep -v ".*_test.fnc$" | sed -e "s:^$TOYBOX_HOME/lib/::" -e "s:.fnc$::"
         fi
     done
 }

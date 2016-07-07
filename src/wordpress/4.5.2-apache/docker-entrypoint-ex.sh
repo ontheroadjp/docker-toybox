@@ -1,10 +1,12 @@
 #!/bin/bash
 set -e
 
-usermod -u ${TOYBOX_UID} www-data
-groupmod -g ${TOYBOX_GID} www-data
-chown -R www-data:root /var/run/apache2/
-chown -R www-data:www-data /usr/src/wordpress
+if [ ${TOYBOX_UID} -ne 0 ] && [ ${TOYBOX_GID} -ne 0 ]; then
+    usermod -u ${TOYBOX_UID} www-data
+    groupmod -g ${TOYBOX_GID} www-data
+    chown -R www-data:root /var/run/apache2/
+    chown -R www-data:www-data /usr/src/wordpress
+fi
 
 script="${DOCROOT}/Search-Replace-DB/srdb.cli.php"
 h=${MYSQL_PORT_3306_TCP_ADDR}
@@ -26,5 +28,8 @@ sed -i -e "$ i ${if}" /entrypoint.sh
 sed -i -e "$ i ${replace_fqdn_cmd}" /entrypoint.sh
 sed -i -e "$ i ${replace_docroot_cmd}" /entrypoint.sh
 sed -i -e "$ i ${fi}" /entrypoint.sh
+
+echo "post_max_size = 32M" >> /usr/local/etc/php/php.ini
+echo "upload_max_filesize = 32M" >> /usr/local/etc/php/php.ini
 
 exec /entrypoint.sh apache2-foreground

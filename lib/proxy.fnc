@@ -28,6 +28,18 @@ function __build() {
     docker build -t ${images[0]}:${nginx_version} $TOYBOX_HOME/src/nginx/${nginx_version}
 }
 
+function __post_run() {
+    echo "Generating DH parameters, 2048 bit long safe prime, generator 2"
+    echo "This is going to take a long time"
+    while [ ! -f ${app_path}/data/nginx/certs/dhparam.pem ]; do
+        sleep 6 && echo "wait..."
+    done
+    echo "complete!"
+    echo "--------------------------------------"
+    echo "toybox-proxy is ready!"
+    echo "--------------------------------------"
+}
+
 function __init() {
 
     __build
@@ -44,6 +56,7 @@ function __init() {
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
     restart: always
+    #restart: unless-stopped
     image: ${images[0]}:${nginx_version}
     volumes:
         - "/etc/localtime:/etc/localtime:ro"
@@ -66,6 +79,7 @@ ${containers[0]}:
 
 ${containers[1]}:
     restart: always
+    #restart: unless-stopped
     image: ${images[1]}
     links:
         - ${containers[0]}
@@ -88,9 +102,9 @@ ${containers[1]}:
     command: -config /docker-gen.conf
     #command: -notify-sighup ${project_name}_${containers[0]}_1 -watch -only-exposed /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
     #command: -tlscacert=$HOME/.docker/ca.pem -tlscert=$HOME/.docker/cert.pem -tlskey=$HOME/.docker/key.pem -notify-sighup ${project_name}_${containers[0]}_1 -watch -only-exposed /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
-
 ${containers[2]}:
     restart: always
+    #restart: unless-stopped
     image: ${images[2]}
     links:
         - ${containers[0]}
@@ -107,6 +121,7 @@ ${containers[2]}:
     environment:
         - NGINX_DOCKER_GEN_CONTAINER=${container[1]}
         - ACME_CA_URI=https://acme-staging.api.letsencrypt.org/directory
+        #- ACME_CA_URI=https://acme-v01.api.letsencrypt.org/directory
 EOF
 }
 

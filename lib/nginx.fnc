@@ -24,7 +24,6 @@ function __build() {
 }
 
 containers=( \
-   #${fqdn}-${application}-${nginx_version} 
    ${fqdn}-${application}
 )
 
@@ -41,16 +40,15 @@ function __init() {
     
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    #image: toybox/${application}:${nginx_version}
     image: ${images[0]}:${nginx_version}
     volumes:
+        - /etc/localtime:/etc/localtime:ro
         - "${app_path}/data/nginx/docroot:/usr/share/nginx/html"
         - "${app_path}/data/nginx/conf:/etc/nginx"
     environment:
         - VIRTUAL_HOST=${fqdn}
         - TOYBOX_UID=${uid}
         - TOYBOX_GID=${gid}
-        - TIMEZONE=${timezone}
     ports:
         - "80"
 EOF

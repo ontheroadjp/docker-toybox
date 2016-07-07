@@ -1,21 +1,43 @@
 #!/bin/sh
 
-containers=(${application}-nginx ${application}-docker-gen)
-images=( toybox/nginx jwilder/docker-gen )
+containers=(
+    ${application}-nginx 
+    ${application}-docker-gen
+    ${application}-letsencrypt
+)
+images=(
+    toybox/nginx
+    jwilder/docker-gen
+    jrcs/letsencrypt-nginx-proxy-companion
+)
 
 declare -A components=(
     ["${project_name}_${containers[0]}_1"]="nginx"
     ["${project_name}_${containers[1]}_1"]="docker-gen"
+    ["${project_name}_${containers[1]}_1"]="lets-encrypt"
 )
 declare -A component_version=(
     ['nginx']="1.9.15"
     ['docker-gen']="n/a"
+    ['lets-encrypt']="n/a"
 )
 
 nginx_version=1.9
 
 function __build() {
-    docker build -t toybox/${application}:${nginx_version} $TOYBOX_HOME/src/nginx/${nginx_version}
+    docker build -t ${images[0]}:${nginx_version} $TOYBOX_HOME/src/nginx/${nginx_version}
+}
+
+function __post_run() {
+    echo "Generating DH parameters, 2048 bit long safe prime, generator 2"
+    echo "This is going to take a long time"
+    while [ ! -f ${app_path}/data/nginx/certs/dhparam.pem ]; do
+        sleep 6 && echo "wait..."
+    done
+    echo "complete!"
+    echo "--------------------------------------"
+    echo "toybox-proxy is ready!"
+    echo "--------------------------------------"
 }
 
 function __init() {
@@ -23,6 +45,10 @@ function __init() {
     __build
 
     mkdir -p ${app_path}/bin
+    mkdir -p ${app_path}/data/nginx/conf.d
+    mkdir -p ${app_path}/data/nginx/vhost.d
+    mkdir -p ${app_path}/data/nginx/docroot
+    mkdir -p ${app_path}/data/nginx/certs
 
     uid=$(cat /etc/passwd | grep ^$(whoami) | cut -d : -f3)
     gid=$(cat /etc/group | grep ^$(whoami) | cut -d: -f3)
@@ -30,11 +56,14 @@ function __init() {
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
     restart: always
+    #restart: unless-stopped
     image: ${images[0]}:${nginx_version}
     volumes:
         - "/etc/localtime:/etc/localtime:ro"
-        - "/tmp/nginx:/etc/nginx/conf.d"
-        - "${src}/nginx/certs:/etc/nginx/certs"
+        - "${app_path}/data/nginx/conf.d:/etc/nginx/conf.d"
+        - "${app_path}/data/nginx/vhost.d:/etc/nginx/vhost.d"
+        - "${app_path}/data/nginx/docroot:/usr/share/nginx/html"
+        - "${app_path}/data/nginx/certs:/etc/nginx/certs"
     log_driver: "json-file"
     log_opt:
         max-size: "3m"
@@ -47,8 +76,10 @@ ${containers[0]}:
     ports:
         - "80:80"
         - "443:443"
+
 ${containers[1]}:
     restart: always
+    #restart: unless-stopped
     image: ${images[1]}
     links:
         - ${containers[0]}
@@ -59,7 +90,6 @@ ${containers[1]}:
         - "/var/run/docker.sock:/tmp/docker.sock:ro"
         - "${src}/docker-gen/docker-gen.conf:/docker-gen.conf"
         - "${src}/docker-gen/templates:/etc/docker-gen/templates"
-    #    - "$HOME/.docker:/certs"
     log_driver: "json-file"
     log_opt:
         max-size: "3m"
@@ -72,6 +102,26 @@ ${containers[1]}:
     command: -config /docker-gen.conf
     #command: -notify-sighup ${project_name}_${containers[0]}_1 -watch -only-exposed /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
     #command: -tlscacert=$HOME/.docker/ca.pem -tlscert=$HOME/.docker/cert.pem -tlskey=$HOME/.docker/key.pem -notify-sighup ${project_name}_${containers[0]}_1 -watch -only-exposed /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
+${containers[2]}:
+    restart: always
+    #restart: unless-stopped
+    image: ${images[2]}
+    links:
+        - ${containers[0]}
+    volumes_from:
+        - ${containers[0]}
+    volumes:
+        - "/etc/localtime:/etc/localtime:ro"
+        - "/var/run/docker.sock:/var/run/docker.sock:ro"
+        - "${app_path}/data/nginx/certs:/etc/nginx/certs:rw"
+    log_driver: "json-file"
+    log_opt:
+        max-size: "3m"
+        max-file: "7"
+    environment:
+        - NGINX_DOCKER_GEN_CONTAINER=${container[1]}
+        - ACME_CA_URI=https://acme-staging.api.letsencrypt.org/directory
+        #- ACME_CA_URI=https://acme-v01.api.letsencrypt.org/directory
 EOF
 }
 

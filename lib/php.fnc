@@ -1,8 +1,8 @@
 #!/bin/sh
 
-db_name=${app_name}
-db_user=${app_name}
-db_user_pass=${app_name}
+db_name=${application}
+db_user=${application}
+db_user_pass=${application}
 
 uid=""
 gid=""
@@ -10,11 +10,10 @@ gid=""
 php_version="5.6.22-apache"
 mariadb_version="10.1.14"
 
-containers=( ${fqdn}-${app_name} ${fqdn}-${app_name}-db )
+containers=( ${fqdn}-${application} ${fqdn}-${application}-db )
 
 function __build() {
-    #docker build -t nutsp/${app_name}:${php_version} $TOYBOX_HOME/src/${app_name}/${php_version}
-    docker build -t toybox/${app_name}:${php_version} $TOYBOX_HOME/src/php/${php_version}
+    docker build -t toybox/${application}:${php_version} $TOYBOX_HOME/src/${application}/${php_version}
 }
 
 function __init() {
@@ -22,6 +21,7 @@ function __init() {
     mkdir -p ${app_path}/bin
     mkdir -p ${app_path}/data/apache2/docroot
     mkdir -p ${app_path}/data/apache2/conf
+    mkdir -p ${app_path}/data/php
 
     uid=$(cat /etc/passwd | grep ^$(whoami) | cut -d : -f3)
     gid=$(cat /etc/group | grep ^$(whoami) | cut -d: -f3)
@@ -30,10 +30,11 @@ function __init() {
 
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    image: toybox/${app_name}:${php_version}
-    #volumes:
-        #- ${app_path}/data/apache2/docroot:/var/www/html
-        #- ${app_path}/data/apache2/conf:/etc/apache2
+    image: toybox/${application}:${php_version}
+    volumes:
+        - ${app_path}/data/apache2/docroot:/var/www/html
+        - ${app_path}/data/apache2/conf:/etc/apache2
+        - ${app_path}/data/php:/usr/local/etc/php
     links:
         - ${containers[1]}:mariadb
     environment:
@@ -44,7 +45,7 @@ ${containers[0]}:
         - "80"
 
 ${containers[1]}:
-    image: mariadb:${mariadb_version}
+    image: toybox/mariadb:${mariadb_version}
     #image: mariadb
     volumes:
         - ${app_path}/data/mysql:/var/lib/mysql
@@ -64,22 +65,6 @@ ${containers[1]}:
 #        - ${app_path}/data/mysql:/var/lib/mysql
 EOF
 }
-
-#function __new() {
-#    __init && {
-#        cd ${app_path}/bin
-#        docker-compose -p ${project_name} up -d && {
-#            echo '---------------------------------'
-#            echo 'URL: http://'${fqdn}
-#            echo '---------------------------------'
-#            echo -n 'Database Host: '
-#            docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
-#                $(docker ps | grep ${db_container}_1 | awk '{print $1}')
-#            echo 'Database Username: '${db_user}
-#            echo 'Database Password: '${db_user_pass}
-#        }
-#    }
-#}
 
 #function __backup() {
 #    prefix=$(date '+%Y%m%d_%H%M%S')

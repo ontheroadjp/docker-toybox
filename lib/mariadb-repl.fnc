@@ -1,17 +1,18 @@
 #!/bin/sh
 
-vnc_version=centos6-gnome
+mariadb_version=10.1.14
+db_root_password=root
 
 uid=""
 gid=""
 
 function __build() {
-    docker build -t toybox/${application}:${vnc_version} $TOYBOX_HOME/src/${application}/${vnc_version}
+    docker build -t toybox/${application}:${mariadb_version} $TOYBOX_HOME/src/${application}/${mariadb_version}
 }
 
-
 containers=( \
-   ${application}-${vnc_version} 
+   ${application}-${mariadb_version}-master
+   ${application}-${mariadb_version}-slave
 )
 
 function __init() {
@@ -19,30 +20,41 @@ function __init() {
     __build
 
     mkdir -p ${app_path}/bin
+    mkdir -p ${app_path}/data/master
+    mkdir -p ${app_path}/data/slave
 
     uid=$(cat /etc/passwd | grep ^$(whoami) | cut -d : -f3)
     gid=$(cat /etc/group | grep ^$(whoami) | cut -d: -f3)
     
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    image: toybox/${application}:${vnc_version}
+    image: toybox/${application}:${mariadb_version}
     volumes:
-        - "/etc/localtime:/etc/localtime:ro"
+        - ${app_path}/data/master:/var/lib/mysql
+        - /etc/localtime:/etc/localtime:ro
     environment:
+        - MYSQL_ROOT_PASSWORD=${db_root_password}
+        - TERM=xterm
+        - SERVER_TYPE=master
         - TOYBOX_UID=${uid}
         - TOYBOX_GID=${gid}
-        - TIMEZONE=${timezone}
-        - ROOT_PASSWD=root
-        - USER_PASSWD=user
-        - LANG=ja_JP.UTF-8
-          #- XMODIFIERS="@im=ibus"
-          #- GTK_IM_MODULE="ibus"
-          #- QT_IM_MODULE="xim"
-          #- QT_IM_MODULE="ibus"
     ports:
-        - "5900:5900"
-        - "5901:5901"
-        - "3389:3389"
+        - "3306"
+${containers[1]}:
+    image: toybox/${application}:${mariadb_version}
+    volumes:
+        - ${app_path}/data/slave:/var/lib/mysql
+        - /etc/localtime:/etc/localtime:ro
+    links:
+        - ${containers[0]}:master
+    environment:
+        - MYSQL_ROOT_PASSWORD=${db_root_password}
+        - TERM=xterm
+        - SERVER_TYPE=slave
+        - TOYBOX_UID=${uid}
+        - TOYBOX_GID=${gid}
+    ports:
+        - "3306"
 EOF
 }
 

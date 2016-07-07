@@ -1,8 +1,32 @@
 #!/bin/sh
 
-db_name=${app_name}
-db_user=${app_name}
-db_user_pass=${app_name}
+containers=(
+    ${fqdn}-${application}
+    ${fqdn}-${application}-mariadb
+    ${fqdn}-${application}-redis
+)
+images=(
+   toybox/owncloud
+   toybox/mariadb
+   toybox/redis
+)
+
+declare -A components=(
+    ["${project_name}_${containers[0]}_1"]="apache php owncloud"
+    ["${project_name}_${containers[1]}_1"]="mariadb"
+    ["${project_name}_${containers[1]}_1"]="redis"
+)
+declare -A component_version=(
+    ['apache']="2.4.10"
+    ['php']="5.6.22"
+    ['owncloud']="9.0.2"
+    ['mariadb']="10.1.14"
+    ['redis']="3.2.0"
+)
+
+db_name=${application}
+db_user=${application}
+db_user_pass=${application}
 
 owncloud_version="9.0.2-apache"
 mariadb_version="10.1.14"
@@ -11,29 +35,25 @@ redis_version="3.2.0-alpine"
 uid=""
 gid=""
 
-function __source() {
-    if [ ! -e ${src} ]; then
-        #git clone https://github.com/docker-library/owncloud.git ${src}
-       : 
-    fi
-}
+proto="https"
 
 function __build() {
-    #docker build -t toybox/owncloud:9.0.2-apache $TOYBOX_HOME/src/owncloud/9.0.2-apache
-    docker build -t toybox/owncloud:${owncloud_version} $TOYBOX_HOME/src/owncloud/${owncloud_version}
-    docker build -t toybox/mariadb:${mariadb_version} $TOYBOX_HOME/src/mariadb/${mariadb_version}
+    docker build -t ${images[0]}:${owncloud_version} $TOYBOX_HOME/src/owncloud/${owncloud_version}
+    docker build -t ${images[1]}:${mariadb_version} $TOYBOX_HOME/src/mariadb/${mariadb_version}
+    docker build -t ${images[2]}:${redis_version} $TOYBOX_HOME/src/redis/${redis_version}
 }
 
-
-containers=( \
-    ${fqdn}-${app_name} \
-    ${fqdn}-${app_name}-mariadb \
-    ${fqdn}-${app_name}-redis \
-)
-
-#main_container=${fqdn}-${app_name}
-#db_container=${fqdn}-${app_name}-db
-#data_container=${fqdn}-${app_name}-data
+function __post_run() {
+    http_status=$(curl -LI ${proto}://${fqdn} -o /dev/null -w '%{http_code}\n' -s)
+    while [ ${http_status} -ne 200 ]; do
+        echo "waiting(${http_status})..." && sleep 3
+        http_status=$(curl -LI ${proto}://${fqdn} -o /dev/null -w '%{http_code}\n' -s)
+    done
+    echo "complete!"
+    echo "---------------------------------"
+    echo "URL: http://${fqdn}"
+    echo "---------------------------------"
+}
 
 function __init() {
 
@@ -48,7 +68,7 @@ function __init() {
     
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    image: toybox/owncloud:${owncloud_version}
+    image: ${images[0]}:${owncloud_version}
     links:
         - ${containers[1]}:mysql
         - ${containers[2]}:redis
@@ -57,21 +77,19 @@ ${containers[0]}:
         - VIRTUAL_HOST=${fqdn}
         - TOYBOX_UID=${uid}
         - TOYBOX_GID=${gid}
-        - TIMEZONE=${timezone}
     volumes:
-    #    - "/etc/localtime:/etc/localtime:ro"
+        - /etc/localtime:/etc/localtime:ro
         - ${app_path}/data/owncloud/config:/var/www/html/config
         - ${app_path}/data/owncloud/data:/var/www/html/data
     ports:
         - "40110"
 
 ${containers[1]}:
-    #image: mariadb
-    image: toybox/mariadb:${mariadb_version}
+    image: ${images[1]}:${mariadb_version}
     volumes:
+        - /etc/localtime:/etc/localtime:ro
         - ${app_path}/data/mariadb:/var/lib/mysql
     environment:
-    #    - "/etc/localtime:/etc/localtime:ro"
     #    security-opt: label:type:docker_t
         MYSQL_ROOT_PASSWORD: root
         MYSQL_DATABASE: ${db_name}
@@ -80,14 +98,11 @@ ${containers[1]}:
         TOYBOX_UID: ${uid}
         TOYBOX_GID: ${gid}
         TERM: xterm
-        TIMEZONE: ${timezone}
 
 ${containers[2]}:
-    image: redis:${redis_version}
-    environment:
-        - TIMEZONE=${timezone}
-    #volumes:
-    #    - "/etc/localtime:/etc/localtime:ro"
+    image: ${images[2]}:${redis_version}
+    volumes:
+        - /etc/localtime:/etc/localtime:ro
 
 #${data_container}:
 #    image: busybox
@@ -96,29 +111,6 @@ ${containers[2]}:
 #        - /var/lib/mysql
 EOF
 }
-
-#function __new() {
-#    #__source; local status=$?
-#    #if [ ${status} -ne 0 ]; then
-#    #    echo ${project_name}": source code of ${app_name} does not download."
-#    #    exit 1
-#    #fi
-#
-#    __init && {
-#        cd ${app_path}/bin
-#        docker-compose -p ${project_name} up -d && {
-#            echo '---------------------------------'
-#            echo 'URL: http://'${fqdn}
-#            echo 'WebDAV: http://'${fqdn}'/remote.php/webdav/'
-#            echo '---------------------------------'
-#            #echo -n 'Database Host: '
-#            #docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
-#            #    $(docker ps | grep ${project_name}_${db_container}_1 | awk '{print $1}')
-#            echo 'Database Username: '${db_user}
-#            echo 'Database Password: '${db_user_pass}
-#        }
-#    }
-#}
 
 #function __backup() {
 #    prefix=$(date '+%Y%m%d_%H%M%S')

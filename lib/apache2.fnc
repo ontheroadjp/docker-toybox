@@ -6,11 +6,11 @@ uid=""
 gid=""
 
 function __build() {
-    docker build -t toybox/${app_name}:${apache2_version} $TOYBOX_HOME/src/${app_name}/${apache2_version}
+    docker build -t toybox/${application}:${apache2_version} $TOYBOX_HOME/src/${application}/${apache2_version}
 }
 
 containers=( \
-   ${app_name}-${apache2_version} 
+   ${application}-${apache2_version} 
 )
 
 function __init() {
@@ -26,7 +26,7 @@ function __init() {
     
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    image: toybox/${app_name}:${apache2_version}
+    image: toybox/${application}:${apache2_version}
     volumes:
         - "${app_path}/data/apache2/docroot:/usr/local/apache2/htdocs"
         - "${app_path}/data/apache2/conf:/usr/local/apache2/conf"
@@ -43,7 +43,7 @@ EOF
 #function __new() {
 #    #__source; local status=$?
 #    #if [ ${status} -ne 0 ]; then
-#    #    echo ${project_name}": source code of ${app_name} does not download."
+#    #    echo ${project_name}": source code of ${application} does not download."
 #    #    exit 1
 #    #fi
 #

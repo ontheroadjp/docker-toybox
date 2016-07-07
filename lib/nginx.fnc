@@ -1,17 +1,30 @@
 #!/bin/sh
 
+containers=(
+    ${fqdn}-${application}
+)
+images=(
+    toybox/nginx
+)
+
+declare -A components=(
+    ["${project_name}_${containers[0]}_1"]="nginx"
+)
+declare -A component_version=(
+    ['nginx']="1.9.15"
+)
+
 nginx_version=1.9
 
 uid=""
 gid=""
 
 function __build() {
-    docker build -t toybox/${app_name}:${nginx_version} $TOYBOX_HOME/src/${app_name}/${nginx_version}
+    docker build -t toybox/${application}:${nginx_version} $TOYBOX_HOME/src/${application}/${nginx_version}
 }
 
 containers=( \
-   #${fqdn}-${app_name}-${nginx_version} 
-   ${fqdn}-${app_name}
+   ${fqdn}-${application}
 )
 
 function __init() {
@@ -27,15 +40,15 @@ function __init() {
     
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    image: toybox/${app_name}:${nginx_version}
+    image: ${images[0]}:${nginx_version}
     volumes:
+        - /etc/localtime:/etc/localtime:ro
         - "${app_path}/data/nginx/docroot:/usr/share/nginx/html"
         - "${app_path}/data/nginx/conf:/etc/nginx"
     environment:
         - VIRTUAL_HOST=${fqdn}
         - TOYBOX_UID=${uid}
         - TOYBOX_GID=${gid}
-        - TIMEZONE=${timezone}
     ports:
         - "80"
 EOF
@@ -44,7 +57,7 @@ EOF
 #function __new() {
 #    #__source; local status=$?
 #    #if [ ${status} -ne 0 ]; then
-#    #    echo ${project_name}": source code of ${app_name} does not download."
+#    #    echo ${project_name}": source code of ${application} does not download."
 #    #    exit 1
 #    #fi
 #

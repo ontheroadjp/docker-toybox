@@ -12,4 +12,7 @@ EXPOSE 8080
 # for SSH
 EXPOSE 29418
 
+ADD docker-entrypoint-ex.sh /entrypoint-ex.sh
+
+ENTRYPOINT ["/entrypoint-ex.sh"]
 CMD ["java", "-jar", "/opt/gitbucket.war"]

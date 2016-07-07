@@ -51,6 +51,8 @@ ${containers[0]}:
         - TOYBOX_UID=${uid}
         - TOYBOX_GID=${gid}
         - TIMEZONE=${timezone}
+        - LETSENCRYPT_HOST=www.starton.jp
+        - LETSENCRYPT_EMAIL=dev@ontheroad.jp
     ports:
         - "80"
 EOF

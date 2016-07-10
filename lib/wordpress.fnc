@@ -214,10 +214,10 @@ function __post_run() {
         cp -f ${out} ${host_docroot}
     fi
 
-    http_status=$(curl -LI http://${fqdn} -o /dev/null -w '%{http_code}\n' -s)
-    while [ ${http_status} -ne 200 ] && [ ${http_status} -ne 301 ]; do
+    http_status=$(curl -kLI http://${fqdn} -o /dev/null -w '%{http_code}\n' -s)
+    while [ ${http_status} -ne 200 ]; do
         echo "waiting(${http_status})..." && sleep 3
-        http_status=$(curl -LI http://${fqdn} -o /dev/null -w '%{http_code}\n' -s)
+        http_status=$(curl -kLI http://${fqdn} -o /dev/null -w '%{http_code}\n' -s)
     done
 
     # for SSL connection

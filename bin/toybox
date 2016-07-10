@@ -107,13 +107,14 @@ function _new() {
     __init && {
         cd ${app_path}/bin
         docker-compose -p ${project_name} up -d && {
-            echo "---------------------------------"
-            echo "URL: http://${fqdn}"
-            echo "---------------------------------"
-
             if __is_executable __post_run; then
                 __post_run
             fi
+            echo "complete!"
+            echo "-------------------------------------------"
+            echo "${application} (v${app_version})"
+            echo "http://${fqdn}"
+            echo "-------------------------------------------"
         }
     }
 }
@@ -215,14 +216,14 @@ function _info() {
     cat ${env_file} | while read line; do
         key=$(echo $(echo ${line} | cut -d "=" -f1) | sed -e "s:^TOYBOX_::" )
         val=$(echo ${line} | cut -d "=" -f2)
-        printf "%-${width_col1}" "$key:"
+        printf "%-${width_col1}" "  $key:"
         printf "%-${width_col1}" "$val"
         printf "\n"
     done;
-    printf "%-${width_col1}" "URL:"
+    printf "%-${width_col1}" "  URL:"
     printf "%-${width_col1}" "http://${fqdn}"
     printf "\n"
-    printf "%-${width_col1}" "Number of container:"
+    printf "%-${width_col1}" "  Number of container:"
     printf "%-${width_col1}" "${#containers[@]}"
     printf "\n"; echo
 
@@ -240,32 +241,32 @@ function _info() {
 
         #echo "[Container - toybox_${containers[$i]}_1]"
         echo "[Container]"
-        printf "%-${width_col1}" "Name:"; echo "${project_name}_${containers[$i]}_1"
-        #printf "%-${width_col1}" "Base image:"; echo ${images[$i]}
-        #printf "%-${width_col1}" "Command:"; echo ${cmd}
-        #printf "%-${width_col1}" "IP Address:"; echo $(__get_ip ${containers[$i]})
-        #printf "%-${width_col1}" "Port:"; echo ${port}
-        #printf "%-${width_col1}" "State:"; echo ${state}
+        printf "%-${width_col1}" "  Name:"; echo "${project_name}_${containers[$i]}_1"
+        #printf "%-${width_col1}" "  Base image:"; echo ${images[$i]}
+        #printf "%-${width_col1}" "  Command:"; echo ${cmd}
+        printf "%-${width_col1}" "  IP Address:"; echo $(__get_ip ${containers[$i]})
+        #printf "%-${width_col1}" "  Port:"; echo ${port}
+        #printf "%-${width_col1}" "  State:"; echo ${state}
 
         tmp=$(echo ${components["toybox_${containers[$i]}_1"]})
         comps=( ${tmp} )
-        echo "Component(s):"
+        echo "  Component(s):"
         #printf "%-${width_col1}" "Component(s):"; echo ${tmp}
         for ((n=0; n<${#comps[@]}; n++ )); do
-            printf "%-${width_col1}" "  "${comps[$n]}
+            printf "%-${width_col1}" "    - "${comps[$n]}
             echo "v${component_version[${comps[$n]}]}"
         done
 
         comps_grep=$(echo ${tmp} | sed "s: : -e :g")
         comps_regix=$(echo ${tmp} | sed 's: :_\\|:g')"_"
-        echo "Variable(s):"
+        echo "  Variable(s):"
         keys=${!params[@]}; vals=${params[@]}
         for ((n=0; n<${#params[@]}; n++ )); do
             key=$(echo ${keys} | cut -d " " -f$((${n} + 1)))
             val=$(echo ${vals} | cut -d " " -f$((${n} + 1)))
             if echo ${key} | grep -e ${comps_grep} > /dev/null 2>&1; then
                 key_print=$(echo ${key} | sed -e "s:${comps_regix}::")
-                printf "%-${width_col1}" "  "${key_print^^}:
+                printf "%-${width_col1}" "    - "${key_print^^}:
                 echo ${val}
             fi
         done; echo

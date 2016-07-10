@@ -53,7 +53,7 @@ function __list() {
                 echo "[${domain}]"
                 printf "%-10s" "ID"
                 printf "%-42s" "URL"
-                printf "%-15s" "Application"
+                printf "%-20s" "Application"
                 echo "Status"
                 echo "-----------------------------------------------------------------------------"
 
@@ -84,7 +84,8 @@ function __list() {
                         fi
                     fi
 
-                    printf "%-15s" ${application}:${app_version}
+                    local ver=$(echo ${app_version} | sed 's:-apache::')
+                    printf "%-20s" ${application}:${ver}
 
                     local exist=0
                     local running=0

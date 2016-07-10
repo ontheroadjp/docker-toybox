@@ -8,15 +8,15 @@ images=(
 )
 
 jenkins_version="1.651.3"
-java_version="???"
+openjdk_version="1.8.0_91"
 app_version=${jenkins_version}
 
 declare -A components=(
-    ["${project_name}_${containers[0]}_1"]="jenkins java"
+    ["${project_name}_${containers[0]}_1"]="jenkins openjdk"
 )
 declare -A component_version=(
     ['jenkins']="${jenkins_version}"
-    ['java']="${java_version}"
+    ['openjdk']="${openjdk_version}"
 )
 declare -A params=(
     ['jenkins_javaopt']="-Duser.timezone=Asia/Tokyo -Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8"

@@ -27,10 +27,17 @@ function __list() {
     printf "${application} is "
     if [ ${exist} -eq 0 ] && [ ${running} -eq 0 ]; then
         printf "\033[1;32m%-10s\033[0m" "running"
+        printf "\n"
+        files=${TOYBOX_HOME}/stack/proxy/80/data/nginx/certs/*
+        for file in $files; do
+            if [ -h ${file} ] && [[ ${file} =~ .crt$ ]]; then
+                echo " - $(echo $(basename ${file}) | sed 's:.crt::') is SSL Connection ready!"
+            fi
+        done
     else
         printf "\033[1;31m%-10s\033[0m" "stopped"
     fi
-    printf "\n"
+    #printf "\n"
 
     # --------------------------------------------
     # print applications
@@ -69,7 +76,12 @@ function __list() {
                         continue
                     else
                         printf "%-10s" $(__get_app_env TOYBOX_APP_ID)
-                        printf "http://%-35s" ${fqdn}
+                        if [ -h ${TOYBOX_HOME}/stack/proxy/80/data/nginx/certs/${fqdn}.crt ]; then
+                            printf "\033[1;32m%-42s\033[0m" "https://${fqdn}"
+                            #printf "https://%-34s" "${fqdn}"
+                        else
+                            printf "http://%-35s" ${fqdn}
+                        fi
                     fi
 
                     printf "%-15s" ${application}:${app_version}

@@ -40,6 +40,18 @@ function __post_run() {
     echo "--------------------------------------"
 }
 
+function __post_run() {
+    echo "Generating DH parameters, 2048 bit long safe prime, generator 2"
+    echo "This is going to take a long time"
+    while [ ! -f ${app_path}/data/nginx/certs/dhparam.pem ]; do
+        sleep 6 && echo "wait..."
+    done
+    echo "complete!"
+    echo "--------------------------------------"
+    echo "toybox-proxy is ready!"
+    echo "--------------------------------------"
+}
+
 function __init() {
 
     __build
@@ -119,7 +131,7 @@ ${containers[2]}:
         max-size: "3m"
         max-file: "7"
     environment:
-        - NGINX_DOCKER_GEN_CONTAINER=${container[1]}
+        - NGINX_DOCKER_GEN_CONTAINER=${containers[1]}
         - ACME_CA_URI=https://acme-staging.api.letsencrypt.org/directory
         #- ACME_CA_URI=https://acme-v01.api.letsencrypt.org/directory
 EOF

@@ -8,31 +8,35 @@ images=(
    toybox/lychee
    toybox/mariadb
 )
+
+db_name=${application}
+db_user=${application}
+db_user_pass=${application}
+
+apache2_version="2.4.10 (Debian)"
+php_version="7.0.7"
+lychee_version="3.1.2"
+mariadb_version="10.1.14"
+app_version=${lychee_version}
+
 declare -A components=(
-    ["${project_name}_${containers[0]}_1"]="apache php lychee"
+    ["${project_name}_${containers[0]}_1"]="apache2 php lychee"
     ["${project_name}_${containers[1]}_1"]="mariadb"
 )
 declare -A component_version=(
-    ['apache']="2.4.10 (Debian)"
-    ['php']="7.0.7"
-    ['lychee']="latest"
-    ['mariadb']="10.1.14"
+    ['apache2']="${apache2_version}"
+    ['php']="${php_version}"
+    ['lychee']="${lychee_version}"
+    ['mariadb']="${mariadb_version}"
 )
-
-mariadb_version="10.1.14"
-
-db_name=lychee
-db_user=lychee
-db_user_pass=lychee
 
 uid=""
 gid=""
 
 function __build() {
-    docker build -t toybox/lychee $TOYBOX_HOME/src/php-apache/lychee
-    docker build -t toybox/mariadb:${mariadb_version} $TOYBOX_HOME/src/mariadb/${mariadb_version}
+    docker build -t ${images[0]} $TOYBOX_HOME/src/php-apache/lychee
+    docker build -t ${images[1]}:${mariadb_version} $TOYBOX_HOME/src/mariadb/${mariadb_version}
 }
-
 
 function __init() {
     
@@ -43,9 +47,12 @@ function __init() {
     uid=$(cat /etc/passwd | grep ^$(whoami) | cut -d : -f3)
     gid=$(cat /etc/group | grep ^$(whoami) | cut -d: -f3)
     
-    __build && {
+    __build || {
+        echo "build error(${application})"
+        exit 1
+    }
     
-        cat <<-EOF > ${compose_file}
+    cat <<-EOF > ${compose_file}
 ${containers[0]}:
     image: toybox/lychee
     environment:
@@ -92,7 +99,6 @@ ${containers[1]}:
 #        - /var/www/lychee/uploads/thumb
 #        - /var/www/lychee/uploads/import
 EOF
-    }
 }
 
 #function __new() {

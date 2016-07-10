@@ -1,22 +1,50 @@
 #!/bin/sh
 
-db_name=${application}
-db_user=${application}
-db_user_pass=${application}
+containers=(
+    ${fqdn}-${application}
+    ${fqdn}-${application}-db
+)
+images=(
+    toybox/php
+    toybox/mariadb
+)
+
+db_root_password="root"
+mariadb_alias="mariadb"
+
+apache2_version="2.4.10 (Debian)"
+php_version="5.6.23-apache"
+mariadb_version="10.1.14"
+app_version="${php_version}"
+
+declare -A components=(
+    ["${project_name}_${containers[0]}_1"]="apache2 php"
+    ["${project_name}_${containers[1]}_1"]="mariadb"
+)
+declare -A component_version=(
+    ['apache2']="${apache2_version}"
+    ['php']="${php_version}"
+    ['mariadb']="${mariadb_version}"
+)
+declare -A params=(
+    ['mariadb_mysql_root_password']=${db_root_password}
+    ['mariadb_mariadb_alias']=${mariadb_alias}
+    ['mariadb_term']="xterm"
+)
 
 uid=""
 gid=""
 
-php_version="5.6.22-apache"
-mariadb_version="10.1.14"
-
-containers=( ${fqdn}-${application} ${fqdn}-${application}-db )
-
 function __build() {
-    docker build -t toybox/${application}:${php_version} $TOYBOX_HOME/src/${application}/${php_version}
+    docker build -t ${images[0]}:${php_version} $TOYBOX_HOME/src/php/${php_version}
 }
 
 function __init() {
+
+    __build || {
+        echo "build error(${application})"
+        exit 1
+    }
 
     mkdir -p ${app_path}/bin
     mkdir -p ${app_path}/data/apache2/docroot
@@ -26,17 +54,15 @@ function __init() {
     uid=$(cat /etc/passwd | grep ^$(whoami) | cut -d : -f3)
     gid=$(cat /etc/group | grep ^$(whoami) | cut -d: -f3)
     
-    __build
-
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    image: toybox/${application}:${php_version}
+    image: ${images[0]}:${php_version}
     volumes:
         - ${app_path}/data/apache2/docroot:/var/www/html
         - ${app_path}/data/apache2/conf:/etc/apache2
         - ${app_path}/data/php:/usr/local/etc/php
     links:
-        - ${containers[1]}:mariadb
+        - ${containers[1]}:${mariadb_alias}
     environment:
         - VIRTUAL_HOST=${fqdn}
         - TOYBOX_UID=${uid}
@@ -45,14 +71,13 @@ ${containers[0]}:
         - "80"
 
 ${containers[1]}:
-    image: toybox/mariadb:${mariadb_version}
-    #image: mariadb
+    image: ${images[1]}:${mariadb_version}
     volumes:
         - ${app_path}/data/mysql:/var/lib/mysql
     #volumes_from:
     #    - ${data_container}
     environment:
-        MYSQL_ROOT_PASSWORD: root
+        MYSQL_ROOT_PASSWORD: ${db_root_password}
         TOYBOX_UID: ${uid}
         TOYBOX_GID: ${gid}
         TERM: xterm

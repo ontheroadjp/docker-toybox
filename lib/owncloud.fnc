@@ -35,7 +35,7 @@ redis_version="3.2.0-alpine"
 uid=""
 gid=""
 
-proto="https"
+proto="http"
 
 function __build() {
     docker build -t ${images[0]}:${owncloud_version} $TOYBOX_HOME/src/owncloud/${owncloud_version}
@@ -47,7 +47,7 @@ function __post_run() {
     http_status=$(curl -LI ${proto}://${fqdn} -o /dev/null -w '%{http_code}\n' -s)
     while [ ${http_status} -ne 200 ]; do
         echo "waiting(${http_status})..." && sleep 3
-        http_status=$(curl -LI ${proto}://${fqdn} -o /dev/null -w '%{http_code}\n' -s)
+        http_status=$(curl -kLI ${proto}://${fqdn} -o /dev/null -w '%{http_code}\n' -s)
     done
     echo "complete!"
     echo "---------------------------------"

@@ -10,11 +10,10 @@ images=(
    toybox/mariadb
    toybox/redis
 )
-
 declare -A components=(
     ["${project_name}_${containers[0]}_1"]="apache php owncloud"
     ["${project_name}_${containers[1]}_1"]="mariadb"
-    ["${project_name}_${containers[1]}_1"]="redis"
+    ["${project_name}_${containers[2]}_1"]="redis"
 )
 declare -A component_version=(
     ['apache']="2.4.10"
@@ -24,9 +23,26 @@ declare -A component_version=(
     ['redis']="3.2.0"
 )
 
+owncloud_user="toybox"
+owncloud_password="toybox"
+database="mysql"
+db_root_password="root"
 db_name=${application}
 db_user=${application}
-db_user_pass=${application}
+db_user_password=${application}
+mariadb_alias="mysql"
+
+declare -A params=(
+    ['owncloud_user']=${owncloud_uer}
+    ['owncloud_password']=${owncloud_password}
+    ['owncloud_database']=${database}
+    ['mariadb_mysql_root_password']=${db_root_password}
+    ['mariadb_mysql_database']=${db_name}
+    ['mariadb_mysql_user']=${db_user}
+    ['mariadb_mysql_password']=${db_user_password}
+    ['mariadb_mariadb_alias']=${mariadb_alias}
+    ['mariadb_term']="xterm"
+)
 
 owncloud_version="9.0.2-apache"
 mariadb_version="10.1.14"
@@ -35,7 +51,7 @@ redis_version="3.2.0-alpine"
 uid=""
 gid=""
 
-proto="https"
+proto="http"
 
 function __build() {
     docker build -t ${images[0]}:${owncloud_version} $TOYBOX_HOME/src/owncloud/${owncloud_version}
@@ -44,20 +60,30 @@ function __build() {
 }
 
 function __post_run() {
-    http_status=$(curl -LI ${proto}://${fqdn} -o /dev/null -w '%{http_code}\n' -s)
+    local id=$(docker ps | grep ${containers[0]}_ | cut -d" " -f1)
+    local ip=$(docker inspect -f '{{ .NetworkSettings.IPAddress }}' ${id})
+
+    http_status=$(curl -kLI ${proto}://${fqdn} -o /dev/null -w '%{http_code}\n' -s)
     while [ ${http_status} -ne 200 ]; do
         echo "waiting(${http_status})..." && sleep 3
-        http_status=$(curl -LI ${proto}://${fqdn} -o /dev/null -w '%{http_code}\n' -s)
+        http_status=$(curl -kLI ${proto}://${fqdn} -o /dev/null -w '%{http_code}\n' -s)
     done
     echo "complete!"
     echo "---------------------------------"
     echo "URL: http://${fqdn}"
+    echo "WebDAV: http://${fqdn}/remote.php/webdav/"
+    echo "Application: ${application}:${nginx_version}"
+    echo "Container ID: ${id}"
+    echo "IP Address: ${ip}"
     echo "---------------------------------"
 }
 
 function __init() {
 
-    __build
+    __build || {
+        echo "build error(${application})"
+        exit 1
+    }
 
     mkdir -p ${app_path}/bin
     mkdir -p ${app_path}/data/owncloud/config
@@ -70,11 +96,14 @@ function __init() {
 ${containers[0]}:
     image: ${images[0]}:${owncloud_version}
     links:
-        - ${containers[1]}:mysql
+        - ${containers[1]}:${mariadb_alias}
         - ${containers[2]}:redis
     environment:
     #    - security-opt=label:type:docker_t
         - VIRTUAL_HOST=${fqdn}
+        - DATABASE=${database}
+        - OWNCLOUD_USER=${owncloud_user}
+        - OWNCLOUD_PASSWORD=${owncloud_password}
         - TOYBOX_UID=${uid}
         - TOYBOX_GID=${gid}
     volumes:
@@ -91,10 +120,10 @@ ${containers[1]}:
         - ${app_path}/data/mariadb:/var/lib/mysql
     environment:
     #    security-opt: label:type:docker_t
-        MYSQL_ROOT_PASSWORD: root
+        MYSQL_ROOT_PASSWORD: ${db_root_password}
         MYSQL_DATABASE: ${db_name}
         MYSQL_USER: ${db_user}
-        MYSQL_PASSWORD: ${db_user_pass}
+        MYSQL_PASSWORD: ${db_user_password}
         TOYBOX_UID: ${uid}
         TOYBOX_GID: ${gid}
         TERM: xterm

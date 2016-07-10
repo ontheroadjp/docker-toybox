@@ -14,24 +14,13 @@ declare -A component_version=(
 )
 
 apache2_version=2.4.20
+app_version=${apache2_version}
 
 uid=""
 gid=""
 
 function __build() {
     docker build -t ${containers[0]}:${apache2_version} $TOYBOX_HOME/src/${application}/${apache2_version}
-}
-
-function __post_run() {
-    local id=$(docker ps | grep ${containers[0]}_ | cut -d" " -f1)
-    local ip=$(docker inspect -f '{{ .NetworkSettings.IPAddress }}' ${id})
-
-    echo "---------------------------------"
-    echo "Application: ${application}:${apache2_version}"
-    echo "URL: http(s)://${fqdn}"
-    echo "Container ID: ${id}"
-    echo "IP Address: ${ip}"
-    echo "---------------------------------"
 }
 
 function __init() {
@@ -50,7 +39,7 @@ function __init() {
     
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    image: ${images[0]}/${application}:${apache2_version}
+    image: ${images[0]}:${apache2_version}
     volumes:
         - /etc/localtime:/etc/localtime:ro
         - "${app_path}/data/apache2/docroot:/usr/local/apache2/htdocs"

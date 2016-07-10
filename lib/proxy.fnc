@@ -131,7 +131,7 @@ ${containers[2]}:
         max-size: "3m"
         max-file: "7"
     environment:
-        - NGINX_DOCKER_GEN_CONTAINER=${container[1]}
+        - NGINX_DOCKER_GEN_CONTAINER=${containers[1]}
         - ACME_CA_URI=https://acme-staging.api.letsencrypt.org/directory
         #- ACME_CA_URI=https://acme-v01.api.letsencrypt.org/directory
 EOF

@@ -1,34 +1,44 @@
 #!/bin/sh
 
-db_name=${application}
-db_user=${application}
-db_user_pass=${application}
-containers=( ${fqdn}-${application} )
+containers=( 
+    ${fqdn}-${application}
+)
+images=(
+    toybox/reichat
+)
+
+reichat_version="0.0.34"
+node_version="0.12.13-slim"
+app_version="${reichat_version}"
+
+declare -A components=(
+    ["${project_name}_${containers[0]}_1"]="reichat node"
+)
+declare -A component_version=(
+    ['reichat']="${reichat_version}"
+    ['node']="${node_version}"
+)
 
 function __build(){
-   docker build -t toybox/reichat ${src} 
+   docker build -t ${containers[0]} ${TOYBOX_HOME}/src/${application}/${reichat_version}
 }
 
 function __init() {
 
-    __build
+    __build || {
+        echo "build error(${application})"
+        exit 1
+    }
 
     mkdir -p ${app_path}/bin
     
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    image: nutsp/reichat
+    image: ${images[0]}
     environment:
         - VIRTUAL_HOST=${fqdn}
     ports:
-        #- "10133"
         - "10133"
-
-#${containers[1]}:
-#    image: busybox
-#    volumes:
-#        - ${app_path}/data/docroot:/var/www/html
-#        - ${app_path}/data/mysql:/var/lib/mysql
 EOF
 }
 

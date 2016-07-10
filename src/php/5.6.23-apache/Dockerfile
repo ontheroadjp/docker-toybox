@@ -1,4 +1,4 @@
-FROM php:5.6.22-apache
+FROM php:5.6.23-apache
 MAINTAINER NutsProject, LLC <dev@nutsproject.co.jp>
 
 RUN a2enmod rewrite expires
@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y \
     libmcrypt-dev \
     libmemcached-dev \
     libpng12-dev \
-    libbpq-dev \
+    libpq-dev \
     libxml2-dev \
     && rm -rf /var/lib/apt/lists/* \
 	&& docker-php-ext-configure gd --with-png-dir=/usr --with-jpeg-dir=/usr \

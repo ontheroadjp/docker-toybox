@@ -3,18 +3,13 @@
 
 clone=0
 
-containers=( ${fqdn}-${application} ${fqdn}-${application}-db )
-images=(toybox/wordpress toybox/mariadb)
-
-declare -A components=(
-    ["${project_name}_${containers[0]}_1"]="apache php wordpress"
-    ["${project_name}_${containers[1]}_1"]="mariadb"
+containers=(
+    ${fqdn}-${application}
+    ${fqdn}-${application}-db
 )
-declare -A component_version=(
-    ['apache']="2.4.10"
-    ['php']="5.6.21"
-    ['wordpress']="4.5.2"
-    ['mariadb']="10.1.14"
+images=(
+    toybox/wordpress
+    toybox/mariadb
 )
 
 db_root_password="root"
@@ -25,6 +20,22 @@ db_table_prefix="wp_dev_"
 db_alias="mysql"
 docroot="/var/www/html"
 
+apache2_version="2.4.10"
+php_version="5.6.21"
+wordpress_version="4.5.2-apache"
+mariadb_version="10.1.14"
+app_version="${wordpress_version}"
+
+declare -A components=(
+    ["${project_name}_${containers[0]}_1"]="apache2 php wordpress"
+    ["${project_name}_${containers[1]}_1"]="mariadb"
+)
+declare -A component_version=(
+    ['apache2']="${apache2_version}"
+    ['php']="${php_version}"
+    ['wordpress']="${wordpress_version}"
+    ['mariadb']="${mariadb}"
+)
 declare -A params=(
     ['mariadb_mysql_root_password']=${db_root_password}
     ['mariadb_mysql_database']=${db_name}
@@ -44,9 +55,6 @@ declare -A params=(
     #['FQDN_REPLACED']=${remote_fqdn}
     #['REMOTE_WP_DIR']=${remote_wp_dir}
 )
-
-wordpress_version="4.5.2-apache"
-mariadb_version="10.1.14"
 
 uid=""
 gid=""
@@ -214,10 +222,10 @@ function __post_run() {
         cp -f ${out} ${host_docroot}
     fi
 
-    http_status=$(curl -LI http://${fqdn} -o /dev/null -w '%{http_code}\n' -s)
-    while [ ${http_status} -ne 200 ] && [ ${http_status} -ne 301 ]; do
+    http_status=$(curl -kLI http://${fqdn} -o /dev/null -w '%{http_code}\n' -s)
+    while [ ${http_status} -ne 200 ]; do
         echo "waiting(${http_status})..." && sleep 3
-        http_status=$(curl -LI http://${fqdn} -o /dev/null -w '%{http_code}\n' -s)
+        http_status=$(curl -kLI http://${fqdn} -o /dev/null -w '%{http_code}\n' -s)
     done
 
     # for SSL connection
@@ -233,11 +241,6 @@ function __post_run() {
 #    \$_SERVER['HTTPS'] = 'on';\n\
 #    \$_SERVER['SERVER_PORT'] = 443;\n\
 #}\n" ${out}
-
-    echo "complete!"
-    echo "---------------------------------"
-    echo "URL: http://${fqdn}"
-    echo "---------------------------------"
 }
 
 # --------------------------------------------------------
@@ -262,51 +265,19 @@ function __init() {
     gid=$(cat /etc/group | grep ^$(whoami) | cut -d: -f3)
 
     # ---- wpclone only ----
-    #if [ ${clone} -eq 1 ] && [ ! -d ${build_dir}/wp-sync/data ]; then
     if [ ${clone} -eq 1 ] && [ $(ls -la ${build_dir}/wp-sync | wc -l) -eq 3 ]; then
         __prepare_wp_data
 
         echo ">>> Prepare WordPress build..."
         __prepare_wp_build
-
-        #echo ">>> Prepare MariaDB build..."
-        #__prepare_mariadb_build && echo
     fi
     # ---- wpclone only ----
 
     echo ">>> build image: ${images[0]}:${wordpress_version} ..."
-    #docker build -t toybox/wordpress:${wordpress_version} ${build_dir}/wordpress && echo
     docker build -t ${images[0]}:${wordpress_version} $TOYBOX_HOME/src/wordpress/${wordpress_version} && echo
 
     echo ">>> build image: ${images[1]}:${mariadb_version} ..."
-    #docker build -t toybox/mariadb:${mariadb_version} ${mariadb_build_dir} && echo
     docker build -t ${images[1]}:${mariadb_version} $TOYBOX_HOME/src/mariadb/${mariadb_version} && echo
-
-    #echo -n "SSL connection enable? (y/n):"
-    #read is_ssl
-    #if [ ${is_ssl} = "y" ]; then
-    #    proto="https"
-    #    while [ ! $(echo ${ssl_email} | egrep -e '^[a-zA-Z0-9_\.\-]+?@[A-Za-z0-9_\.\-]+$') ]; do
-    #        echo -n "Enter e-mail address for SSL certificate:  "
-    #        read ssl_email
-    #    done
-    #    echo "------------------------------------------------------------"
-    #    echo "SSL: on"
-    #    echo "Email for SSL certificate: ${ssl_email}"
-    #    echo "------------------------------------------------------------"
-    #else
-    #    proto="http"
-    #    echo "------------------------------------------------------------"
-    #    echo "SSL: off"
-    #    echo "------------------------------------------------------------"
-    #fi
-
-    #echo -n "Are you sure? (y/n): " 
-    #read confirm
-    #if [ ${confirm} != "y" ]; then
-    #    exit 1
-    #fi
-    #echo ""
 
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
@@ -339,7 +310,6 @@ ${containers[0]}:
         - "80"
 
 ${containers[1]}:
-    #image: toybox/mariadb:${mariadb_version}
     image: ${images[1]}:${mariadb_version}
     volumes:
         - /etc/localtime:/etc/localtime:ro

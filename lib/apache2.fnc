@@ -1,21 +1,34 @@
 #!/bin/sh
 
+containers=(
+    ${fqdn}-${application}
+)
+images=(
+    toybox/apache2
+)
+declare -A components=(
+    ["${project_name}_${containers[0]}_1"]="apache2"
+)
+declare -A component_version=(
+    ['apache2']="2.4.20"
+)
+
 apache2_version=2.4.20
+app_version=${apache2_version}
 
 uid=""
 gid=""
 
 function __build() {
-    docker build -t toybox/${application}:${apache2_version} $TOYBOX_HOME/src/${application}/${apache2_version}
+    docker build -t ${containers[0]}:${apache2_version} $TOYBOX_HOME/src/${application}/${apache2_version}
 }
-
-containers=( \
-   ${application}-${apache2_version} 
-)
 
 function __init() {
 
-    __build
+    __build || {
+        echo "build error(${application})"
+        exit 1
+    }
 
     mkdir -p ${app_path}/bin
     mkdir -p ${app_path}/data/apache2/docroot
@@ -26,42 +39,19 @@ function __init() {
     
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    image: toybox/${application}:${apache2_version}
+    image: ${images[0]}:${apache2_version}
     volumes:
+        - /etc/localtime:/etc/localtime:ro
         - "${app_path}/data/apache2/docroot:/usr/local/apache2/htdocs"
         - "${app_path}/data/apache2/conf:/usr/local/apache2/conf"
     environment:
         - VIRTUAL_HOST=${fqdn}
         - TOYBOX_UID=${uid}
         - TOYBOX_GID=${gid}
-        - TIMEZONE=${timezone}
     ports:
         - "80"
 EOF
 }
-
-#function __new() {
-#    #__source; local status=$?
-#    #if [ ${status} -ne 0 ]; then
-#    #    echo ${project_name}": source code of ${application} does not download."
-#    #    exit 1
-#    #fi
-#
-#    __init && {
-#        cd ${app_path}/bin
-#        docker-compose -p ${project_name} up -d && {
-#            echo '---------------------------------'
-#            echo 'URL: http://'${fqdn}
-#            echo 'WebDAV: http://'${fqdn}'/remote.php/webdav/'
-#            echo '---------------------------------'
-#            #echo -n 'Database Host: '
-#            #docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
-#            #    $(docker ps | grep ${project_name}_${db_container}_1 | awk '{print $1}')
-#            echo 'Database Username: '${db_user}
-#            echo 'Database Password: '${db_user_pass}
-#        }
-#    }
-#}
 
 #function __backup() {
 #    prefix=$(date '+%Y%m%d_%H%M%S')

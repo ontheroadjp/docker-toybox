@@ -10,18 +10,6 @@ images=(
    toybox/mariadb
    toybox/redis
 )
-declare -A components=(
-    ["${project_name}_${containers[0]}_1"]="apache php owncloud"
-    ["${project_name}_${containers[1]}_1"]="mariadb"
-    ["${project_name}_${containers[2]}_1"]="redis"
-)
-declare -A component_version=(
-    ['apache']="2.4.10"
-    ['php']="5.6.22"
-    ['owncloud']="9.0.2"
-    ['mariadb']="10.1.14"
-    ['redis']="3.2.0"
-)
 
 owncloud_user="toybox"
 owncloud_password="toybox"
@@ -32,6 +20,25 @@ db_user=${application}
 db_user_password=${application}
 mariadb_alias="mysql"
 
+apache2_version="2.4.10"
+php_version="5.6.22"
+owncloud_version="9.0.2-apache"
+mariadb_version="10.1.14"
+redis_version="3.2.0-alpine"
+app_version=${owncloud_version}
+
+declare -A components=(
+    ["${project_name}_${containers[0]}_1"]="apache2 php owncloud"
+    ["${project_name}_${containers[1]}_1"]="mariadb"
+    ["${project_name}_${containers[2]}_1"]="redis"
+)
+declare -A component_version=(
+    ['apache2']="${apache2_version}"
+    ['php']="${php_version}"
+    ['owncloud']="${owncloud_version}"
+    ['mariadb']="${mariadb_version}"
+    ['redis']="${redis_version}"
+)
 declare -A params=(
     ['owncloud_user']=${owncloud_uer}
     ['owncloud_password']=${owncloud_password}
@@ -43,10 +50,6 @@ declare -A params=(
     ['mariadb_mariadb_alias']=${mariadb_alias}
     ['mariadb_term']="xterm"
 )
-
-owncloud_version="9.0.2-apache"
-mariadb_version="10.1.14"
-redis_version="3.2.0-alpine"
 
 uid=""
 gid=""
@@ -60,22 +63,11 @@ function __build() {
 }
 
 function __post_run() {
-    local id=$(docker ps | grep ${containers[0]}_ | cut -d" " -f1)
-    local ip=$(docker inspect -f '{{ .NetworkSettings.IPAddress }}' ${id})
-
     http_status=$(curl -kLI ${proto}://${fqdn} -o /dev/null -w '%{http_code}\n' -s)
     while [ ${http_status} -ne 200 ]; do
         echo "waiting(${http_status})..." && sleep 3
         http_status=$(curl -kLI ${proto}://${fqdn} -o /dev/null -w '%{http_code}\n' -s)
     done
-    echo "complete!"
-    echo "---------------------------------"
-    echo "URL: http://${fqdn}"
-    echo "WebDAV: http://${fqdn}/remote.php/webdav/"
-    echo "Application: ${application}:${nginx_version}"
-    echo "Container ID: ${id}"
-    echo "IP Address: ${ip}"
-    echo "---------------------------------"
 }
 
 function __init() {

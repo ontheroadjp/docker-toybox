@@ -44,7 +44,7 @@ function __build() {
 }
 
 function __post_run() {
-    http_status=$(curl -LI ${proto}://${fqdn} -o /dev/null -w '%{http_code}\n' -s)
+    http_status=$(curl -kLI ${proto}://${fqdn} -o /dev/null -w '%{http_code}\n' -s)
     while [ ${http_status} -ne 200 ]; do
         echo "waiting(${http_status})..." && sleep 3
         http_status=$(curl -kLI ${proto}://${fqdn} -o /dev/null -w '%{http_code}\n' -s)

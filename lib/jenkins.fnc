@@ -63,6 +63,8 @@ ${containers[0]}:
         - VIRTUAL_HOST=${fqdn}
         - VIRTUAL_PORT=8080
         - PROXY_CACHE=true
+        - JENKINS_USER=toybox
+        - JENKINS_PASSWORD=toybox
         - TOYBOX_UID=${uid}
         - TOYBOX_GID=${gid}
         - JAVA_OPTS="-Duser.timezone=Asia/Tokyo -Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8"

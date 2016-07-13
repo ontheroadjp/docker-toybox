@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 . $TOYBOX_HOME/core/usage.fnc
 . $TOYBOX_HOME/core/list.fnc
 . $TOYBOX_HOME/core/dockerinfo.fnc
@@ -10,7 +12,9 @@
 
 project_name="toybox"
 version="0.2.0"
+default_domain="docker-toybox.com"
 
+app_name=""
 fqdn=""
 domain=""
 sub_domain=""
@@ -32,14 +36,6 @@ function _env() {
     echo "TOYBOX_DOMAIN: $TOYBOX_DOMAIN"
     #echo "TOYBOX_LETSENCRYPT_HOST: $TOYBOX_LETSENCRYPT_HOST"
     #echo "TOYBOX_LETSENCRYPT_EMAIL: $TOYBOX_LETSENCRYPT_EMAIL"
-}
-
-function _version() { 
-    echo ${version} 
-}
-
-function _help() { 
-    __usage 
 }
 
 # ----------------------------------------
@@ -370,46 +366,143 @@ EOF
 }
 
 # check options
-while getopts s:d: OPT
+#while getopts s:d: OPT
+#do
+#  case $OPT in
+#    "s" ) sub_domain="${OPTARG}" ;;
+#    "d" ) domain="${OPTARG}" ;;
+#  esac
+#done
+#shift $(expr $OPTIND - 1)
+
+
+
+
+
+#usage() {
+#    echo "Usage: $PROGNAME [OPTIONS] FILE"
+#    echo "  This script is ~."
+#    echo
+#    echo "Options:"
+#    echo "  -h, --help"
+#    echo "      --version"
+#    echo "  -a, --long-a ARG"
+#    echo "  -b, --long-b [ARG]"
+#    echo "  -c, --long-c"
+#    echo
+#    exit 1
+#}
+for OPT in "$@"
 do
-  case $OPT in
-    "s" ) sub_domain="${OPTARG}" ;;
-    "d" ) domain="${OPTARG}" ;;
-  esac
+    case "$OPT" in
+        '-h'|'--help' )
+            __usage
+            exit 1
+            ;;
+        '-v'|'--version' )
+            echo ${version}
+            exit 1
+            ;;
+        '-s'|'--sub-domain' )
+            if [[ -z "$2" ]] || [[ "$2" =~ ^-+ ]]; then
+                echo "${project_name}: option requires an argument -- $1" 1>&2
+                exit 1
+            fi
+            sub_domain="$2"
+            shift 2
+            ;;
+        '-d'|'--domain' )
+            if [[ -z "$2" ]] || [[ "$2" =~ ^-+ ]]; then
+                echo "${project_name}: option requires an argument -- $1" 1>&2
+                exit 1
+            fi
+            domain="$2"
+            shift 2
+            ;;
+        '--name' )
+            if [[ -z "$2" ]] || [[ "$2" =~ ^-+ ]]; then
+                echo "${project_name}: option requires an argument -- $1" 1>&2
+                exit 1
+            fi
+            app_name="$2"
+            shift 2
+            ;;
+        #'-b'|'--long-b' )
+        #    if [[ -z "$2" ]] || [[ "$2" =~ ^-+ ]]; then
+        #        shift
+        #    else
+        #        shift 2
+        #    fi
+        #    ;;
+        #'-c'|'--long-c' )
+        #    shift 1
+        #    ;;
+        '--'|'-' )
+            shift 1
+            param+=( "$@" )
+            break
+            ;;
+        -*)
+            echo "${project_name}: illegal option -- '$(echo $1 | sed 's/^-*//')'" 1>&2
+            exit 1
+            ;;
+        *)
+            if [[ ! -z "$1" ]] && [[ ! "$1" =~ ^-+ ]]; then
+                #param=( ${param[@]} "$1" )
+                param+=( "$1" )
+                shift 1
+            fi
+            ;;
+    esac
 done
-shift $(expr $OPTIND - 1)
+
+#if [ -z ${param} ]; then
+#    echo "${project_name}: too few arguments" 1>&2
+#    echo "Try '${project_name} --help' for more information." 1>&2
+#    exit 1
+#fi
+
+#echo "sub_domain: "$sub_domain
+#echo "domain: "$domain
+#echo "param[@]: "${param[@]}
+#exit
+
+
+
 
 # check arguments
-if [ $# -eq 0 ]; then
+if [ ${#param[@]} -eq 0 ]; then
     __list
 
-elif [ $# -eq 1 ]; then
-    if [ $1 = "reset" ]; then
-        echo "Are you sure you want to reset all of containers related ${project_name}?(y/n)"
-        read answer
-        if [ ${answer} = "y" ]; then
-            echo -n 'docker stop...'
-            docker stop $(docker ps | grep ${project_name} | awk '{print $1}') > /dev/null 2>&1
-            echo 'done.'
-            echo -n 'docker rm...'
-            docker rm $(docker ps -a | grep ${project_name} | awk '{print $1}') > /dev/null 2>&1
-            echo 'done.'
-            echo -n 'remove stack directory...'
-            sudo rm -rf $TOYBOX_HOME/stack && {
-                echo 'done.'
-            }
-        fi
-    elif __is_executable "_$1" ; then
-        _$1
-    else
-        echo "Invalid argument: $1"
-        exit 1;
-    fi
+#elif [ ${#param[@]} -eq 1 ]; then
+#    #if [ $1 = "reset" ]; then
+#    if [ ${param[0]} = "reset" ]; then
+#        echo "Are you sure you want to reset all of containers related ${project_name}?(y/n)"
+#        read answer
+#        if [ ${answer} = "y" ]; then
+#            echo -n 'docker stop...'
+#            docker stop $(docker ps | grep ${project_name} | awk '{print $1}') > /dev/null 2>&1
+#            echo 'done.'
+#            echo -n 'docker rm...'
+#            docker rm $(docker ps -a | grep ${project_name} | awk '{print $1}') > /dev/null 2>&1
+#            echo 'done.'
+#            echo -n 'remove stack directory...'
+#            sudo rm -rf $TOYBOX_HOME/stack && {
+#                echo 'done.'
+#            }
+#        fi
+#    elif __is_executable "_$1" ; then
+#        _$1
+#    else
+#        echo "Invalid argument: $1"
+#        exit 1;
+#    fi
 
-elif [ $# -eq 2 ]; then
+elif [ ${#param[@]} -eq 2 ]; then
 
-    arg=$1; shift
-    
+    #arg=$1; shift
+    arg=${param[0]}; unset param[0]; param=(${param[@]})
+   
     # ----------------------------------------
     # set variables: URL form
     # ----------------------------------------
@@ -426,51 +519,46 @@ elif [ $# -eq 2 ]; then
         fi
 
         application=$(__get_app_env TOYBOX_APPLICATION)
-        compose_file="${app_path}/bin/docker-compose.yml"
-        src="$TOYBOX_HOME/src/${application}"
+        #compose_file="${app_path}/bin/docker-compose.yml"
+        #src="$TOYBOX_HOME/src/${application}"
         
     # ----------------------------------------
     # set variables: Generic Form
     # ----------------------------------------
     elif [ ${arg} = "proxy" ]; then
-        port=80
-
         application=${arg}
-        app_path="$TOYBOX_HOME/stack/${application}/${port}"
-        compose_file="${app_path}/bin/docker-compose.yml"
-        src="$TOYBOX_HOME/src/${application}"
-    else
-        application=$(echo ${arg} | cut -d":" -f1)
-        app_version=$(echo ${arg} | cut -d":" -f2)
-
-        if [ ! -f $TOYBOX_HOME/lib/${application}.fnc ]; then
-            echo "No application available."
-            exit 1;
-        fi
-    
-        # set FQDN
-        if [ "${domain}" = '' ]; then
-            if [ -z "$TOYBOX_DOMAIN" ] ; then
-                domain="docker-toybox.com"
-            else
-                domain=$TOYBOX_DOMAIN
-            fi
-        fi
-        if [ "${sub_domain}" = '' ]; then
-            sub_domain=${application}
-        fi
-    
-        fqdn="${sub_domain}.${domain}"
-
+        domain=${application}
+        sub_domain="80"
+        fqdn=${sub_domain}.${domain}
         app_path="$TOYBOX_HOME/stack/${domain}/${sub_domain}"
-        compose_file="${app_path}/bin/docker-compose.yml"
-        src="$TOYBOX_HOME/src/${application}"
+
+        #app_path="$TOYBOX_HOME/stack/${application}/${port}"
+        #compose_file="${app_path}/bin/docker-compose.yml"
+        #src="$TOYBOX_HOME/src/${application}"
+    else
+        application=${arg}
+
+        # set FQDN
+        : ${domain:=${TOYBOX_DOMAIN}}
+        : ${domain:=${default_domain}}
+        : ${sub_domain:=${application}}
+        fqdn="${sub_domain}.${domain}"
+        app_path="$TOYBOX_HOME/stack/${domain}/${sub_domain}"
     fi
+
+    if [ ! -f $TOYBOX_HOME/lib/${application}.fnc ]; then
+       echo "No application available."
+       exit 1;
+    fi
+    
+    compose_file="${app_path}/bin/docker-compose.yml"
+    src="$TOYBOX_HOME/src/${application}"
 
     # ----------------------------------------
     # Exec main command
     # ----------------------------------------
-    __docker_toybox $@
+    #__docker_toybox $@
+    __docker_toybox ${param[@]}
 else
     echo "${project_name}: Invalid argument(s)."
     exit 1;

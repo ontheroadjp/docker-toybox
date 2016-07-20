@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e
-
 . $TOYBOX_HOME/core/usage.fnc
 . $TOYBOX_HOME/core/list.fnc
 . $TOYBOX_HOME/core/dockerinfo.fnc
@@ -34,8 +32,6 @@ timezone=$(date +%Z)
 function _env() {
     echo "TOYBOX_HOME: $TOYBOX_HOME"
     echo "TOYBOX_DOMAIN: $TOYBOX_DOMAIN"
-    #echo "TOYBOX_LETSENCRYPT_HOST: $TOYBOX_LETSENCRYPT_HOST"
-    #echo "TOYBOX_LETSENCRYPT_EMAIL: $TOYBOX_LETSENCRYPT_EMAIL"
 }
 
 # ----------------------------------------
@@ -123,9 +119,6 @@ function _start() {
 
         # when container removed
         if ! __is_container_exist ${fqdn}-${application}; then
-            #__init && {
-            #    docker-compose -p ${project_name} up -d
-            #}
             _new
 
         # when container running
@@ -135,9 +128,6 @@ function _start() {
 
         # when container stopped
         else
-            #__init && {
-            #    docker-compose -p ${project_name} start
-            #}
             _new
         fi
     fi
@@ -375,10 +365,6 @@ EOF
 #done
 #shift $(expr $OPTIND - 1)
 
-
-
-
-
 #usage() {
 #    echo "Usage: $PROGNAME [OPTIONS] FILE"
 #    echo "  This script is ~."
@@ -462,14 +448,6 @@ done
 #    exit 1
 #fi
 
-#echo "sub_domain: "$sub_domain
-#echo "domain: "$domain
-#echo "param[@]: "${param[@]}
-#exit
-
-
-
-
 # check arguments
 if [ ${#param[@]} -eq 0 ]; then
     __list
@@ -519,8 +497,6 @@ elif [ ${#param[@]} -eq 2 ]; then
         fi
 
         application=$(__get_app_env TOYBOX_APPLICATION)
-        #compose_file="${app_path}/bin/docker-compose.yml"
-        #src="$TOYBOX_HOME/src/${application}"
         
     # ----------------------------------------
     # set variables: Generic Form
@@ -533,8 +509,6 @@ elif [ ${#param[@]} -eq 2 ]; then
         app_path="$TOYBOX_HOME/stack/${domain}/${sub_domain}"
 
         #app_path="$TOYBOX_HOME/stack/${application}/${port}"
-        #compose_file="${app_path}/bin/docker-compose.yml"
-        #src="$TOYBOX_HOME/src/${application}"
     else
         application=${arg}
 

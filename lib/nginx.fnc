@@ -7,29 +7,29 @@ images=(
     toybox/nginx
 )
 
+nginx_version=1.9.15
+app_version=${nginx_version}
+
 declare -A components=(
     ["${project_name}_${containers[0]}_1"]="nginx"
 )
 declare -A component_version=(
-    ['nginx']="1.9.15"
+    ['nginx']="${nginx_version}"
 )
-
-nginx_version=1.9
 
 uid=""
 gid=""
 
 function __build() {
-    docker build -t toybox/${application}:${nginx_version} $TOYBOX_HOME/src/${application}/${nginx_version}
+    docker build -t ${images[0]}:${nginx_version} $TOYBOX_HOME/src/${application}/${nginx_version}
 }
-
-containers=( \
-   ${fqdn}-${application}
-)
 
 function __init() {
 
-    __build
+    __build || {
+        echo "build error(${application})"
+        exit 1
+    }
 
     mkdir -p ${app_path}/bin
     mkdir -p ${app_path}/data/nginx/docroot
@@ -53,29 +53,6 @@ ${containers[0]}:
         - "80"
 EOF
 }
-
-#function __new() {
-#    #__source; local status=$?
-#    #if [ ${status} -ne 0 ]; then
-#    #    echo ${project_name}": source code of ${application} does not download."
-#    #    exit 1
-#    #fi
-#
-#    __init && {
-#        cd ${app_path}/bin
-#        docker-compose -p ${project_name} up -d && {
-#            echo '---------------------------------'
-#            echo 'URL: http://'${fqdn}
-#            echo 'WebDAV: http://'${fqdn}'/remote.php/webdav/'
-#            echo '---------------------------------'
-#            #echo -n 'Database Host: '
-#            #docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
-#            #    $(docker ps | grep ${project_name}_${db_container}_1 | awk '{print $1}')
-#            echo 'Database Username: '${db_user}
-#            echo 'Database Password: '${db_user_pass}
-#        }
-#    }
-#}
 
 #function __backup() {
 #    prefix=$(date '+%Y%m%d_%H%M%S')

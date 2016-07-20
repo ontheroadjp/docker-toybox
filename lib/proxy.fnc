@@ -22,22 +22,10 @@ declare -A component_version=(
     ['lets-encrypt']="n/a"
 )
 
-nginx_version=1.9
+nginx_version=1.9.15
 
 function __build() {
     docker build -t ${images[0]}:${nginx_version} $TOYBOX_HOME/src/nginx/${nginx_version}
-}
-
-function __post_run() {
-    echo "Generating DH parameters, 2048 bit long safe prime, generator 2"
-    echo "This is going to take a long time"
-    while [ ! -f ${app_path}/data/nginx/certs/dhparam.pem ]; do
-        sleep 6 && echo "wait..."
-    done
-    echo "complete!"
-    echo "--------------------------------------"
-    echo "toybox-proxy is ready!"
-    echo "--------------------------------------"
 }
 
 function __post_run() {
@@ -114,6 +102,7 @@ ${containers[1]}:
     command: -config /docker-gen.conf
     #command: -notify-sighup ${project_name}_${containers[0]}_1 -watch -only-exposed /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
     #command: -tlscacert=$HOME/.docker/ca.pem -tlscert=$HOME/.docker/cert.pem -tlskey=$HOME/.docker/key.pem -notify-sighup ${project_name}_${containers[0]}_1 -watch -only-exposed /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
+
 ${containers[2]}:
     restart: always
     #restart: unless-stopped

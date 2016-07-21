@@ -56,10 +56,8 @@ function __list() {
                 printf "%-25s" "Application"
                 echo "Status"
                 n=0; while [ $n -lt 85 ]; do
-                    printf "-"
-                    n=$((n+1))
+                    printf "-"; n=$((n+1))
                 done; printf "\n"
-
             fi
             subs="${dom}/*"
             for sub in ${subs}; do

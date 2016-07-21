@@ -2,15 +2,32 @@
 #set -eu
 
 clone=0
+fpm=0
 
-containers=(
-    ${fqdn}-${application}
-    ${fqdn}-${application}-db
-)
-images=(
-    toybox/wordpress
-    toybox/mariadb
-)
+containers=()
+images=()
+
+if [ ${fpm} -eq 0 ]; then
+    containers=(
+        ${fqdn}-${application}
+        ${fqdn}-${application}-db
+    )
+    images=(
+        toybox/wordpress
+        toybox/mariadb
+    )
+else
+    containers=(
+        ${fqdn}-${application}
+        ${fqdn}-${application}-fpm
+        ${fqdn}-${application}-db
+    )
+    images=(
+        toybox/nginx-fpm
+        toybox/wordpress
+        toybox/mariadb
+    )
+fi
 
 db_root_password="root"
 db_name="toybox_wordpress"
@@ -20,22 +37,42 @@ db_table_prefix="wp_dev_"
 db_alias="mysql"
 docroot="/var/www/html"
 
-apache2_version="2.4.10"
+apache_version="2.4.10"
+nginx_version="1.11.1-fpm"
 php_version="5.6.21"
-wordpress_version="4.5.2-apache"
+if [ ${fpm} -eq 0 ]; then
+    wordpress_version="4.5.2-apache"
+else
+    wordpress_version="4.5.3-fpm"
+fi
 mariadb_version="10.1.14"
 app_version="${wordpress_version}"
 
-declare -A components=(
-    ["${project_name}_${containers[0]}_1"]="apache2 php wordpress"
-    ["${project_name}_${containers[1]}_1"]="mariadb"
-)
-declare -A component_version=(
-    ['apache2']="${apache2_version}"
-    ['php']="${php_version}"
-    ['wordpress']="${wordpress_version}"
-    ['mariadb']="${mariadb}"
-)
+if [ ${fpm} -eq 0 ]; then
+    declare -A components=(
+        ["${project_name}_${containers[0]}_1"]="apache php wordpress"
+        ["${project_name}_${containers[1]}_1"]="mariadb"
+    )
+    declare -A component_version=(
+        ['apache']="${apache_version}"
+        ['php']="${php_version}"
+        ['wordpress']="${wordpress_version}"
+        ['mariadb']="${mariadb_version}"
+    )
+else
+    declare -A components=(
+        ["${project_name}_${containers[0]}_1"]="nginx"
+        ["${project_name}_${containers[1]}_1"]="php wordpress"
+        ["${project_name}_${containers[2]}_1"]="mariadb"
+    )
+    declare -A component_version=(
+        ['nginx']="${nginx_version}"
+        ['php']="${php_version}(FPM)"
+        ['wordpress']="${wordpress_version}"
+        ['mariadb']="${mariadb_version}"
+    )
+fi
+
 declare -A params=(
     ['mariadb_mysql_root_password']=${db_root_password}
     ['mariadb_mysql_database']=${db_name}
@@ -181,11 +218,16 @@ function __prepare_wp_build() {
 #}
 
 # --------------------------------------------------------
-# Clone command
+# extra command
 # --------------------------------------------------------
 
 function _clone() {
     clone=1
+    _new $@
+}
+
+function _fpm() {
+    fpm=1
     _new $@
 }
 
@@ -220,6 +262,8 @@ function __post_run() {
 
         # copy wp-config.php
         cp -f ${out} ${host_docroot}
+
+        echo "<?php phpinfo(); ?>" > ${host_docroot}
     fi
 
     http_status=$(curl -kLI http://${fqdn} -o /dev/null -w '%{http_code}\n' -s)
@@ -234,7 +278,7 @@ function __post_run() {
     define('FORCE_SSL_ADMIN', true);\n\
     \$_SERVER['HTTPS'] = 'on';\n\
     \$_SERVER['SERVER_PORT'] = 443;\n\
-}\n" ${out}
+    }\n" ${out}
 
 #    sed -i -e "/<?php/a\define('FORCE_SSL_ADMIN', true);\n\
 #if( \$_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https' ){\n\
@@ -248,18 +292,12 @@ function __post_run() {
 # --------------------------------------------------------
 
 function __init() {
-
     # ---- wpclone only (TEMPORARY)----
     if [ ${clone} -eq 1 ] && [ ! -f $TOYBOX_HOME/wp.tar.gz ]; then
         echo "error: there is no wp.tar.gz"
         exit 1;
     fi
     # ---- wpclone only (TEMPORARY)----
-
-    mkdir -p ${app_path}/bin
-    mkdir -p ${app_path}/data/wordpress/docroot
-    mkdir -p ${app_path}/data/mariadb
-    mkdir -p ${app_path}/build/wp-sync
 
     uid=$(cat /etc/passwd | grep ^$(whoami) | cut -d : -f3)
     gid=$(cat /etc/group | grep ^$(whoami) | cut -d: -f3)
@@ -273,6 +311,19 @@ function __init() {
     fi
     # ---- wpclone only ----
 
+    mkdir -p ${app_path}/bin
+    mkdir -p ${app_path}/data/wordpress/docroot
+    mkdir -p ${app_path}/data/mariadb
+    mkdir -p ${app_path}/build/wp-sync
+
+    if [ ${fpm} -eq 0 ]; then
+        __init_standalone
+    else
+        __init_fpm
+    fi
+}
+
+function __init_standalone() {
     echo ">>> build image: ${images[0]}:${wordpress_version} ..."
     docker build -t ${images[0]}:${wordpress_version} $TOYBOX_HOME/src/wordpress/${wordpress_version} && echo
 
@@ -282,6 +333,9 @@ function __init() {
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
     image: ${images[0]}:${wordpress_version}
+    volumes:
+        - /etc/localtime:/etc/localtime:ro
+        - ${app_path}/data/wordpress/docroot:${docroot}
     links:
         - ${containers[1]}:${db_alias}
     log_driver: "json-file"
@@ -301,16 +355,98 @@ ${containers[0]}:
         - EXEC_REPLACE_DB=${clone}
         - FQDN_REPLACED=${remote_fqdn}
         - REMOTE_WP_DIR=${remote_wp_dir}
-    #    - LETSENCRYPT_HOST=${fqdn}
-    #    - LETSENCRYPT_EMAIL=dev@ontheroad.jp
-    volumes:
-        - /etc/localtime:/etc/localtime:ro
-        - ${app_path}/data/wordpress/docroot:${docroot}
     ports:
         - "80"
 
 ${containers[1]}:
     image: ${images[1]}:${mariadb_version}
+    volumes:
+        - /etc/localtime:/etc/localtime:ro
+        - ${app_path}/data/mariadb:/var/lib/mysql
+        - ${build_dir}/wp-sync/data:/docker-entrypoint-initdb.d
+    log_driver: "json-file"
+    log_opt:
+        max-size: "3m"
+        max-file: "7"
+    environment:
+        - MYSQL_ROOT_PASSWORD=${db_root_password}
+        - MYSQL_DATABASE=${db_name}
+        - MYSQL_USER=${db_user}
+        - MYSQL_PASSWORD=${db_password}
+        - TERM=xterm
+        - TOYBOX_UID=${uid}
+        - TOYBOX_GID=${gid}
+EOF
+}
+
+function __init_fpm() {
+
+    mkdir -p ${app_path}/data/nginx/conf.d
+    mkdir -p ${app_path}/data/nginx/vhost.d
+    mkdir -p ${app_path}/data/nginx/docroot
+    mkdir -p ${app_path}/data/nginx/certs
+
+    echo ">>> build image: ${images[0]}:${nginx_version} ..."
+    docker build -t ${images[0]}:${nginx_version} $TOYBOX_HOME/src/nginx/${nginx_version} && echo
+
+    echo ">>> build image: ${images[1]}:${wordpress_version} ..."
+    docker build -t ${images[1]}:${wordpress_version} $TOYBOX_HOME/src/wordpress/${wordpress_version} && echo
+
+    echo ">>> build image: ${images[2]}:${mariadb_version} ..."
+    docker build -t ${images[2]}:${mariadb_version} $TOYBOX_HOME/src/mariadb/${mariadb_version} && echo
+
+    cat <<-EOF > ${compose_file}
+${containers[0]}:
+    image: ${images[0]}:${nginx_version}
+    links:
+        - ${containers[1]}:php
+    log_driver: "json-file"
+    log_opt:
+        max-size: "3m"
+        max-file: "7"
+    environment:
+        - VIRTUAL_HOST=${fqdn}
+        - PROXY_CACHE=true
+        - TOYBOX_UID=${uid}
+        - TOYBOX_GID=${gid}
+    volumes_from:
+        - ${containers[1]}
+    volumes:
+        - /etc/localtime:/etc/localtime:ro
+        - "${app_path}/data/nginx/conf.d:/etc/nginx/conf.d"
+        - "${app_path}/data/nginx/vhost.d:/etc/nginx/vhost.d"
+        - "${app_path}/data/nginx/docroot:/usr/share/nginx/html"
+        - "${app_path}/data/nginx/certs:/etc/nginx/certs"
+    ports:
+        - "80"
+
+${containers[1]}:
+    image: ${images[1]}:${wordpress_version}
+    volumes:
+        - /etc/localtime:/etc/localtime:ro
+        - ${app_path}/data/wordpress/docroot:${docroot}
+    links:
+        - ${containers[2]}:${db_alias}
+    log_driver: "json-file"
+    log_opt:
+        max-size: "3m"
+        max-file: "7"
+    environment:
+        - TOYBOX_UID=${uid}
+        - TOYBOX_GID=${gid}
+        - WORDPRESS_DB_NAME=${db_name}
+        - WORDPRESS_DB_USER=${db_user}
+        - WORDPRESS_DB_PASSWORD=${db_password}
+        - WORDPRESS_TABLE_PREFIX=${db_table_prefix}
+        - DOCROOT=${docroot}
+        - EXEC_REPLACE_DB=${clone}
+        - FQDN_REPLACED=${remote_fqdn}
+        - REMOTE_WP_DIR=${remote_wp_dir}
+    #ports:
+    #    - "9000"
+
+${containers[2]}:
+    image: ${images[2]}:${mariadb_version}
     volumes:
         - /etc/localtime:/etc/localtime:ro
         - ${app_path}/data/mariadb:/var/lib/mysql

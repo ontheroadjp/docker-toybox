@@ -7,27 +7,6 @@ fpm=0
 containers=()
 images=()
 
-if [ ${fpm} -eq 0 ]; then
-    containers=(
-        ${fqdn}-${application}
-        ${fqdn}-${application}-db
-    )
-    images=(
-        toybox/wordpress
-        toybox/mariadb
-    )
-else
-    containers=(
-        ${fqdn}-${application}
-        ${fqdn}-${application}-fpm
-        ${fqdn}-${application}-db
-    )
-    images=(
-        toybox/nginx-fpm
-        toybox/wordpress
-        toybox/mariadb
-    )
-fi
 
 db_root_password="root"
 db_name="toybox_wordpress"
@@ -39,14 +18,10 @@ docroot="/var/www/html"
 
 apache_version="2.4.10"
 nginx_version="1.11.1-fpm"
-php_version="5.6.21"
-if [ ${fpm} -eq 0 ]; then
-    wordpress_version="4.5.2-apache"
-else
-    wordpress_version="4.5.3-fpm"
-fi
+wordpress_version=""
+php_version=""
 mariadb_version="10.1.14"
-app_version="${wordpress_version}"
+app_version=""
 
 if [ ${fpm} -eq 0 ]; then
     declare -A components=(
@@ -263,8 +238,9 @@ function __post_run() {
         # copy wp-config.php
         cp -f ${out} ${host_docroot}
 
-        echo "<?php phpinfo(); ?>" > ${host_docroot}
     fi
+
+    echo "<?php phpinfo(); ?>" > ${host_docroot}/info.php
 
     http_status=$(curl -kLI http://${fqdn} -o /dev/null -w '%{http_code}\n' -s)
     while [ ${http_status} -ne 200 ]; do
@@ -317,8 +293,36 @@ function __init() {
     mkdir -p ${app_path}/build/wp-sync
 
     if [ ${fpm} -eq 0 ]; then
+        containers=(
+            ${fqdn}-${application}
+            ${fqdn}-${application}-db
+        )
+        images=(
+            toybox/wordpress
+            toybox/mariadb
+        )
+
+        wordpress_version="4.5.2-apache"
+        php_version="5.6.21"
+        app_version="${wordpress_version}"
+
         __init_standalone
     else
+        containers=(
+            ${fqdn}-${application}
+            ${fqdn}-${application}-fpm
+            ${fqdn}-${application}-db
+        )
+        images=(
+            toybox/nginx-fpm
+            toybox/wordpress
+            toybox/mariadb
+        )
+
+        wordpress_version="4.5.3-fpm"
+        php_version="5.6.23"
+        app_version="${wordpress_version}"
+
         __init_fpm
     fi
 }
@@ -386,6 +390,13 @@ function __init_fpm() {
     mkdir -p ${app_path}/data/nginx/docroot
     mkdir -p ${app_path}/data/nginx/certs
 
+    #echo "images[0]: "${images[0]}
+    #echo "images[1]: "${images[1]}
+    #echo "images[2]: "${images[2]}
+    #echo "nginx_version: "${nginx_version}
+    #echo "wordpress_version: "${wordpress_version}
+    #echo "mariadb_version: "${mariadb_version}
+
     echo ">>> build image: ${images[0]}:${nginx_version} ..."
     docker build -t ${images[0]}:${nginx_version} $TOYBOX_HOME/src/nginx/${nginx_version} && echo
 
@@ -442,8 +453,6 @@ ${containers[1]}:
         - EXEC_REPLACE_DB=${clone}
         - FQDN_REPLACED=${remote_fqdn}
         - REMOTE_WP_DIR=${remote_wp_dir}
-    #ports:
-    #    - "9000"
 
 ${containers[2]}:
     image: ${images[2]}:${mariadb_version}
@@ -463,11 +472,5 @@ ${containers[2]}:
         - TERM=xterm
         - TOYBOX_UID=${uid}
         - TOYBOX_GID=${gid}
-
-#${containers[2]}:
-#    image: busybox
-#    volumes:
-#        - ${app_path}/data/docroot:${docroot}
-#        - ${app_path}/data/mysql:/var/lib/mysql
 EOF
 }

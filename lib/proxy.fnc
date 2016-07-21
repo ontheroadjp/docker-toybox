@@ -42,7 +42,10 @@ function __post_run() {
 
 function __init() {
 
-    __build
+    __build || {
+        echo "build error(${application})"
+        exit 1
+    }
 
     mkdir -p ${app_path}/bin
     mkdir -p ${app_path}/data/nginx/conf.d

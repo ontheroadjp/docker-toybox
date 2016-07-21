@@ -220,7 +220,7 @@ server {
     send_timeout                600;
 
     add_header X-Cache $upstream_cache_status;
-    proxy_ignore_headers X-Accel-Redirect X-Accel-Expires Cache-Control Expires Set-Cookie;
+    #proxy_ignore_headers X-Accel-Redirect X-Accel-Expires Cache-Control Expires Set-Cookie;
 
 	location / {
 		proxy_pass {{ trim $proto }}://{{ trim $host }};
@@ -273,7 +273,7 @@ server {
 	{{ end }}
 
     add_header X-Cache $upstream_cache_status;
-    proxy_ignore_headers X-Accel-Redirect X-Accel-Expires Cache-Control Expires Set-Cookie;
+    #proxy_ignore_headers X-Accel-Redirect X-Accel-Expires Cache-Control Expires Set-Cookie;
 
     client_max_body_size        20M;
     proxy_connect_timeout       600;

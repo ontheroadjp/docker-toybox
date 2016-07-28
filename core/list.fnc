@@ -53,10 +53,11 @@ function __list() {
                 echo "[${domain}]"
                 printf "%-10s" "ID"
                 printf "%-42s" "URL"
-                printf "%-20s" "Application"
+                printf "%-25s" "Application"
                 echo "Status"
-                echo "-------------------------------------------------------------------------------"
-
+                n=0; while [ $n -lt 85 ]; do
+                    printf "-"; n=$((n+1))
+                done; printf "\n"
             fi
             subs="${dom}/*"
             for sub in ${subs}; do
@@ -85,7 +86,7 @@ function __list() {
                     fi
 
                     local ver=$(echo ${app_version} | sed 's:-apache::')
-                    printf "%-20s" ${application}:${ver}
+                    printf "%-25s" ${application}:${ver}
 
                     local exist=0
                     local running=0

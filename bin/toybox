@@ -452,29 +452,13 @@ done
 if [ ${#param[@]} -eq 0 ]; then
     __list
 
-#elif [ ${#param[@]} -eq 1 ]; then
-#    #if [ $1 = "reset" ]; then
-#    if [ ${param[0]} = "reset" ]; then
-#        echo "Are you sure you want to reset all of containers related ${project_name}?(y/n)"
-#        read answer
-#        if [ ${answer} = "y" ]; then
-#            echo -n 'docker stop...'
-#            docker stop $(docker ps | grep ${project_name} | awk '{print $1}') > /dev/null 2>&1
-#            echo 'done.'
-#            echo -n 'docker rm...'
-#            docker rm $(docker ps -a | grep ${project_name} | awk '{print $1}') > /dev/null 2>&1
-#            echo 'done.'
-#            echo -n 'remove stack directory...'
-#            sudo rm -rf $TOYBOX_HOME/stack && {
-#                echo 'done.'
-#            }
-#        fi
-#    elif __is_executable "_$1" ; then
-#        _$1
-#    else
-#        echo "Invalid argument: $1"
-#        exit 1;
-#    fi
+elif [ ${#param[@]} -eq 1 ]; then
+    if [ ${param[0]} = "applications" ]; then
+        _applications
+    else
+        echo "Invalid argument: $1"
+        exit 1;
+    fi
 
 elif [ ${#param[@]} -eq 2 ]; then
 

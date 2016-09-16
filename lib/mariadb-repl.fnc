@@ -1,23 +1,43 @@
 #!/bin/sh
 
+containers=(
+   ${application}-${mariadb_version}-master
+   ${application}-${mariadb_version}-slave
+)
+images=(
+   toybox/mariadb
+)
+
 mariadb_version=10.1.14
+app_version=${mariadb_version}
 db_root_password=root
+
+declare -A components=(
+    ["${project_name}_${containers[0]}_1"]="mariadb"
+    ["${project_name}_${containers[1]}_1"]="mariadb"
+)
+declare -A component_version=(
+    ['mariadb']="${mariadb_version}"
+)
+declare -A params=(
+    ['mariadb_mysql_root_password']=${db_root_password}
+    ['mariadb_mariadb_alias']=${mariadb_alias}
+    ['mariadb_term']="xterm"
+)
 
 uid=""
 gid=""
 
 function __build() {
-    docker build -t toybox/${application}:${mariadb_version} $TOYBOX_HOME/src/${application}/${mariadb_version}
+    docker build -t ${images[0]}:${mariadb_version} $TOYBOX_HOME/src/${application}/${mariadb_version}
 }
-
-containers=( \
-   ${application}-${mariadb_version}-master
-   ${application}-${mariadb_version}-slave
-)
 
 function __init() {
 
-    __build
+    __build || {
+        echo "build error(${application})"
+        exit 1
+    }
 
     mkdir -p ${app_path}/bin
     mkdir -p ${app_path}/data/master
@@ -28,7 +48,8 @@ function __init() {
     
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
-    image: toybox/${application}:${mariadb_version}
+    #image: toybox/${application}:${mariadb_version}
+    image: ${images[0]}:${mariadb_version}
     volumes:
         - ${app_path}/data/master:/var/lib/mysql
         - /etc/localtime:/etc/localtime:ro
@@ -41,7 +62,8 @@ ${containers[0]}:
     ports:
         - "3306"
 ${containers[1]}:
-    image: toybox/${application}:${mariadb_version}
+    #image: toybox/${application}:${mariadb_version}
+    image: ${images[0]}:${mariadb_version}
     volumes:
         - ${app_path}/data/slave:/var/lib/mysql
         - /etc/localtime:/etc/localtime:ro
@@ -57,29 +79,6 @@ ${containers[1]}:
         - "3306"
 EOF
 }
-
-#function __new() {
-#    #__source; local status=$?
-#    #if [ ${status} -ne 0 ]; then
-#    #    echo ${project_name}": source code of ${application} does not download."
-#    #    exit 1
-#    #fi
-#
-#    __init && {
-#        cd ${app_path}/bin
-#        docker-compose -p ${project_name} up -d && {
-#            echo '---------------------------------'
-#            echo 'URL: http://'${fqdn}
-#            echo 'WebDAV: http://'${fqdn}'/remote.php/webdav/'
-#            echo '---------------------------------'
-#            #echo -n 'Database Host: '
-#            #docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
-#            #    $(docker ps | grep ${project_name}_${db_container}_1 | awk '{print $1}')
-#            echo 'Database Username: '${db_user}
-#            echo 'Database Password: '${db_user_pass}
-#        }
-#    }
-#}
 
 #function __backup() {
 #    prefix=$(date '+%Y%m%d_%H%M%S')

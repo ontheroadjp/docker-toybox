@@ -227,7 +227,12 @@ server {
         {{ if ($proxy_cache) }}
         proxy_cache {{ $host }};
         #proxy_cache_key $scheme$proxy_host$uri$is_args$args;
-        proxy_cache_key $scheme://$proxy_host$request_uri;
+        #proxy_cache_key $scheme://$proxy_host$request_uri;
+        set $mobilef '';
+        if ($http_user_agent ~* '(iPhone|iPod|incognito|webmate|Android.*Mobile|Windows.*Phone|dream|CUPCAKE|blackberry9500|blackberry9530|blackberry9520|blackberry9550|blackberry 9800|webOS|s8000|bada|Googlebot-Mobile|incognito|webmate)') {
+             set $mobilef 'mobile.';
+        }
+        proxy_cache_key "$mobilef$scheme://$host$request_uri";
         proxy_cache_valid       200 2h;
         proxy_cache_valid       302 2h;
         proxy_cache_valid       301 4h;
@@ -287,7 +292,12 @@ server {
         {{ if ($proxy_cache) }}
         proxy_cache {{ $host }};
         #proxy_cache_key $scheme$proxy_host$uri$is_args$args;
-        proxy_cache_key $scheme://$proxy_host$request_uri;
+        #proxy_cache_key $scheme://$proxy_host$request_uri;
+        set $mobilef '';
+        if ($http_user_agent ~* '(iPhone|iPod|incognito|webmate|Android.*Mobile|Windows.*Phone|dream|CUPCAKE|blackberry9500|blackberry9530|blackberry9520|blackberry9550|blackberry 9800|webOS|s8000|bada|Googlebot-Mobile|incognito|webmate)') {
+             set $mobilef 'mobile.';
+        }
+        proxy_cache_key "$mobilef$scheme://$host$request_uri";
         proxy_cache_valid       200 2h;
         proxy_cache_valid       302 2h;
         proxy_cache_valid       301 4h;

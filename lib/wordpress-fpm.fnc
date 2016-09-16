@@ -292,6 +292,7 @@ function __init_standalone() {
 
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
+    restart: always
     image: ${images[0]}:${wordpress_version}
     volumes:
         - /etc/localtime:/etc/localtime:ro
@@ -319,6 +320,7 @@ ${containers[0]}:
         - "80"
 
 ${containers[1]}:
+    restart: always
     image: ${images[1]}:${mariadb_version}
     volumes:
         - /etc/localtime:/etc/localtime:ro
@@ -364,6 +366,7 @@ function __init_fpm() {
 
     cat <<-EOF > ${compose_file}
 ${containers[0]}:
+    restart: always
     image: ${images[0]}:${nginx_version}
     links:
         - ${containers[1]}:php
@@ -388,6 +391,7 @@ ${containers[0]}:
         - "80"
 
 ${containers[1]}:
+    restart: always
     image: ${images[1]}:${wordpress_version}
     volumes:
         - /etc/localtime:/etc/localtime:ro
@@ -411,6 +415,7 @@ ${containers[1]}:
         - REMOTE_WP_DIR=${remote_wp_dir}
 
 ${containers[2]}:
+    restart: always
     image: ${images[2]}:${mariadb_version}
     volumes:
         - /etc/localtime:/etc/localtime:ro
